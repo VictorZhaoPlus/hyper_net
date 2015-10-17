@@ -2,6 +2,8 @@
 <config path="./">
     <module name="Harbor" />
     <module name="Cluster" />
-	<module name="ScriptEngine" />
 	<module name="Rpc" />
+	<module name="Agent" />
+	<module name="Redis" />
+	<module name="ScriptEngine" />
 </config>

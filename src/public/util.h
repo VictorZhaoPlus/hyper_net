@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <dlfcn.h>
+#include <limits.h>
 
 typedef unsigned char u8;
 typedef unsigned short u16;
@@ -43,5 +44,30 @@ extern "C" {
 }
 
 #define CSLEEP(t) usleep(t)
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+	inline void __OMemcpy(void * dst, const s32 maxSize, const void * src, const s32 size) {
+		OASSERT(size <= maxSize, "memcpy out of range");
+
+		const s32 len = (size > maxSize ? maxSize : size);
+		memcpy(dst, src, len);
+	}
+
+	inline void __OMemset(void * dst, const s32 maxSize, const s32 val, const s32 size) {
+		OASSERT(size <= maxSize, "memset out of range");
+
+		const s32 len = (size > maxSize ? maxSize : size);
+		memset(dst, val, len);
+	}
+#ifdef __cplusplus
+};
+#endif
+
+#define SafeMemcpy __OMemcpy
+#define SafeMemset __OMemset
+
+#define MAX_PATH 260
 
 #endif //__util_h__

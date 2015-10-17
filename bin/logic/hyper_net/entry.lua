@@ -27,7 +27,7 @@ collectgarbage("setstepmul", 5000)
 
 math.randomseed(os.time())
 require "core.harbor"
---require "core.timer"
+require "core.timer"
 require "main"
 
 return true

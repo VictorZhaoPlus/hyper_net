@@ -18,7 +18,6 @@ public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);
     virtual bool Destroy(IKernel * kernel);
-    virtual void Loop(IKernel * kernel) {}
 
     virtual void OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port);
     virtual void OnClose(IKernel * kernel, s32 nodeType, s32 nodeId);

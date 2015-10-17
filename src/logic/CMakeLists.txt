@@ -6,6 +6,7 @@ SET(LOGIC_INTERFACE
     "${PROJECT_SOURCE_DIR}/src/logic/interface/NodeType.h"
     "${PROJECT_SOURCE_DIR}/src/logic/interface/IMaster.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IScriptEngine.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/interface/ITest.h"
 )
 
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/harbor)
@@ -15,5 +16,6 @@ ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/starter)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/scriptengine)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/redis)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/rpc)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/http)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/agent)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/test)
 

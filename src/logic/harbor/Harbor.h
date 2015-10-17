@@ -38,21 +38,11 @@ struct Handler {
 };
 
 class NodeSession;
-class Harbor : public IHarbor, public IPacketParser, public ISessionFactory {
-    struct Reconnect {
-        NodeSession * session;
-        char ip[MAX_IP_SIZE];
-        s32 port;
-        s64 tick;
-    };
-
+class Harbor : public IHarbor, public ISessionFactory {
 public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);
     virtual bool Destroy(IKernel * kernel);
-    virtual void Loop(IKernel * kernel);
-
-    virtual s32 ParsePacket(const void * context, const s32 size);
 
     virtual ISession * Create();
     virtual void Recover(ISession *);
@@ -66,24 +56,30 @@ public:
     virtual void PrepareBrocast(s32 nodeType, const s32 messageId, const s32 size);
     virtual void Brocast(s32 nodeType, const void * context, const s32 size);
 
+	virtual void PrepareBrocast(const s32 messageId, const s32 size);
+	virtual void Brocast(const void * context, const s32 size);
+
     virtual void RegProtocolHandler(s32 nodeType, s32 messageId, const NodeProtocolHandlerType& handler, const char * debug);
 
     virtual s32 GetNodeType() const { return _nodeType; }
     virtual s32 GetNodeId() const { return _nodeId; }
     s32 GetPort() const { return _port; }
-    bool IsHide() const { return _hide; }
+	bool IsHide() const { return _hide; }
+
+	s32 GetReconnectInterval() { return _reconnectTick; }
 
     void OnNodeOpen(IKernel * kernel, const s32 nodeType, const s32 nodeId, const char * ip, const s32 port, const bool hide, NodeSession * session);
     void OnNodeClose(IKernel * kernel, const s32 nodeType, const s32 nodeId);
     void OnNodeMessage(IKernel * kernel, const s32 nodeType, const s32 nodeId, const void * context, const s32 size);
 
-    void AddReconnect(NodeSession * session, const char * ip, const s32 port);
+    void Reconnect(NodeSession * session);
 
     static Harbor * Self() { return s_harbor; }
+	static IKernel * GetKernel() { return s_kernel; }
 
 private:
     static Harbor * s_harbor;
-    IKernel * _kernel;
+    static IKernel * s_kernel;
 
     s32 _sendBuffSize;
     s32 _recvBuffSize;
@@ -98,8 +94,6 @@ private:
 
     std::list<NodeListenerUnit> _listeners;
     std::unordered_map<s32, std::unordered_map<s32, Handler>> _handlers;
-
-    std::list<Reconnect*> _reconnects;
 };
 
 #endif //__HARBOR_H__

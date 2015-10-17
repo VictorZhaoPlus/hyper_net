@@ -8,7 +8,6 @@ public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);
     virtual bool Destroy(IKernel * kernel);
-    virtual void Loop(IKernel * kernel) {}
 
     static Starter * Self() { return s_self; }
 

@@ -1,7 +1,9 @@
 local pairs = pairs
 local ipairs = ipairs
 local assert = assert
-local system = require "serverd.system"
+local os = os
+local math = math
+local print = print
 local reg_loop = reg_loop
 
 _ENV = {}
@@ -16,7 +18,22 @@ local cycles = {
 }
 local running = {}
 local now = 0
-local tick = system.tick()
+local tick = os.tick()
+
+local printCycles = function()
+	print("---------------------------timer debug-----------------------")
+	for i = 1, #cycles do
+		print("cycle "..i..":")
+		for k, v in pairs(cycles[i].timers) do
+			local msg = ""
+			for base, u in pairs(v) do
+				msg = msg..","..base.timer.name
+			end
+			print("slot "..k, v, ":["..msg.."]")
+		end
+	end
+	print("---------------------------end--------------------------------")
+end
 
 local findTimerListFromCycle = function(cycle, expire)
 	local index = expire % cycle.size
@@ -48,12 +65,14 @@ local findTimerList = function(expire)
 end
 
 local schedule = function(base)
-	local list = findTimerList(base)
+	local list = findTimerList(base.expire)
 	assert(list, "where is timer list")
 	list[base] = true
+	base.list = list
 end
 
-local checkHighGear = function(index)
+local checkHighGear
+checkHighGear = function(index)
 	if index == nil then
 		index = 1
 	end
@@ -90,8 +109,10 @@ local update = function()
 		for k, v in pairs(list) do
 			if k.pause ~= nil then
 				cycle.timers[cycle.now][k] = true
+				k.list = cycle.timers[cycle.now]
 			else
 				running[k] = true
+				k.list = running
 			end
 		end
 	end
@@ -100,24 +121,21 @@ end
 
 local endTimer = function(base, nonviolent)
 	if base.timer.onEnd ~= nil then
-		base.timer.onEnd(nonviolent, system.tick())
+		base.timer.onEnd(nonviolent, os.tick())
 	end
 	base.valid = false
+	base.timer.__TIMER_BASE__ = nil
 end
 
-local pool = function(base)
+local poll = function(base)
 	if not base.started then
 		if base.timer.onStart ~= nil then
-			base.timer.onStart(system.tick())
+			base.timer.onStart(os.tick())
 		end
-		base.started = false
-		
-		if base.valid then
-			schedule(base)
-		end
+		base.started = true
 	else
 		if base.timer.onTimer ~= nil then
-			base.timer.onTimer(system.tick())
+			base.timer.onTimer(os.tick())
 		end
 		
 		if base.valid then
@@ -128,6 +146,11 @@ local pool = function(base)
 				end
 			end
 		end
+	end
+	
+	if base.valid then
+		base.expire = base.expire + base.interval
+		schedule(base)
 	end
 end
 
@@ -159,8 +182,9 @@ function stop(timer)
 	local base = timer.__TIMER_BASE__
 	assert(base, "where is timer base")
 	
-	local list = findTimerList(base.expire)
+	local list = base.list
 	list[base] = nil
+	base.list = nil
 	endTimer(base, false)
 end
 
@@ -170,7 +194,7 @@ function pause(timer)
 	
 	base.pause = now
 	if base.timer.onPause ~= nil then
-		base.timer.onPause(system.tick())
+		base.timer.onPause(os.tick())
 	end
 end
 
@@ -178,39 +202,47 @@ function resume(timer)
 	local base = timer.__TIMER_BASE__
 	assert(base, "where is timer base")
 	
-	local list = findTimerList(base.expire)
+	local list = base.list
 	list[base] = nil
+	base.list = nil
 	
 	base.expire = now + base.expire - base.pause
-	base.pause = false
+	base.pause = nil
 	schedule(base)
 	if base.timer.onResume ~= nil then
-		base.timer.onResume(system.tick())
+		base.timer.onResume(os.tick())
 	end
 end
 
 reg_loop(function ()
-	local now = system.tick()
-	local count = math.ceil((now - tick) / ELAPSE)
+	local nowTick = os.tick()
+	local count = math.ceil((nowTick - tick) / ELAPSE)
 	for i = 1, count do
 		checkHighGear()
-		now = now + 1
 		update()
+		now = now + 1
 	end
+	tick = tick + count * ELAPSE
 	
+	local stat = 0
 	while true do
 		local list = running
 		running = {}
 		
 		local count = 0
 		for base, v in pairs(list) do
-			poll(k)
+			poll(base)
 			count = count + 1
+			stat = stat + 1
 		end
 		
 		if count == 0 then
 			break
 		end
+	end
+	local use = os.tick() - nowTick
+	if stat > 10 then
+		print("timer use ", use, stat)
 	end
 end)
 

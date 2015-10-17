@@ -3,9 +3,9 @@
 #include <thread>
 #include <list>
 #include <mutex>
-#include <condition_variable>
 #include <vector>
 #include "util.h"
+#include "spin_mutex.h"
 
 namespace olib {
 	template <typename T>
@@ -27,64 +27,49 @@ namespace olib {
 
 	template <typename T>
 	class ThreadModule {
-		template <bool valueSet>
-		class BoolGuard {
-		public:
-			explicit BoolGuard(bool& value) : _value(value) {}
-			~BoolGuard() { _value = valueSet; }
-
-		private:
-			bool& _value;
-		};
-
 		class Thread {
 		public:
-			Thread() : _module(nullptr), _runner(nullptr), _terminate(false), _running(false) {}
+			Thread() : _module(nullptr), _runner(nullptr), _terminate(false) {}
 			~Thread() {}
 
 			bool Start(ThreadModule * module, IRunner<T> * runner) {
 				_runner = runner;
 				_module = module;
-				_running = true;
 				_thread = std::thread(&Thread::ThreadProc, this);
 				return true;
 			}
 
 			void Terminate() {
 				_terminate = true;
-				while (_running)
-					_runningCondition.notify_all();
 				_thread.join();
 				_runner->Release();
 			}
 
 			void Push(T * command) {
-				std::unique_lock<std::mutex> guard(_runningMutex);
+				std::unique_lock<spin_mutex> guard(_runningMutex);
 				_runningCommands.push_back(command);
-				if (_runningCommands.size() == 1)
-					_runningCondition.notify_one();
 			}
 
 			void ThreadProc(){
-				_running = true;
-				BoolGuard<false> boolGuard(_running);
 				while (!_terminate) {
 					T * command = nullptr;
-					while (!_terminate) {
-						std::unique_lock<std::mutex> guard(_runningMutex);
-						if (_runningCommands.empty())
-							_runningCondition.wait(guard);
+
+					{
+						std::unique_lock<spin_mutex> guard(_runningMutex);
 						if (!_runningCommands.empty()) {
 							command = *_runningCommands.begin();
 							_runningCommands.pop_front();
 						}
 					}
+
 					if (command) {
 						_runner->Execute(command);
 						_module->AddToComplete(command);
+						printf("complete one\n");
 					}
+					else
+						CSLEEP(1);
 				}
-				_running = false;
 			}
 
 		private:
@@ -92,9 +77,7 @@ namespace olib {
 			IRunner<T> * _runner;
 			std::thread _thread;
 			bool _terminate;
-			bool _running;
-			std::mutex _runningMutex;
-			std::condition_variable _runningCondition;
+			spin_mutex _runningMutex;
 			std::list<T*> _runningCommands;
 		};
 
@@ -135,7 +118,7 @@ namespace olib {
 			while (true) {
 				if (!swaped && _completeCommandsRun.empty()) {
 					swaped = true;
-					std::unique_lock<std::mutex> guard(_completeMutex);
+					std::unique_lock<spin_mutex> guard(_completeMutex);
 					_completeCommandsRun.swap(_completeCommands);
 				}
 
@@ -155,7 +138,7 @@ namespace olib {
 		}
 
 		void AddToComplete(T * command) {
-			std::unique_lock<std::mutex> guard(_completeMutex);
+			std::unique_lock<spin_mutex> guard(_completeMutex);
 			_completeCommands.push_back(command);
 		}
 
@@ -163,7 +146,7 @@ namespace olib {
 
 	private:
 		std::vector<Thread*> _threads;
-		std::mutex _completeMutex;
+		spin_mutex _completeMutex;
 		std::list<T*> _completeCommands;
 		std::list<T*> _completeCommandsRun;
 	};

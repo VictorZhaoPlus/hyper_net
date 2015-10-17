@@ -3,6 +3,7 @@
 #include "util.h"
 #include "singleton.h"
 #include <unordered_map>
+#include <list>
 
 class IModule;
 class LogicMgr : public OSingleton<LogicMgr> {
@@ -28,6 +29,7 @@ private:
 
 private:
     std::unordered_map<std::string, IModule *> _modules;
+	std::list<IModule*> _moduleList;
 };
 
 #endif //__LOGICMGR_H__

@@ -29,6 +29,21 @@ namespace tools {
         return atoi(val);
     }
 
+	inline s64 StringAsInt64(const char * val) {
+		OASSERT(val != nullptr, "val is null");
+		return atoll(val);
+	}
+
+	inline s64 StringAsFloat(const char * val) {
+		OASSERT(val != nullptr, "val is null");
+		return atof(val);
+	}
+
+	inline s64 StringAsBool(const char * val) {
+		OASSERT(val != nullptr, "val is null");
+		return strcmp(val, "true") == 0;
+	}
+
     inline s64 GetTimeMillisecond() {
         struct timeval tv;
         gettimeofday(&tv, NULL);

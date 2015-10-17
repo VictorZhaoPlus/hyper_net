@@ -26,6 +26,9 @@ public:
     virtual void PrepareBrocast(s32 nodeType, const s32 messageId, const s32 size) = 0;
     virtual void Brocast(s32 nodeType, const void * context, const s32 size) = 0;
 
+	virtual void PrepareBrocast(const s32 messageId, const s32 size) = 0;
+	virtual void Brocast(const void * context, const s32 size) = 0;
+
 #define ANY_NODE -1
     virtual void RegProtocolHandler(s32 nodeType, s32 messageId, const NodeProtocolHandlerType& handler, const char * debug) = 0;
 

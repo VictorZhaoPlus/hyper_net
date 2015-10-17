@@ -28,7 +28,7 @@ public:
 	virtual bool Read(const char * format, ...) const = 0;
 };
 
-typedef std::function<void(IKernel * pKernel, IScriptCallResult *)> ScriptResultReadFuncType;
+typedef std::function<void(IKernel * kernel, IScriptCallResult *)> ScriptResultReadFuncType;
 class IScriptModule {
 public:
 	virtual ~IScriptModule() {}

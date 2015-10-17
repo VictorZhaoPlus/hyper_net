@@ -7,20 +7,28 @@ PROJECT(serverd)
 option(USE_32BITS "Compile for 32bits processors(linux only)" OFF)
 IF(UNIX)
     SET(CMAKE_CXX_COMPILER "/usr/bin/g++")
-    SET(CMAKE_CXX_FLAGS "-g -Wall -std=c++0x -lpthread -rdynamic -ldl -Dlinux -D_DEBUG")
-    SET(CMAKE_CXX_FLAGS_DEBUG "-g -std=c++0x -lpthread -rdynamic -ldl -Dlinux -D_DEBUG")
-    SET(CMAKE_CXX_FLAGS_RELEASE "-g -std=c++0x -lpthread -rdynamic -ldl -Dlinux")
+    SET(CMAKE_CXX_FLAGS "-g -Wall -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux -D_DEBUG")
+    SET(CMAKE_CXX_FLAGS_DEBUG "-g -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux -D_DEBUG")
+    SET(CMAKE_CXX_FLAGS_RELEASE "-g -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux")
     MESSAGE(STATUS "Linux")
 ENDIF(UNIX)
+
+SET(JIT OFF)
 
 SET(PUBLIC
     "${PROJECT_SOURCE_DIR}/src/public/util.h"
     "${PROJECT_SOURCE_DIR}/src/public/util.cpp"
     "${PROJECT_SOURCE_DIR}/src/public/tools.h"
     "${PROJECT_SOURCE_DIR}/src/public/singleton.h"
+	"${PROJECT_SOURCE_DIR}/src/public/XmlReader.h"
+	"${PROJECT_SOURCE_DIR}/src/public/XmlReader.cpp"
+	"${PROJECT_SOURCE_DIR}/src/public/OStream.h"
+	"${PROJECT_SOURCE_DIR}/src/public/OStream.cpp"
 	"${PROJECT_SOURCE_DIR}/src/public/CycleQueue.h"
 	"${PROJECT_SOURCE_DIR}/src/public/Fsm.h"
 	"${PROJECT_SOURCE_DIR}/src/public/ThreadModule.h"
+	"${PROJECT_SOURCE_DIR}/src/public/OArgs.h"
+	"${PROJECT_SOURCE_DIR}/src/public/spin_mutex.h"
     )
 
 SET(PUBLIC_XML

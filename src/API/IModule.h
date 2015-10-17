@@ -15,8 +15,6 @@ public:
     virtual bool Launched(IKernel * kernel) = 0;
     virtual bool Destroy(IKernel * kernel) = 0;
 
-    virtual void Loop(IKernel * kernel) = 0;
-
 public:
     IModule() {
         _nextModule = nullptr;

@@ -1,51 +1,44 @@
 #include "Harbor.h"
 #include "NodeSession.h"
-#include "tinyxml.h"
+#include "XmlReader.h"
 #include "tools.h"
 #include <algorithm>
 #include "IMaster.h"
 
 Harbor * Harbor::s_harbor = nullptr;
+IKernel * Harbor::s_kernel = nullptr;
 
 bool Harbor::Initialize(IKernel * kernel) {
     s_harbor = this;
-    _kernel = kernel;
+    s_kernel = kernel;
 
     const char * name = kernel->GetCmdArg("name");
     OASSERT(name, "invalid command args, there is no name");
 
-    TiXmlDocument doc;
-    std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
-    if (!doc.LoadFile(coreConfigPath.c_str())) {
-        OASSERT(false, "can't find core file : %s", coreConfigPath.c_str());
-        return false;
-    }
+	olib::XmlReader reader;
+	std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
+	if (!reader.LoadXml(coreConfigPath.c_str())) {
+		OASSERT(false, "can't find core file : %s", coreConfigPath.c_str());
+		return false;
+	}
 
-    const TiXmlElement * pRoot = doc.RootElement();
-    OASSERT(pRoot != nullptr, "core xml format error");
+	olib::IXmlObject& harbor = reader.Root()["harbor"][0];
+	_sendBuffSize = harbor.GetAttributeInt32("send");
+	_recvBuffSize = harbor.GetAttributeInt32("recv");
+	_reconnectTick = harbor.GetAttributeInt32("reconnect");
 
-    const TiXmlElement * p = pRoot->FirstChildElement("harbor");
-    _sendBuffSize = tools::StringAsInt(p->Attribute("send"));
-    _recvBuffSize = tools::StringAsInt(p->Attribute("recv"));
-    _reconnectTick = tools::StringAsInt(p->Attribute("reconnect"));
+	_hide = false;
+	olib::IXmlObject& nodes = harbor["node"];
+	for (s32 i = 0; i < nodes.Count(); ++i) {
+		s32 type = nodes[i].GetAttributeInt32("type");
+		const char * nodeName = nodes[i].GetAttributeString("name");
 
-    _hide = false;
-    const TiXmlElement * node = p->FirstChildElement("node");
-    while (node != nullptr) {
-        s32 type = tools::StringAsInt(node->Attribute("type"));
-        const char * nodeName = node->Attribute("name");
-
-        if (strcmp(nodeName, name) == 0) {
-            _nodeType = type;
-
-            const char * h = node->Attribute("hide");
-            if (h && strcmp(h, "true") == 0)
-                _hide = true;
-        }
-
-        _nodeNames[type] = nodeName;
-        node = node->NextSiblingElement("node");
-    }
+		if (strcmp(nodeName, name) == 0) {
+			_nodeType = type;
+			_hide = nodes[i].GetAttributeBoolean("hide");
+		}
+		_nodeNames[type] = nodeName;
+	}
 
     OASSERT(_nodeType > 0, "invalid node type");
 
@@ -63,7 +56,7 @@ bool Harbor::Launched(IKernel * kernel) {
     }
 
     if (_port) {
-        if (!kernel->Listen("0.0.0.0", _port, _sendBuffSize, _recvBuffSize, this, this)) {
+        if (!kernel->Listen("0.0.0.0", _port, _sendBuffSize, _recvBuffSize, this)) {
             OASSERT(false, "listen failed");
             return false;
         }
@@ -75,33 +68,6 @@ bool Harbor::Launched(IKernel * kernel) {
 bool Harbor::Destroy(IKernel * kernel) {
     DEL this;
     return true;
-}
-
-void Harbor::Loop(IKernel * kernel) {
-    s64 now = tools::GetTimeMillisecond();
-    while (!_reconnects.empty()) {
-        Reconnect * unit = *_reconnects.begin();
-        if (unit->tick + _reconnectTick > now)
-            break;
-
-        _reconnects.pop_front();
-        _kernel->Connect(unit->ip, unit->port, _sendBuffSize, _recvBuffSize, this, unit->session);
-
-        DEL unit;
-    }
-}
-
-s32 Harbor::ParsePacket(const void * context, const s32 size) {
-    if (context != nullptr) {
-        if (size > (s32)sizeof(HarborHeader)) {
-            HarborHeader * header = (HarborHeader*)context;
-            return size < header->len  ? 0 : header->len;
-        }
-        else
-            return 0;
-    }
-    else
-        return -1;
 }
 
 ISession * Harbor::Create() {
@@ -118,7 +84,7 @@ void Harbor::Connect(const char * ip, const s32 port) {
 
     ((NodeSession*)session)->SetConnect(ip, port);
 
-    _kernel->Connect(ip, port, _sendBuffSize, _recvBuffSize, this, session);
+    s_kernel->Connect(ip, port, _sendBuffSize, _recvBuffSize, session);
 }
 
 void Harbor::AddNodeListener(INodeListener * listener, const char * debug) {
@@ -162,6 +128,23 @@ void Harbor::PrepareBrocast(s32 nodeType, const s32 messageId, const s32 size) {
 void Harbor::Brocast(s32 nodeType, const void * context, const s32 size) {
     for (auto itr = _nodes[nodeType].begin(); itr != _nodes[nodeType].end(); ++itr)
         itr->second->SendNodeMessage(context, size);
+}
+
+void Harbor::PrepareBrocast(const s32 messageId, const s32 size) {
+	for (auto itrType = _nodes.begin(); itrType != _nodes.end(); ++itrType) {
+		for (auto itr = itrType->second.begin(); itr != itrType->second.end(); ++itr) {
+			itr->second->PrepareSendNodeMessage(size + sizeof(s32));
+			itr->second->SendNodeMessage(&messageId, sizeof(s32));
+		}
+	}
+}
+
+void Harbor::Brocast(const void * context, const s32 size) {
+	for (auto itrType = _nodes.begin(); itrType != _nodes.end(); ++itrType) {
+		for (auto itr = itrType->second.begin(); itr != itrType->second.end(); ++itr) {
+			itr->second->SendNodeMessage(context, size);
+		}
+	}
 }
 
 void Harbor::RegProtocolHandler(s32 nodeType, s32 messageId, const NodeProtocolHandlerType& handler, const char * debug) {
@@ -219,12 +202,6 @@ void Harbor::OnNodeMessage(IKernel * kernel, const s32 nodeType, const s32 nodeI
     }
 }
 
-void Harbor::AddReconnect(NodeSession * session, const char * ip, const s32 port) {
-    Reconnect * reconnect = NEW Reconnect;
-    reconnect->session = session;
-    SafeSprintf(reconnect->ip, sizeof(reconnect->ip), ip);
-    reconnect->port = port;
-    reconnect->tick = tools::GetTimeMillisecond();
-
-    _reconnects.push_back(reconnect);
+void Harbor::Reconnect(NodeSession * session) {
+	s_kernel->Connect(session->GetConnectIp(), session->GetConnectPort(), _sendBuffSize, _recvBuffSize, session);
 }

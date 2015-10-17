@@ -3,6 +3,8 @@
 #include "tinyxml.h"
 #include <string>
 #include "serialize.h"
+#include "tick.h"
+#include "buffer.h"
 
 #define MAX_MODULE_LEN 64
 
@@ -36,6 +38,7 @@ public:
 			case 'l': { s64 * val = va_arg(ap, s64*); *val = lua_tointeger(_state, index++); } break;
 			case 'f': { float * val = va_arg(ap, float*); *val = lua_tonumber(_state, index++); } break;
 			case 'b': { bool * val = va_arg(ap, bool*); *val = lua_toboolean(_state, index++); } break;
+			case 'P': { void ** val = va_arg(ap, void**); *val = lua_touserdata(_state, index++); } break;
 			case 's': { const char ** val = va_arg(ap, const char **); *val = lua_tostring(_state, index++); } break;
 			case 'S': {
 					const char ** val = va_arg(ap, const char **);
@@ -67,12 +70,13 @@ public:
 		va_start(ap, format);
 		while (*c != '\0') {
 			switch (*c) {
-			case 'c': { s8 val = va_arg(ap, s8); lua_pushinteger(_state, val); ++_count; } break;
-			case 'd': { s16 val = va_arg(ap, s16); lua_pushinteger(_state, val); ++_count; } break;
+			case 'c': { s8 val = va_arg(ap, s32); lua_pushinteger(_state, val); ++_count; } break;
+			case 'd': { s16 val = va_arg(ap, s32); lua_pushinteger(_state, val); ++_count; } break;
 			case 'i': { s32 val = va_arg(ap, s32); lua_pushinteger(_state, val); ++_count; } break;
 			case 'l': { s64 val = va_arg(ap, s64); lua_pushinteger(_state, val); ++_count; } break;
-			case 'f': { float val = va_arg(ap, float); lua_pushnumber(_state, val); ++_count; } break;
-			case 'b': { bool val = va_arg(ap, bool); lua_pushboolean(_state, val); ++_count; } break;
+			case 'f': { float val = va_arg(ap, double); lua_pushnumber(_state, val); ++_count; } break;
+			case 'b': { bool val = va_arg(ap, s32); lua_pushboolean(_state, val); ++_count; } break;
+			case 'P': { void * val = va_arg(ap, void*); lua_pushlightuserdata(_state, val); ++_count; } break;
 			case 's': { const char * val = va_arg(ap, const char *); lua_pushstring(_state, val); ++_count; } break;
 			case 'S': { 
 					const char * val = va_arg(ap, const char *);
@@ -186,11 +190,6 @@ bool ScriptEngine::Destroy(IKernel * kernel) {
     return true;
 }
 
-void ScriptEngine::Loop(IKernel * kernel) {
-    bool res = ExecuteGlobalFunction(kernel, "loop", nullptr);
-    OASSERT(res, "lua core loop failed");
-}
-
 IScriptModule * ScriptEngine::CreateModule(const char * name) {
 	char module[256];
 	SafeSprintf(module, sizeof(module), "serverd.%s", name);
@@ -223,6 +222,7 @@ bool ScriptEngine::AddModuleFunction(const IScriptModule * m, const char * func,
 	lua_rawset(s_state, -3);
 
 	lua_pop(s_state, 3);
+	return true;
 }
 
 bool ScriptEngine::Call(const IScriptModule * module, const char * func, const ScriptResultReadFuncType& f, const char * format, ...) {
@@ -235,12 +235,13 @@ bool ScriptEngine::Call(const IScriptModule * module, const char * func, const S
 	va_start(ap, format);
 	while (*c != '\0') {
 		switch (*c) {
-		case 'c': { s8 val = va_arg(ap, s8); lua_pushinteger(s_state, val); ++count; } break;
-		case 'd': { s16 val = va_arg(ap, s16); lua_pushinteger(s_state, val); ++count; } break;
+		case 'c': { s8 val = va_arg(ap, s32); lua_pushinteger(s_state, val); ++count; } break;
+		case 'd': { s16 val = va_arg(ap, s32); lua_pushinteger(s_state, val); ++count; } break;
 		case 'i': { s32 val = va_arg(ap, s32); lua_pushinteger(s_state, val); ++count; } break;
 		case 'l': { s64 val = va_arg(ap, s64); lua_pushinteger(s_state, val); ++count; } break;
-		case 'f': { float val = va_arg(ap, float); lua_pushnumber(s_state, val); ++count; } break;
-		case 'b': { bool val = va_arg(ap, bool); lua_pushboolean(s_state, val); ++count; } break;
+		case 'f': { float val = va_arg(ap, double); lua_pushnumber(s_state, val); ++count; } break;
+		case 'b': { bool val = va_arg(ap, s32); lua_pushboolean(s_state, val); ++count; } break;
+		case 'P': { void * val = va_arg(ap, void*); lua_pushlightuserdata(s_state, val); ++count; } break;
 		case 's': { const char * val = va_arg(ap, const char *); lua_pushstring(s_state, val); ++count; } break;
 		case 'S': {
 				const char * val = va_arg(ap, const char *);
@@ -278,6 +279,8 @@ bool ScriptEngine::LoadLua(const char * path, const char * logic) {
 
 	luaL_openlibs(s_state);
 	luaopen_seri(s_state);
+	luaopen_tick(s_state);
+	luaopen_buffer(s_state);
 
 	char logicPath[MAX_PATH];
 	SafeSprintf(logicPath, sizeof(logicPath), "%s/hyper_net", path);

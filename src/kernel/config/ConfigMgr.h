@@ -21,6 +21,11 @@ public:
     inline s32 GetNetSupportSize() const { return _netSupportSize; }
 	inline s32 GetNetThreadCount() const { return _netThreadCount; }
 
+	inline s32 GetHttpThreadCount() const { return _httpThreadCount; }
+
+	inline const char * GetLoggerPath() const { return _loggerPath; }
+	inline bool IsLogToConsole() const { return _logToConsole; }
+
 private:
     bool parse(int argc, char ** argv);
 
@@ -36,6 +41,11 @@ private:
     s32 _netFrameWaitTick;
     s32 _netSupportSize;
 	s32 _netThreadCount;
+
+	s32 _httpThreadCount;
+
+	char _loggerPath[MAX_PATH];
+	bool _logToConsole;
 };
 
 #endif // __CONFIGMGR_H__

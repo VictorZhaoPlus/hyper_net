@@ -4,7 +4,6 @@
 #include "INetHandler.h"
 
 namespace core {
-    class IPacketParser;
     class ISession;
 }
 
@@ -15,7 +14,6 @@ public:
         return NEW Connector(fd);
     }
 
-    inline void SetParser(core::IPacketParser * parser) { _parser = parser; }
     inline void SetSession(core::ISession * session) { _session = session; }
     inline void SetBufferSize(const s32 sendSize, const s32 recvSize) { _sendSize = sendSize; _recvSize = recvSize; }
     inline void SetIp(const char * ip, const s32 port) {
@@ -32,7 +30,6 @@ private:
     virtual ~Connector();
 
 private:
-    core::IPacketParser * _parser;
     core::ISession * _session;
 
     s32 _sendSize;

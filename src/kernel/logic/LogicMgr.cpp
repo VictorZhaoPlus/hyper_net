@@ -40,18 +40,16 @@ bool LogicMgr::Initialize() {
         module = module->NextSiblingElement("module");
     }
 
-    for (auto itr = _modules.begin(); itr != _modules.end(); ++itr)
-        itr->second->Initialize(Kernel::Instance());
+	for (auto * logic : _moduleList)
+		logic->Initialize(Kernel::Instance());
 
-    for (auto itr = _modules.begin(); itr != _modules.end(); ++itr)
-        itr->second->Launched(Kernel::Instance());
+	for (auto * logic : _moduleList)
+		logic->Launched(Kernel::Instance());
 
     return true;
 }
 
 void LogicMgr::Loop() {
-    for (auto itr = _modules.begin(); itr != _modules.end(); ++itr)
-        itr->second->Loop(Kernel::Instance());
 }
 
 void LogicMgr::Destroy() {
@@ -79,6 +77,7 @@ bool LogicMgr::LoadModule(const char * path) {
         }
 
         _modules.insert(std::make_pair(name, logic));
+		_moduleList.push_back(logic);
 
         logic = logic->GetNext();
     }

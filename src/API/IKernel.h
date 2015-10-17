@@ -6,6 +6,50 @@ class IModule;
 namespace core {
     class IKernel;
 
+	class IHttpBase {
+	public:
+		virtual ~IHttpBase() {}
+	};
+
+	class IHttpHandler {
+	public:
+		virtual ~IHttpHandler() {}
+
+		inline void SetBase(IHttpBase * base) { _base = base; }
+		inline IHttpBase * GetBase() { return _base; }
+
+		virtual void OnSuccess(IKernel * kernel, const void * context, const s32 size) = 0;
+		virtual void OnFail(IKernel * kernel, const s32 errCode) = 0;
+		virtual void OnRelease() = 0;
+
+	private:
+		IHttpBase * _base;
+	};
+
+	class ITimerBase {
+	public:
+		virtual ~ITimerBase() {}
+	};
+
+	class ITimer {
+	public:
+		ITimer() : _base(nullptr) {}
+		virtual ~ITimer() {}
+
+		inline void SetBase(ITimerBase * base) { _base = base; }
+		inline ITimerBase * GetBase() { return _base; }
+
+		virtual void OnStart(IKernel * kernel, s64 tick) = 0;
+		virtual void OnTimer(IKernel * kernel, s64 tick) = 0;
+		virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) = 0;
+
+		virtual void OnPause(IKernel * kernel, s64 tick) = 0;
+		virtual void OnResume(IKernel * kernel, s64 tick) = 0;
+
+	private:
+		ITimerBase * _base;
+	};
+
     class IPipe {
     public:
         virtual ~IPipe() {}
@@ -34,7 +78,8 @@ namespace core {
         virtual ~ISession() {}
 
         virtual void OnConnected(IKernel * kernel) = 0;
-        virtual void OnRecv(IKernel * kernel, const void * context, const s32 size) = 0;
+#define ON_RECV_FAILED -1
+        virtual s32 OnRecv(IKernel * kernel, const void * context, const s32 size) = 0;
         virtual void OnError(IKernel * kernel, const s32 error) = 0;
         virtual void OnDisconnected(IKernel * kernel) = 0;
         virtual void OnConnectFailed(IKernel * kernel) = 0;
@@ -68,24 +113,28 @@ namespace core {
         ISessionFactory * _factory;
     };
 
-    #define INVALID_PACKET -1
-    class IPacketParser {
-    public:
-        virtual ~IPacketParser() {}
-
-        virtual s32 ParsePacket(const void * context, const s32 size) = 0;
-    };
-
     class IKernel {
     public:
         virtual ~IKernel() {}
 
-        virtual bool Listen(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, IPacketParser * parser, ISessionFactory * factory) = 0;
-        virtual bool Connect(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, IPacketParser * parser, ISession * session) = 0;
+        virtual bool Listen(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, ISessionFactory * factory) = 0;
+        virtual bool Connect(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, ISession * session) = 0;
+
+#define TIMER_BEAT_FOREVER -1
+		virtual void StartTimer(ITimer * timer, s64 delay, s32 count, s64 interval) = 0;
+		virtual void KillTimer(ITimer * timer) = 0;
+		virtual void PauseTimer(ITimer * timer) = 0;
+		virtual void ResumeTimer(ITimer * timer) = 0;
+
+		virtual void Get(const s64 threadId, IHttpHandler * handler, const char * uri) = 0;
+		virtual void Post(const s64 threadId, IHttpHandler * handler, const char * url, const char * field) = 0;
+		virtual void Stop(IHttpHandler * handler) = 0;
 
         virtual IModule * FindModule(const char * name) = 0;
 
         virtual const char * GetCmdArg(const char * key) = 0;
+
+		virtual void Log(const char * msg, bool sync = false) = 0;
     };
 }
 

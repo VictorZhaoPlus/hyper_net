@@ -4,11 +4,7 @@
 #include "INetHandler.h"
 #include "IKernel.h"
 #include <unordered_map>
-#include "Fsm.h"
-#include "NetEvent.h"
 
-#define BUFFER_ARRAY_LEN 2
-class NetWorker;
 class Connection : public INetHandler, public core::IPipe {
 	struct Buffer {
 		char * data;
@@ -16,24 +12,11 @@ class Connection : public INetHandler, public core::IPipe {
 		s32 offset;
 	};
 
-	enum {
-		INDEX_WORKING = 0,
-		INDEX_USING = 1,
-	};
-
 public:
-	enum {
-		WRET_DONE,
-		WRET_PENDING,
-		WRET_ERROR,
-		WRET_CLOSE,
-	};
-
     static Connection * Create(const s32 fd) {
         return NEW Connection(fd);
     }
 
-    inline void SetParser(core::IPacketParser * parser) { _parser = parser; }
     inline void SetSession(core::ISession * session) {
         _session = session;
         session->SetPipe(this);
@@ -52,49 +35,38 @@ public:
     inline void SetRemotePort(const s32 port) { _remotePort = port; }
     virtual s32 GetRemotePort() const { return _remotePort; }
 
-	inline void SetWorker(NetWorker * worker) { _worker = worker; }
-	inline NetWorker * GetWorker() const { return _worker; }
-
     void OnConnected();
+
     virtual void OnIn();
     virtual void OnOut();
     virtual void OnError();
+
     virtual void Send(const void * context, const s32 size);
     virtual void Close();
-
-	void OnEvent(const NetEvent& evt);
-	void ChangeSendState(olib::State<Connection, NetEvent> * state);
-	void ChangeRecvState(olib::State<Connection, NetEvent> * state);
-
-	bool ProcessPacket();
-
-	bool BeginSend();
-	void BeginRecv();
-
-	s32 OnRecv();
-	s32 OnSend();
-	void OnClose();
 
 private:
     Connection(const s32 fd);
     virtual ~Connection();
-    void OnError(s32 error);
+
+	void Expand(Buffer& buff);
+
+	void OnSend();
+	void OnError(s32 errCode);
+	void OnClose();
 
 private:
-    core::IPacketParser * _parser;
     core::ISession * _session;
-	NetWorker * _worker;
     char _localIp[MAX_IP_SIZE];
     s32 _localPort;
     char _remoteIp[MAX_IP_SIZE];
     s32 _remotePort;
 
-	Buffer _sendbuffer[BUFFER_ARRAY_LEN];
+	bool _valid;
+	bool _recving;
 
-	Buffer _recvbuffer[BUFFER_ARRAY_LEN];
-
-	olib::StateMachine<Connection, NetEvent> _sendMachine;
-	olib::StateMachine<Connection, NetEvent> _recvMachine;
+	Buffer _sendBuff;
+	Buffer _recvBuff;
+	bool _canSend;
 };
 
 #endif //__CONNECTION_H__

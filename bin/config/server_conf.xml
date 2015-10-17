@@ -3,9 +3,15 @@
     <loop tick="33" />
     <net tick="13" wait="1" support="1024" thread="2" />
     <master ip="127.0.0.1" port="17700" />
+	<agent send="1024" recv="1024" />
     <harbor send="10240" recv="10240" reconnect="30">
         <node name="master" type="1" hide="false" />
         <node name="gate" type="3" hide="false" />
     </harbor>
     <lua path="./logic" />
+	<http thread="1" />
+	<redis send="1024" recv="10240" reconnect="30">
+		<unit ip="127.0.0.1" port="6379" />
+	</redis>
+	<logger path="./log" console="true" />
 </config>

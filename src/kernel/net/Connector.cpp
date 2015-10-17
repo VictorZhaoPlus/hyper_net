@@ -5,11 +5,9 @@
 #include "Connection.h"
 #include "IKernel.h"
 #include "kernel.h"
-#include "NetWorker.h"
 
 Connector::Connector(const s32 fd)
     : INetHandler(fd)
-    , _parser(nullptr)
     , _sendSize(0)
     , _recvSize(0)
 {
@@ -29,7 +27,6 @@ void Connector::OnOut() {
     Connection * connection = Connection::Create(_fd);
     OASSERT(connection != nullptr, "wtf");
 
-    connection->SetParser(_parser);
     connection->SetBufferSize(_sendSize, _recvSize);
 
     sockaddr_in local;
@@ -49,9 +46,6 @@ void Connector::OnOut() {
     NetEngine::Instance()->Remove(this);
     NetEngine::Instance()->Add(connection);
     NetEngine::Instance()->Add(connection, EPOLLIN | EPOLLOUT);
-
-	NetWorker * worker = NetEngine::Instance()->GetWorker();
-	worker->Add(connection);
 
     connection->OnConnected();
     DEL this;

@@ -6,7 +6,9 @@
 #include "IKernel.h"
 #include "Connector.h"
 #include "tools.h"
-#include "NetWorker.h"
+#include "kernel.h"
+
+#define DEFAULT_RELEASE_SIZE 256
 
 NetEngine::NetEngine() {
     //ctor
@@ -27,24 +29,16 @@ bool NetEngine::Initialize() {
 
 	_events = (epoll_event*)MALLOC(sizeof(epoll_event)* size);
 
-	s32 workerCount = ConfigMgr::Instance()->GetNetThreadCount();
-	OASSERT(workerCount > 0, "must have worker");
-	for (s32 i = 0; i < workerCount; ++i) {
-		_workers.push_back(NEW NetWorker(size / workerCount));
-	}
-
-	for (auto * worker : _workers) {
-		if (!worker->Initialize()) {
-			OASSERT(false, "initialize worker failed");
-			return false;
-		}
-	}
-
+	_waitRelease = (core::ISession **)MALLOC(sizeof(core::ISession*) * DEFAULT_RELEASE_SIZE);
+	_waitSize = DEFAULT_RELEASE_SIZE;
+	_waitOffset = 0;
     return true;
 }
 
 void NetEngine::Loop() {
     s64 tick = tools::GetTimeMillisecond();
+
+	DealWaitRelease();
 
     s32 count = CountHandlers();
     if (count == 0)
@@ -80,10 +74,6 @@ void NetEngine::Loop() {
         }
     }
 
-	for (auto * worker : _workers) {
-		worker->Process(ConfigMgr::Instance()->GetNetFrameTick() / ConfigMgr::Instance()->GetNetThreadCount());
-	}
-
     s64 use = tools::GetTimeMillisecond() - tick;
     if (use > ConfigMgr::Instance()->GetNetFrameTick()) {
 
@@ -91,16 +81,11 @@ void NetEngine::Loop() {
 }
 
 void NetEngine::Destroy() {
-	for (auto * worker : _workers) {
-		worker->Destroy();
-		DEL worker;
-	}
-
-    if (_events)
-        FREE(_events);
+    FREE(_events);
+	FREE(_waitRelease);
 }
 
-bool NetEngine::Listen(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::IPacketParser * parser, core::ISessionFactory * factory) {
+bool NetEngine::Listen(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::ISessionFactory * factory) {
     s32 fd = net::INVALID_FD;
     if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == net::INVALID_FD) {
         OASSERT(false, "socket error %s", strerror(errno));
@@ -139,7 +124,6 @@ bool NetEngine::Listen(const char * ip, const s32 port, const s32 sendSize, cons
     Acceptor * acceptor = Acceptor::Create(fd);
     OASSERT(acceptor != nullptr, "wtf");
 
-    acceptor->SetParser(parser);
     acceptor->SetFactory(factory);
     acceptor->SetBufferSize(sendSize, recvSize);
 
@@ -148,7 +132,7 @@ bool NetEngine::Listen(const char * ip, const s32 port, const s32 sendSize, cons
     return true;
 }
 
-bool NetEngine::Connect(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::IPacketParser * parser, core::ISession * session) {
+bool NetEngine::Connect(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::ISession * session) {
     s32 fd = net::INVALID_FD;
     if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == net::INVALID_FD) {
         return false;
@@ -183,7 +167,6 @@ bool NetEngine::Connect(const char * ip, const s32 port, const s32 sendSize, con
         return false;
     }
     connector->SetIp(ip, port);
-    connector->SetParser(parser);
     connector->SetSession(session);
     connector->SetBufferSize(sendSize, recvSize);
 
@@ -226,15 +209,20 @@ void NetEngine::Remove(INetHandler * handler) {
     _handlers.erase(handler->GetFD());
 }
 
-NetWorker * NetEngine::GetWorker() {
-	NetWorker * ret = nullptr;
-	for (auto * worker : _workers) {
-		if (worker->GetFreeSlot() > 0) {
-			if (ret == nullptr || ret->GetFreeSlot() < worker->GetFreeSlot()) {
-				ret = worker;
-			}
-		}
+void NetEngine::AddToWaitRelease(core::ISession * session) {
+	if (_waitOffset == _waitSize) {
+		_waitRelease = (core::ISession **)REALLOC(_waitRelease, _waitSize * 2 * sizeof(core::ISession*));
+		_waitSize *= 2;
 	}
-	OASSERT(ret, "there is not a worker has slot");
-	return ret;
+
+	_waitRelease[_waitOffset] = session;
+	++_waitOffset;
+}
+
+void NetEngine::DealWaitRelease() {
+	for (s32 i = 0; i < _waitOffset; ++i) {
+		_waitRelease[i]->OnDisconnected(Kernel::Instance());
+		_waitRelease[i]->OnRelease();
+	}
+	_waitOffset = 0;
 }

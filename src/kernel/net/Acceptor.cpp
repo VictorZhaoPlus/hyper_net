@@ -4,11 +4,9 @@
 #include "Marco.h"
 #include "Connection.h"
 #include "IKernel.h"
-#include "NetWorker.h"
 
 Acceptor::Acceptor(const s32 fd)
     : INetHandler(fd)
-    , _parser(nullptr)
     , _sendSize(0)
     , _recvSize(0)
 {
@@ -24,9 +22,6 @@ void Acceptor::OnIn() {
     while (Connection * connection = accept()) {
         NetEngine::Instance()->Add(connection);
         NetEngine::Instance()->Add(connection, EPOLLIN | EPOLLOUT);
-		
-		NetWorker * worker = NetEngine::Instance()->GetWorker();
-		worker->Add(connection);
 
         connection->OnConnected();
     }
@@ -54,7 +49,6 @@ Connection * Acceptor::accept() {
     Connection * connection = Connection::Create(fd);
     OASSERT(connection != nullptr, "wtf");
 
-    connection->SetParser(_parser);
     connection->SetBufferSize(_sendSize, _recvSize);
 
     sockaddr_in local;

@@ -2,11 +2,15 @@
 #define __LUACORE_H__
 #include "util.h"
 #include "IScriptEngine.h"
+#ifndef LUAJIT
 extern "C" {
     #include "lua/lua.h"
     #include "lua/lualib.h"
     #include "lua/lauxlib.h"
 };
+#else
+#include "luajit/lua.hpp"
+#endif
 #include "IHarbor.h"
 #include <functional>
 #include <unordered_map>
@@ -17,7 +21,6 @@ public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);
     virtual bool Destroy(IKernel * kernel);
-    virtual void Loop(IKernel * kernel);
 
 	virtual IScriptModule * CreateModule(const char * name);
 	virtual bool AddModuleFunction(const IScriptModule * module, const char * func, const ScriptFuncType& f);
@@ -25,6 +28,7 @@ public:
 	virtual bool Call(const IScriptModule * module, const char * func, const ScriptResultReadFuncType& f, const char * format, ...);
 
 	static ScriptEngine * Self() { return s_self; }
+	static IKernel * GetKernel() { return s_kernel; }
 
 private:
     static bool LoadLua(const char * path, const char * logic);

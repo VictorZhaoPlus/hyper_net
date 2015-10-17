@@ -4,12 +4,9 @@
 #include "singleton.h"
 #include <unordered_map>
 #include "NetHeader.h"
-#include <vector>
 
 class INetHandler;
-class NetWorker;
 namespace core {
-    class IPacketParser;
     class ISessionFactory;
     class ISession;
 }
@@ -24,8 +21,8 @@ public:
     void Loop();
     void Destroy();
 
-    bool Listen(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::IPacketParser * parser, core::ISessionFactory * factory);
-    bool Connect(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::IPacketParser * parser, core::ISession * session);
+    bool Listen(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::ISessionFactory * factory);
+    bool Connect(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::ISession * session);
 
     void Add(INetHandler * handler, s32 events);
     void Del(INetHandler * handler, s32 events);
@@ -33,7 +30,8 @@ public:
     void Add(INetHandler * handler);
     void Remove(INetHandler * handler);
 
-	NetWorker * GetWorker();
+	void AddToWaitRelease(core::ISession * session);
+	void DealWaitRelease();
 
 private:
     NetEngine();
@@ -53,9 +51,11 @@ private:
     s32 _epollFd;
 	epoll_event * _events;
 
-	std::vector<NetWorker*> _workers;
-
     HandlerMapType _handlers;
+
+	core::ISession ** _waitRelease;
+	s32 _waitOffset;
+	s32 _waitSize;
 };
 
 #endif // __NETENGINE_H__

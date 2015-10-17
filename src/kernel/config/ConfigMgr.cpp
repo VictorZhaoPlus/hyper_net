@@ -42,6 +42,17 @@ bool ConfigMgr::Initialize(int argc, char ** argv) {
     _netFrameWaitTick = tools::StringAsInt(p->Attribute("wait"));
     _netSupportSize = tools::StringAsInt(p->Attribute("support"));
 	_netThreadCount = tools::StringAsInt(p->Attribute("thread"));
+
+	p = pRoot->FirstChildElement("logger");
+	OASSERT(p != nullptr, "core xml format error, can't find child logger");
+
+	SafeSprintf(_loggerPath, sizeof(_loggerPath), p->Attribute("path"));
+	_logToConsole = tools::StringAsBool(p->Attribute("console"));
+
+	p = pRoot->FirstChildElement("http");
+	OASSERT(p != nullptr, "core xml format error, can't find child http");
+
+	_httpThreadCount = tools::StringAsInt(p->Attribute("thread"));
     return true;
 }
 

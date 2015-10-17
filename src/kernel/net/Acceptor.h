@@ -4,7 +4,6 @@
 #include "INetHandler.h"
 
 namespace core {
-    class IPacketParser;
     class ISessionFactory;
 }
 
@@ -15,7 +14,6 @@ public:
         return NEW Acceptor(fd);
     }
 
-    inline void SetParser(core::IPacketParser * parser) { _parser = parser; }
     inline void SetFactory(core::ISessionFactory * factory) { _factory = factory; }
     inline void SetBufferSize(const s32 sendSize, const s32 recvSize) { _sendSize = sendSize; _recvSize = recvSize; }
 
@@ -30,7 +28,6 @@ private:
     Connection * accept();
 
 private:
-    core::IPacketParser * _parser;
     core::ISessionFactory * _factory;
 
     s32 _sendSize;
