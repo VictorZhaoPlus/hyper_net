@@ -22,9 +22,8 @@ public:
 	virtual void PauseTimer(ITimer * timer);
 	virtual void ResumeTimer(ITimer * timer);
 
-	virtual void Get(const s64 threadId, IHttpHandler * handler, const char * uri);
-	virtual void Post(const s64 threadId, IHttpHandler * handler, const char * url, const char * field);
-	virtual void Stop(IHttpHandler * handler);
+	virtual void StartAsync(const s64 threadId, IAsyncHandler * handler, const char * debug);
+	virtual void StopAsync(IAsyncHandler * handler);
 
     virtual IModule * FindModule(const char * name);
     virtual const char * GetCmdArg(const char * key);

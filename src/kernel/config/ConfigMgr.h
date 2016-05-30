@@ -14,6 +14,9 @@ public:
 
     const char * GetCmdArg(const char * name);
 
+	inline s32 GetMaxOpenFile() const { return _maxOpenFile; }
+	inline s32 GetStackSize() const { return _stackSize; }
+
     inline s32 GetFrameDuration() const { return _frameDuration; }
 
     inline s32 GetNetFrameTick() const { return _netFrameTick; }
@@ -21,7 +24,8 @@ public:
     inline s32 GetNetSupportSize() const { return _netSupportSize; }
 	inline s32 GetNetThreadCount() const { return _netThreadCount; }
 
-	inline s32 GetHttpThreadCount() const { return _httpThreadCount; }
+	inline s32 GetAsyncThreadCount() const { return _asyncThreadCount; }
+	inline s32 GetAsyncTick() const { return _asyncTick; }
 
 	inline const char * GetLoggerPath() const { return _loggerPath; }
 	inline bool IsLogToConsole() const { return _logToConsole; }
@@ -35,6 +39,9 @@ private:
 
     std::unordered_map<std::string, std::string> _args;
 
+	s32 _maxOpenFile;
+	s32 _stackSize;
+
     s32 _frameDuration;
 
     s32 _netFrameTick;
@@ -42,7 +49,8 @@ private:
     s32 _netSupportSize;
 	s32 _netThreadCount;
 
-	s32 _httpThreadCount;
+	s32 _asyncThreadCount;
+	s32 _asyncTick;
 
 	char _loggerPath[MAX_PATH];
 	bool _logToConsole;

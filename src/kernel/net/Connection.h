@@ -1,33 +1,28 @@
 #ifndef __CONNECTION_H__
 #define __CONNECTION_H__
-
-#include "INetHandler.h"
 #include "IKernel.h"
-#include <unordered_map>
+#include "NetLoop.h"
+#include "CircularBuffer.h"
 
-class Connection : public INetHandler, public core::IPipe {
-	struct Buffer {
-		char * data;
-		s32 size;
-		s32 offset;
+#define MAX_IP_SIZE 32
+class Connection : public core::IPipe {
+public:
+	enum {
+		ERROR = -1,
+		EMPTY,
+		PENDING,
 	};
 
-public:
-    static Connection * Create(const s32 fd) {
-        return NEW Connection(fd);
+    static Connection * Create(NetBase * base, const s32 fd, const s32 sendSize, const s32 recvSize) {
+        return NEW Connection(base, fd, sendSize, recvSize);
     }
+
+	void OnRelease() { DEL this; }
 
     inline void SetSession(core::ISession * session) {
         _session = session;
         session->SetPipe(this);
     }
-    void SetBufferSize(const s32 sendSize, const s32 recvSize);
-
-    inline void SetLocalIp(const char * ip) { SafeSprintf(_localIp, sizeof(_localIp) - 1, ip); }
-    virtual const char * GetLocalIp() const { return _localIp; }
-
-    inline void SetLocalPort(const s32 port) { _localPort = port; }
-    virtual s32 GetLocalPort() const { return _localPort; }
 
     inline void SetRemoteIp(const char * ip) { SafeSprintf(_remoteIp, sizeof(_remoteIp) - 1, ip); }
     virtual const char * GetRemoteIp() const { return _remoteIp; }
@@ -35,38 +30,51 @@ public:
     inline void SetRemotePort(const s32 port) { _remotePort = port; }
     virtual s32 GetRemotePort() const { return _remotePort; }
 
-    void OnConnected();
-
-    virtual void OnIn();
-    virtual void OnOut();
-    virtual void OnError();
-
     virtual void Send(const void * context, const s32 size);
     virtual void Close();
 
+	inline bool IsClosing() const { return _closeing; }
+
+	inline bool IsPipeBroken() const { return _pipeBroked; }
+	inline void SetPipeBroken() { _pipeBroked = true; }
+
+	inline bool IsSending() const { return _sending; }
+	inline void SetSending() { _sending = true; }
+	inline void ResetSending() { _sending = false; }
+
+	inline void SetThreadId(s32 id) { _threadId = id; }
+	inline s32 GetThreadId() const { return _threadId; }
+
+	bool Recv(const void * buff, const s32 size);
+	s32 SendBack();
+
+	void OnRecv();
+	bool OnSendBack();
+	bool CheckPipeBroke();
+
 private:
-    Connection(const s32 fd);
+    Connection(NetBase * base, const s32 fd, const s32 sendSize, const s32 recvSize);
     virtual ~Connection();
 
-	void Expand(Buffer& buff);
-
-	void OnSend();
-	void OnError(s32 errCode);
-	void OnClose();
-
 private:
+	NetBase * _base;
+	s32 _fd;
     core::ISession * _session;
-    char _localIp[MAX_IP_SIZE];
-    s32 _localPort;
     char _remoteIp[MAX_IP_SIZE];
     s32 _remotePort;
+	s32 _threadId;
 
-	bool _valid;
-	bool _recving;
+	olib::CircularBuffer _recvBuff;
+	olib::CircularBuffer _sendBuff;
+	s32 _totalRecvSize;
+	s32 _totalSendSize;
 
-	Buffer _sendBuff;
-	Buffer _recvBuff;
-	bool _canSend;
+	bool _closeing;
+	bool _pushing;
+	bool _broken;
+
+	bool _pipeBroked;
+	bool _sending;
 };
 
 #endif //__CONNECTION_H__

@@ -3,6 +3,7 @@ local coroutine = coroutine
 local string = string
 local assert = assert
 local unpack = table.unpack
+local error = error
 
 _ENV = {}
 ------------------------------------------- coroutine -------------------------------------------

@@ -5,5 +5,6 @@
 	<module name="Rpc" />
 	<module name="Agent" />
 	<module name="Redis" />
+	<module name="HttpMgr" />
 	<module name="ScriptEngine" />
 </config>

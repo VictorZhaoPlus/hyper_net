@@ -5,7 +5,7 @@
 #include "tools.h"
 #include "Logger.h"
 #include "TimerMgr.h"
-#include "HttpMgr.h"
+#include "AsyncMgr.h"
 
 bool Kernel::Ready() {
     if (ConfigMgr::Instance() == nullptr)
@@ -16,7 +16,7 @@ bool Kernel::Ready() {
         return false;
 	if (TimerMgr::Instance() == nullptr)
 		return false;
-	if (HttpMgr::Instance() == nullptr)
+	if (AsyncMgr::Instance() == nullptr)
 		return false;
     if (LogicMgr::Instance() == nullptr)
         return false;
@@ -44,8 +44,8 @@ bool Kernel::Initialize(int argc, char ** argv) {
 		return false;
 	}
 
-	if (!HttpMgr::Instance()->Initialize()) {
-		OASSERT(false, "initialize timer failed");
+	if (!AsyncMgr::Instance()->Initialize()) {
+		OASSERT(false, "initialize async failed");
 		return false;
 	}
 
@@ -60,10 +60,11 @@ void Kernel::Loop() {
     while (!_terminate) {
         s64 tick = tools::GetTimeMillisecond();
 
-        NetEngine::Instance()->Loop();
+        NetEngine::Instance()->Loop(ConfigMgr::Instance()->GetNetFrameTick());
         LogicMgr::Instance()->Loop();
 		TimerMgr::Instance()->Loop();
-		HttpMgr::Instance()->Loop();
+		AsyncMgr::Instance()->Loop(ConfigMgr::Instance()->GetAsyncTick());
+		
 
         s64 use = tools::GetTimeMillisecond() - tick;
         if (use > ConfigMgr::Instance()->GetFrameDuration()) {
@@ -74,7 +75,7 @@ void Kernel::Loop() {
 
 void Kernel::Destroy() {
     LogicMgr::Instance()->Destroy();
-	HttpMgr::Instance()->Destroy();
+	AsyncMgr::Instance()->Destroy();
 	TimerMgr::Instance()->Destroy();
     NetEngine::Instance()->Destroy();
 	Logger::Instance()->Destroy();
@@ -106,16 +107,12 @@ void Kernel::ResumeTimer(ITimer * timer) {
 	TimerMgr::Instance()->ResumeTimer(timer);
 }
 
-void Kernel::Get(const s64 threadId, IHttpHandler * handler, const char * uri) {
-	HttpMgr::Instance()->Get(threadId, handler, uri);
+void Kernel::StartAsync(const s64 threadId, IAsyncHandler * handler, const char * debug) {
+	AsyncMgr::Instance()->Start(threadId, handler, debug);
 }
 
-void Kernel::Post(const s64 threadId, IHttpHandler * handler, const char * url, const char * field) {
-	HttpMgr::Instance()->Post(threadId, handler, url, field);
-}
-
-void Kernel::Stop(IHttpHandler * handler) {
-	HttpMgr::Instance()->Stop(handler);
+void Kernel::StopAsync(IAsyncHandler * handler) {
+	AsyncMgr::Instance()->Stop(handler);
 }
 
 IModule * Kernel::FindModule(const char * name) {

@@ -10,32 +10,30 @@ INCLUDE_DIRECTORIES(
     "${PROJECT_SOURCE_DIR}/src/kernel/logic/"
 	"${PROJECT_SOURCE_DIR}/src/kernel/logger/"
 	"${PROJECT_SOURCE_DIR}/src/kernel/timer/"
-	"${PROJECT_SOURCE_DIR}/src/kernel/http/"
+	"${PROJECT_SOURCE_DIR}/src/kernel/async/"
     )
 
 SET(KERNEL_CONFIG
     "${PROJECT_SOURCE_DIR}/src/kernel/config/ConfigMgr.h"
     "${PROJECT_SOURCE_DIR}/src/kernel/config/ConfigMgr.cpp"
     )
-
-SET(KERNEL_HTTP
-    "${PROJECT_SOURCE_DIR}/src/kernel/http/HttpMgr.h"
-    "${PROJECT_SOURCE_DIR}/src/kernel/http/HttpMgr.cpp"
-	"${PROJECT_SOURCE_DIR}/src/kernel/http/HttpBase.h"
-    "${PROJECT_SOURCE_DIR}/src/kernel/http/HttpBase.cpp"
+	
+SET(KERNEL_ASYNC
+    "${PROJECT_SOURCE_DIR}/src/kernel/async/AsyncMgr.h"
+    "${PROJECT_SOURCE_DIR}/src/kernel/async/AsyncMgr.cpp"
+	"${PROJECT_SOURCE_DIR}/src/kernel/async/AsyncBase.h"
+    "${PROJECT_SOURCE_DIR}/src/kernel/async/AsyncBase.cpp"
+	"${PROJECT_SOURCE_DIR}/src/kernel/async/AsyncThread.h"
+    "${PROJECT_SOURCE_DIR}/src/kernel/async/AsyncThread.cpp"
     )
 
 SET(KERNEL_NET
     "${PROJECT_SOURCE_DIR}/src/kernel/net/NetEngine.h"
     "${PROJECT_SOURCE_DIR}/src/kernel/net/NetEngine.cpp"
-    "${PROJECT_SOURCE_DIR}/src/kernel/net/INetHandler.h"
-    "${PROJECT_SOURCE_DIR}/src/kernel/net/NetHeader.h"
-    "${PROJECT_SOURCE_DIR}/src/kernel/net/Acceptor.h"
-    "${PROJECT_SOURCE_DIR}/src/kernel/net/Acceptor.cpp"
-    "${PROJECT_SOURCE_DIR}/src/kernel/net/Connector.h"
-    "${PROJECT_SOURCE_DIR}/src/kernel/net/Connector.cpp"
     "${PROJECT_SOURCE_DIR}/src/kernel/net/Connection.h"
     "${PROJECT_SOURCE_DIR}/src/kernel/net/Connection.cpp"
+	"${PROJECT_SOURCE_DIR}/src/kernel/net/NetLoop.h"
+    "${PROJECT_SOURCE_DIR}/src/kernel/net/NetLoop.c"
     )
 	
 SET(KERNEL_TIMER
@@ -70,7 +68,7 @@ SOURCE_GROUP(src\\net FILES ${KERNEL_NET})
 SOURCE_GROUP(src\\logger FILES ${KERNEL_LOGGER})
 SOURCE_GROUP(src\\logic FILES ${KERNEL_LOGIC})
 SOURCE_GROUP(src\\timer FILES ${KERNEL_TIMER})
-SOURCE_GROUP(src\\http FILES ${KERNEL_HTTP})
+SOURCE_GROUP(src\\async FILES ${KERNEL_ASYNC})
 SOURCE_GROUP(API FILES ${API})
 SOURCE_GROUP(public\\tinyxml FILES ${PUBLIC_XML})
 SOURCE_GROUP(public FILES ${PUBLIC})
@@ -83,7 +81,7 @@ ADD_EXECUTABLE(serverd
 		${KERNEL_TIMER}
         ${KERNEL_LOGIC}
         ${KERNEL_LOGGER}
-		${KERNEL_HTTP}
+		${KERNEL_ASYNC}
         ${PUBLIC}
         ${PUBLIC_XML}
         ${KERNEL}

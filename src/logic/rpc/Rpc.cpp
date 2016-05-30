@@ -20,9 +20,9 @@ bool Rpc::Initialize(IKernel * kernel) {
 	s_harbor = (IHarbor*)kernel->FindModule("Harbor");
 	OASSERT(s_harbor, "where is harbor");
 
-	REGPROTOCOL(ANY_NODE, node_proto::RPC, Rpc::OnCall);
-	REGPROTOCOL(ANY_NODE, node_proto::RPCNR, Rpc::OnCallNoRet);
-	REGPROTOCOL(ANY_NODE, node_proto::RESPONE, Rpc::OnRespone);
+	REGPROTOCOL(node_proto::RPC, Rpc::OnCall);
+	REGPROTOCOL(node_proto::RPCNR, Rpc::OnCallNoRet);
+	REGPROTOCOL(node_proto::RESPONE, Rpc::OnRespone);
 	s_harbor->AddNodeListener(this, "Rpc");
 
     return true;

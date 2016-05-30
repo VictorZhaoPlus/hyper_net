@@ -32,9 +32,16 @@ struct NodeListenerUnit {
     char debug[MAX_DEBUG_SIZE];
 };
 
-struct Handler {
-    NodeProtocolHandlerType func;
-    char debug[MAX_DEBUG_SIZE];
+class IHarborProtoHandler {
+public:
+	virtual ~IHarborProtoHandler() {}
+	virtual void DealNodeProto(IKernel *, const s32, const s32, const void * context, const s32 size) = 0;
+
+	inline void SetDebug(const char * debug) { SafeSprintf(_debug, sizeof(_debug), debug); }
+	inline const char * GetDebug() const { return _debug; }
+
+private:
+	char _debug[MAX_DEBUG_SIZE];
 };
 
 class NodeSession;
@@ -50,6 +57,10 @@ public:
     virtual void Connect(const char * ip, const s32 port);
     virtual void AddNodeListener(INodeListener * listener, const char * debug);
 
+	virtual void Send(s32 nodeType, s32 nodeId, const s32 messageId, const OArgs& args);
+	virtual void Brocast(s32 nodeType, const s32 messageId, const OArgs& args);
+	virtual void Brocast(const s32 messageId, const OArgs& args);
+
     virtual bool PrepareSend(s32 nodeType, s32 nodeId, const s32 messageId, const s32 size);
     virtual bool Send(s32 nodeType, s32 nodeId, const void * context, const s32 size);
 
@@ -59,7 +70,8 @@ public:
 	virtual void PrepareBrocast(const s32 messageId, const s32 size);
 	virtual void Brocast(const void * context, const s32 size);
 
-    virtual void RegProtocolHandler(s32 nodeType, s32 messageId, const NodeProtocolHandlerType& handler, const char * debug);
+    virtual void RegProtocolHandler(s32 messageId, const node_cb& handler, const char * debug);
+	virtual void RegProtocolHandler(s32 messageId, const node_args_cb& handler, const char * debug);
 
     virtual s32 GetNodeType() const { return _nodeType; }
     virtual s32 GetNodeId() const { return _nodeId; }
@@ -93,7 +105,7 @@ private:
     std::unordered_map<s32, std::string> _nodeNames;
 
     std::list<NodeListenerUnit> _listeners;
-    std::unordered_map<s32, std::unordered_map<s32, Handler>> _handlers;
+    std::unordered_map<s32, std::list<IHarborProtoHandler*>> _handlers;
 };
 
 #endif //__HARBOR_H__

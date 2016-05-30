@@ -22,10 +22,10 @@ bool Cluster::Initialize(IKernel * kernel) {
         return false;
     }
 
-    const TiXmlElement * pRoot = doc.RootElement();
-    OASSERT(pRoot != nullptr, "core xml format error");
+    const TiXmlElement * root = doc.RootElement();
+    OASSERT(root != nullptr, "core xml format error");
 
-    const TiXmlElement * p = pRoot->FirstChildElement("master");
+    const TiXmlElement * p = root->FirstChildElement("master");
     _ip = p->Attribute("ip");
     _port = tools::StringAsInt(p->Attribute("port"));
 
@@ -37,7 +37,7 @@ bool Cluster::Launched(IKernel * kernel) {
     OASSERT(s_harbor, "where is harbor");
 
     s_harbor->Connect(_ip.c_str(), _port);
-    REGPROTOCOL(node_type::MASTER, node_proto::NEW_NODE, Cluster::NewNodeComming);
+    REGPROTOCOL(node_proto::NEW_NODE, Cluster::NewNodeComming);
 
     return true;
 }

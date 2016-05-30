@@ -101,6 +101,6 @@ void NodeSession::DealPacket(IKernel * kernel, const void * context, const s32 s
 			return;
 		}
 
-		Harbor::Self()->OnNodeMessage(kernel, _nodeType, _nodeId, (const char *)context + sizeof(HarborHeader), size - sizeof(HarborHeader));
+		Harbor::Self()->OnNodeMessage(kernel, _nodeType, _nodeId, (const char *)context + sizeof(HarborHeader), header->len - sizeof(HarborHeader));
 	}
 }

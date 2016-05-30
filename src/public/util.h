@@ -43,7 +43,7 @@ extern "C" {
     ((p) ? (void)0 : (void)__OAssert(__FILE__, __LINE__, __FUNCTION__, debug)); \
 }
 
-#define CSLEEP(t) usleep(t)
+#define CSLEEP(t) usleep((t) * 1000)
 
 #ifdef __cplusplus
 extern "C" {

@@ -6,10 +6,16 @@
 namespace node_proto {
     enum {
         NEW_NODE = 1,
+		START_NODE,
+		OVER_LOAD,
+		TEST_DELAY,
+		TEST_DELAY_RESPONE,
 
-        RPCNR = 2,
-        RPC = 3,
-        RESPONE = 4,
+        RPCNR = 10001,
+        RPC,
+        RESPONE,
+
+		USER,
     };
 
     struct NewNode {

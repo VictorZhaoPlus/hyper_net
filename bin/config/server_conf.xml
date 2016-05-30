@@ -1,17 +1,41 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <config>
-    <loop tick="33" />
-    <net tick="13" wait="1" support="1024" thread="2" />
     <master ip="127.0.0.1" port="17700" />
 	<agent send="1024" recv="1024" />
+	<limit open_file="4096" stack="40960" />
     <harbor send="10240" recv="10240" reconnect="30">
-        <node name="master" type="1" hide="false" />
-        <node name="gate" type="3" hide="false" />
+        <node name="master" type="-1" hide="false" />
+		<node name="slave" type="-2" hide="true" />
+        <node name="gate" type="1" hide="false" />
+		<node name="scene" type="2" hide="false" />
+		<node name="logic" type="3" hide="false" />
+		<node name="relation" type="4" hide="false" />
+		<node name="sceneMgr" type="5" hide="false" />
+		<node name="account" type="6" hide="false" />
+		<node name="balance" type="7" hide="false" />
     </harbor>
+	<starter check="500" dead="10000" >
+		<define name="balance_port" value="7200" />
+		<port node="1" start="7300" end="7399" />
+		<out_port node="1" start="7201" end="7299" />
+		<node name="gate" nodeType="1" min="1" max="4" score="10" delay="0" cmd=" --name=gate --node=$id$ --port=$port$ --agent=$out_port$" />
+		<node name="balance" nodeType="7" min="1" max="1" score="10" delay="0" cmd=" --name=balance --node=$id$ --port=$port$ --balance=balance_port" />
+	</starter>
     <lua path="./logic" />
-	<http thread="1" />
 	<redis send="1024" recv="10240" reconnect="30">
 		<unit ip="127.0.0.1" port="6379" />
 	</redis>
 	<logger path="./log" console="true" />
+	<extend>
+		<master>
+			<loop tick="33" />
+			<net tick="13" wait="2" support="1024" thread="2" />
+			<async thread="0" tick="1" />
+		</master>
+		<gate>
+			<loop tick="33" />
+			<net tick="13" wait="2" support="1024" thread="2" />
+			<async thread="3" tick="10" />
+		</gate>
+	</extend>
 </config>

@@ -218,8 +218,6 @@ SET(SCRIPTENGINE
     "${PROJECT_SOURCE_DIR}/src/logic/scriptengine/tick.cpp"
 	"${PROJECT_SOURCE_DIR}/src/logic/scriptengine/buffer.h"
     "${PROJECT_SOURCE_DIR}/src/logic/scriptengine/buffer.cpp"
-	"${PROJECT_SOURCE_DIR}/src/logic/scriptengine/Http.h"
-    "${PROJECT_SOURCE_DIR}/src/logic/scriptengine/Http.cpp"
     "${PROJECT_SOURCE_DIR}/src/logic/scriptengine/main.cpp"
     )
 

@@ -167,10 +167,10 @@ bool ScriptEngine::Initialize(IKernel * kernel) {
         return false;
     }
 
-    const TiXmlElement * pRoot = doc.RootElement();
-    OASSERT(pRoot != nullptr, "core xml format error");
+    const TiXmlElement * root = doc.RootElement();
+    OASSERT(root != nullptr, "core xml format error");
 
-    const TiXmlElement * p = pRoot->FirstChildElement("lua");
+    const TiXmlElement * p = root->FirstChildElement("lua");
     const char * path = p->Attribute("path");
     const char * name = kernel->GetCmdArg("name");
 

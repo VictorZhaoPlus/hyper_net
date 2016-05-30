@@ -20,12 +20,12 @@ bool LogicMgr::Initialize() {
         return false;
     }
 
-    const TiXmlElement * pRoot = doc.RootElement();
-    OASSERT(pRoot, "module.xml format error");
-    const char * path = pRoot->Attribute("path");
+    const TiXmlElement * root = doc.RootElement();
+    OASSERT(root, "module.xml format error");
+    const char * path = root->Attribute("path");
     OASSERT(path, "module.xml format error, can't find module path");
 
-    const TiXmlElement * module = pRoot->FirstChildElement("module");
+    const TiXmlElement * module = root->FirstChildElement("module");
     while (module) {
         const char * name = module->Attribute("name");
         OASSERT(name, "module.xml form error, can't find module's name");
@@ -40,11 +40,19 @@ bool LogicMgr::Initialize() {
         module = module->NextSiblingElement("module");
     }
 
-	for (auto * logic : _moduleList)
-		logic->Initialize(Kernel::Instance());
+	for (auto * logic : _moduleList) {
+		bool res = logic->Initialize(Kernel::Instance());
+		OASSERT(res, "wtf");
+		if (!res)
+			return false;
+	}
 
-	for (auto * logic : _moduleList)
-		logic->Launched(Kernel::Instance());
+	for (auto * logic : _moduleList) {
+		bool res = logic->Launched(Kernel::Instance());
+		OASSERT(res, "wtf");
+		if (!res)
+			return false;
+	}
 
     return true;
 }

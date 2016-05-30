@@ -12,6 +12,7 @@
 
 class ITest : public IModule {
 public:
+	virtual ~ITest() {}
 };
 
 #endif /*__ITEST_H__ */

@@ -78,3 +78,10 @@ void TimerBase::Release() {
 	_timer->SetBase(nullptr);
 	_timer = nullptr;
 }
+
+void TimerBase::AdjustExpire(u64 now) {
+	long long live = (long long)(_expire - now);
+	if (live < 0 && abs(live) > _interval) {
+		_expire += (abs(live) / _interval) * _interval;
+	}
+}

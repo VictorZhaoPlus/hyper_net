@@ -26,6 +26,7 @@ public:
 
 	inline u64 GetExpire() const { return _expire; }
 	inline void SetExpire(u64 expire) { _expire = expire; }
+	void AdjustExpire(u64 now);
 
 	inline void SetTimer(ITimer * timer) {
 		OASSERT(timer->GetBase() == nullptr && _timer == nullptr, "timer already has a timer base or base already has a timer");

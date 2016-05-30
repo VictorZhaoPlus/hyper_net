@@ -12,6 +12,7 @@
 
 class & : public IModule {
 public:
+	virtual ~&() {}
 };
 
 #endif /*__@_H__ */

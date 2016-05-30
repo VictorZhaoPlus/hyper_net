@@ -29,9 +29,8 @@ namespace olib {
 		}
 
 		inline void Push(const T& t) {
-			if (IsFull()) {
-				OASSERT(false, "queue is full");
-				return;
+			while (IsFull()) {
+				CSLEEP(1);
 			}
 
 			_queue[_tail] = t;

@@ -3,10 +3,10 @@
 
 namespace node_type {
     enum {
-        MASTER = 1,
-        SLAVE = 2,
+        MASTER = -1,
+        SLAVE = -2,
 
-        USER = 3,
+        USER = 0,
     };
 }
 

@@ -1,6 +1,7 @@
 #include "ConfigMgr.h"
 #include "tools.h"
 #include "tinyxml.h"
+#include "XmlReader.h"
 
 ConfigMgr::ConfigMgr() {
     //ctor
@@ -22,37 +23,28 @@ bool ConfigMgr::Initialize(int argc, char ** argv) {
     const char * name = GetCmdArg("name");
     OASSERT(name, "invalid command args, there is no name");
 
-    TiXmlDocument doc;
     std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
-    if (!doc.LoadFile(coreConfigPath.c_str())) {
+	olib::XmlReader conf;
+	if (!conf.LoadXml(coreConfigPath.c_str())) {
         OASSERT(false, "can't find core file : %s", coreConfigPath.c_str());
         return false;
     }
 
-    const TiXmlElement * pRoot = doc.RootElement();
-    OASSERT(pRoot != nullptr, "core xml format error");
+	_maxOpenFile = conf.Root()["limit"][0].GetAttributeInt32("open_file");
+	_stackSize = conf.Root()["limit"][0].GetAttributeInt32("stack");
 
-    const TiXmlElement * p = pRoot->FirstChildElement("loop");
-    OASSERT(p != nullptr, "core xml format error, can't find child loop");
-    _frameDuration = tools::StringAsInt(p->Attribute("tick"));
+	_frameDuration = conf.Root()["extend"][0][name][0]["loop"][0].GetAttributeInt32("tick");
 
-    p = pRoot->FirstChildElement("net");
-    OASSERT(p != nullptr, "core xml format error, can't find child netthread");
-    _netFrameTick = tools::StringAsInt(p->Attribute("tick"));
-    _netFrameWaitTick = tools::StringAsInt(p->Attribute("wait"));
-    _netSupportSize = tools::StringAsInt(p->Attribute("support"));
-	_netThreadCount = tools::StringAsInt(p->Attribute("thread"));
+    _netFrameTick = conf.Root()["extend"][0][name][0]["net"][0].GetAttributeInt32("tick");
+    _netFrameWaitTick = conf.Root()["extend"][0][name][0]["net"][0].GetAttributeInt32("wait");
+    _netSupportSize = conf.Root()["extend"][0][name][0]["net"][0].GetAttributeInt32("support");
+	_netThreadCount = conf.Root()["extend"][0][name][0]["net"][0].GetAttributeInt32("thread");
 
-	p = pRoot->FirstChildElement("logger");
-	OASSERT(p != nullptr, "core xml format error, can't find child logger");
+	SafeSprintf(_loggerPath, sizeof(_loggerPath), conf.Root()["logger"][0].GetAttributeString("path"));
+	_logToConsole = conf.Root()["logger"][0].GetAttributeInt32("console");
 
-	SafeSprintf(_loggerPath, sizeof(_loggerPath), p->Attribute("path"));
-	_logToConsole = tools::StringAsBool(p->Attribute("console"));
-
-	p = pRoot->FirstChildElement("http");
-	OASSERT(p != nullptr, "core xml format error, can't find child http");
-
-	_httpThreadCount = tools::StringAsInt(p->Attribute("thread"));
+	_asyncThreadCount = conf.Root()["extend"][0][name][0]["async"][0].GetAttributeInt32("thread");
+	_asyncTick = conf.Root()["extend"][0][name][0]["async"][0].GetAttributeInt32("tick");
     return true;
 }
 

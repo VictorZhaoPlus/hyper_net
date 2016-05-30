@@ -30,7 +30,7 @@ bool Redis::Initialize(IKernel * kernel) {
 	s_recvBufferSize = reader.Root()["redis"][0].GetAttributeInt32("recv");
 	s_reconnectTick = reader.Root()["redis"][0].GetAttributeInt32("reconnect");
 
-	olib::IXmlObject& units = reader.Root()["redis"][0]["unit"];
+	const olib::IXmlObject& units = reader.Root()["redis"][0]["unit"];
 	for (s32 i = 0; i < units.Count(); ++i) {
 		const char * ip = units[i].GetAttributeString("ip");
 		s32 port = units[i].GetAttributeInt32("port");

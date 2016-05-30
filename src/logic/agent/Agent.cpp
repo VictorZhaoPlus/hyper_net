@@ -33,7 +33,7 @@ bool Agent::Launched(IKernel * kernel) {
 		return false;
 	}
 
-	olib::IXmlObject& agent = reader.Root()["agent"][0];
+	const olib::IXmlObject& agent = reader.Root()["agent"][0];
 	s32 sendBuffSize = agent.GetAttributeInt32("send");
 	s32 recvBuffSize = agent.GetAttributeInt32("recv");
 	s32 port = tools::StringAsInt(kernel->GetCmdArg("agent"));

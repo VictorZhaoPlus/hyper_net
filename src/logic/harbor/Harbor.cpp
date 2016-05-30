@@ -8,6 +8,33 @@
 Harbor * Harbor::s_harbor = nullptr;
 IKernel * Harbor::s_kernel = nullptr;
 
+class NodeCBProtoHandler : public IHarborProtoHandler {
+public:
+	NodeCBProtoHandler(const node_cb cb) : _cb(cb) {}
+	virtual ~NodeCBProtoHandler() {}
+
+	virtual void DealNodeProto(IKernel * kernel, const s32 nodeType, const s32 nodeId, const void * context, const s32 size) {
+		_cb(kernel, nodeType, nodeId, context, size);
+	}
+
+private:
+	node_cb _cb;
+};
+
+class NodeArgsCBProtoHandler : public IHarborProtoHandler {
+public:
+	NodeArgsCBProtoHandler(const node_args_cb cb) : _cb(cb) {}
+	virtual ~NodeArgsCBProtoHandler() {}
+
+	virtual void DealNodeProto(IKernel * kernel, const s32 nodeType, const s32 nodeId, const void * context, const s32 size) {
+		OArgs args(context, size);
+		_cb(kernel, nodeType, nodeId, args);
+	}
+
+private:
+	node_args_cb _cb;
+};
+
 bool Harbor::Initialize(IKernel * kernel) {
     s_harbor = this;
     s_kernel = kernel;
@@ -22,13 +49,13 @@ bool Harbor::Initialize(IKernel * kernel) {
 		return false;
 	}
 
-	olib::IXmlObject& harbor = reader.Root()["harbor"][0];
+	const olib::IXmlObject& harbor = reader.Root()["harbor"][0];
 	_sendBuffSize = harbor.GetAttributeInt32("send");
 	_recvBuffSize = harbor.GetAttributeInt32("recv");
 	_reconnectTick = harbor.GetAttributeInt32("reconnect");
 
 	_hide = false;
-	olib::IXmlObject& nodes = harbor["node"];
+	const olib::IXmlObject& nodes = harbor["node"];
 	for (s32 i = 0; i < nodes.Count(); ++i) {
 		s32 type = nodes[i].GetAttributeInt32("type");
 		const char * nodeName = nodes[i].GetAttributeString("name");
@@ -101,6 +128,62 @@ void Harbor::AddNodeListener(INodeListener * listener, const char * debug) {
     _listeners.push_back(unit);
 }
 
+void Harbor::Send(s32 nodeType, s32 nodeId, const s32 messageId, const OArgs& args) {
+	auto itr = _nodes[nodeType].find(nodeId);
+	if (itr != _nodes[nodeType].end()) {
+		if (!itr->second->PrepareSendNodeMessage(args.GetSize() + sizeof(s32))) {
+			OASSERT(false, "send failed");
+			return;
+		}
+
+		if (!itr->second->SendNodeMessage(&messageId, sizeof(s32))) {
+			OASSERT(false, "send failed");
+			return;
+		}
+
+		if (!itr->second->SendNodeMessage(args.GetContext(), args.GetSize())) {
+			OASSERT(false, "send failed");
+			return;
+		}
+	}
+}
+
+void Harbor::Brocast(s32 nodeType, const s32 messageId, const OArgs& args) {
+	for (auto itr = _nodes[nodeType].begin(); itr != _nodes[nodeType].end(); ++itr) {
+		if (!itr->second->PrepareSendNodeMessage(args.GetSize() + sizeof(s32))) {
+			OASSERT(false, "send failed");
+		}
+
+		if (!itr->second->SendNodeMessage(&messageId, sizeof(s32))) {
+			OASSERT(false, "send failed");
+			return;
+		}
+
+		if (!itr->second->SendNodeMessage(args.GetContext(), args.GetSize())) {
+			OASSERT(false, "send failed");
+		}
+	}
+}
+
+void Harbor::Brocast(const s32 messageId, const OArgs& args) {
+	for (auto itrNode = _nodes.begin(); itrNode != _nodes.end(); ++itrNode) {
+		for (auto itr = itrNode->second.begin(); itr != itrNode->second.end(); ++itr) {
+			if (!itr->second->PrepareSendNodeMessage(args.GetSize() + sizeof(s32))) {
+				OASSERT(false, "send failed");
+			}
+
+			if (!itr->second->SendNodeMessage(&messageId, sizeof(s32))) {
+				OASSERT(false, "send failed");
+				return;
+			}
+
+			if (!itr->second->SendNodeMessage(args.GetContext(), args.GetSize())) {
+				OASSERT(false, "send failed");
+			}
+		}
+	}
+}
+
 bool Harbor::PrepareSend(s32 nodeType, s32 nodeId, const s32 messageId, const s32 size) {
     auto itr = _nodes[nodeType].find(nodeId);
     if (itr != _nodes[nodeType].end()) {
@@ -147,12 +230,18 @@ void Harbor::Brocast(const void * context, const s32 size) {
 	}
 }
 
-void Harbor::RegProtocolHandler(s32 nodeType, s32 messageId, const NodeProtocolHandlerType& handler, const char * debug) {
-    Handler unit;
-    unit.func = handler;
-    SafeSprintf(unit.debug, sizeof(unit.debug), debug);
+void Harbor::RegProtocolHandler(s32 messageId, const node_cb& handler, const char * debug) {
+	NodeCBProtoHandler * unit = NEW NodeCBProtoHandler(handler);
+	unit->SetDebug(debug);
 
-    _handlers[nodeType][messageId] = unit;
+    _handlers[messageId].push_back(unit);
+}
+
+void Harbor::RegProtocolHandler(s32 messageId, const node_args_cb& handler, const char * debug) {
+	NodeArgsCBProtoHandler * unit = NEW NodeArgsCBProtoHandler(handler);
+	unit->SetDebug(debug);
+
+	_handlers[messageId].push_back(unit);
 }
 
 void Harbor::OnNodeOpen(IKernel * kernel, const s32 nodeType, const s32 nodeId, const char * ip, const s32 port, const bool hide, NodeSession * session) {
@@ -179,23 +268,13 @@ void Harbor::OnNodeMessage(IKernel * kernel, const s32 nodeType, const s32 nodeI
     OASSERT(size >= sizeof(s32), "message size invalid");
 
     s32 messageId = *(s32*)context;
-    NodeProtocolHandlerType handler = nullptr;
-    const char * debug = nullptr;
-    auto itr = _handlers[nodeType].find(messageId);
-    if (itr == _handlers[nodeType].end()) {
-        itr = _handlers[ANY_NODE].find(messageId);
-        if (itr != _handlers[ANY_NODE].end()) {
-            handler = itr->second.func;
-            debug = itr->second.debug;
-        }
-    }
-    else {
-        handler = itr->second.func;
-        debug = itr->second.debug;
-    }
+	auto itr = _handlers.find(messageId);
+	if (itr != _handlers.end()) {
+		for (auto * handler : itr->second) {
+			const char * debug = handler->GetDebug();
 
-    if (handler != nullptr) {
-        handler(kernel, nodeType, nodeId, (char*)context + sizeof(s32), size - sizeof(s32));
+			handler->DealNodeProto(kernel, nodeType, nodeId, (const char*)context + sizeof(s32), size - sizeof(s32));
+		}
     }
     else {
 

@@ -6,24 +6,25 @@ class IModule;
 namespace core {
     class IKernel;
 
-	class IHttpBase {
+	class IAsyncBase {
 	public:
-		virtual ~IHttpBase() {}
+		virtual ~IAsyncBase() {}
 	};
 
-	class IHttpHandler {
+	class IAsyncHandler {
 	public:
-		virtual ~IHttpHandler() {}
+		virtual ~IAsyncHandler() {}
 
-		inline void SetBase(IHttpBase * base) { _base = base; }
-		inline IHttpBase * GetBase() { return _base; }
+		inline void SetBase(IAsyncBase * base) { _base = base; }
+		inline IAsyncBase * GetBase() { return _base; }
 
-		virtual void OnSuccess(IKernel * kernel, const void * context, const s32 size) = 0;
-		virtual void OnFail(IKernel * kernel, const s32 errCode) = 0;
-		virtual void OnRelease() = 0;
+		virtual bool OnExecute(IKernel * kernel) = 0;
+		virtual void OnSuccess(IKernel * kernel) = 0;
+		virtual void OnFailed(IKernel * kernel, bool nonviolent) = 0;
+		virtual void OnRelease(IKernel * kernel) = 0;
 
 	private:
-		IHttpBase * _base;
+		IAsyncBase * _base;
 	};
 
 	class ITimerBase {
@@ -56,9 +57,6 @@ namespace core {
 
         virtual void Send(const void * context, const s32 size) = 0;
         virtual void Close() = 0;
-
-        virtual const char * GetLocalIp() const = 0;
-        virtual s32 GetLocalPort() const = 0;
 
         virtual const char * GetRemoteIp() const = 0;
         virtual s32 GetRemotePort() const = 0;
@@ -99,14 +97,12 @@ namespace core {
                 _pipe->Close();
         }
 
-        inline const char * GetLocalIp() const { return _pipe ? _pipe->GetLocalIp() : nullptr; }
-        inline s32 GetLocalPort() const { return _pipe ? _pipe->GetLocalPort() : 0; }
-
         inline const char * GetRemoteIp() const { return _pipe ? _pipe->GetRemoteIp() : nullptr; }
         inline s32 GetRemotePort() const { return _pipe ? _pipe->GetRemotePort() : 0; }
 
-        void SetPipe(IPipe * pipe) { _pipe = pipe; }
-        void SetFactory(ISessionFactory * factory) { _factory = factory; }
+		inline void SetPipe(IPipe * pipe) { _pipe = pipe; }
+		inline IPipe * GetPipe() const { return _pipe; }
+		inline void SetFactory(ISessionFactory * factory) { _factory = factory; }
 
     private:
         IPipe * _pipe;
@@ -126,9 +122,8 @@ namespace core {
 		virtual void PauseTimer(ITimer * timer) = 0;
 		virtual void ResumeTimer(ITimer * timer) = 0;
 
-		virtual void Get(const s64 threadId, IHttpHandler * handler, const char * uri) = 0;
-		virtual void Post(const s64 threadId, IHttpHandler * handler, const char * url, const char * field) = 0;
-		virtual void Stop(IHttpHandler * handler) = 0;
+		virtual void StartAsync(const s64 threadId, IAsyncHandler * handler, const char * debug) = 0;
+		virtual void StopAsync(IAsyncHandler * handler) = 0;
 
         virtual IModule * FindModule(const char * name) = 0;
 

@@ -19,10 +19,10 @@ bool Master::Initialize(IKernel * kernel) {
         return false;
     }
 
-    const TiXmlElement * pRoot = doc.RootElement();
-    OASSERT(pRoot != nullptr, "core xml format error");
+    const TiXmlElement * root = doc.RootElement();
+    OASSERT(root != nullptr, "core xml format error");
 
-    const TiXmlElement * p = pRoot->FirstChildElement("master");
+    const TiXmlElement * p = root->FirstChildElement("master");
     s_port = tools::StringAsInt(p->Attribute("port"));
 
     return true;

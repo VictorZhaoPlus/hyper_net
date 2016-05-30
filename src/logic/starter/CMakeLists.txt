@@ -9,6 +9,8 @@ INCLUDE_DIRECTORIES(
 SET(STARTER
     "${PROJECT_SOURCE_DIR}/src/logic/starter/Starter.h"
     "${PROJECT_SOURCE_DIR}/src/logic/starter/Starter.cpp"
+    "${PROJECT_SOURCE_DIR}/src/logic/starter/StartNodeTimer.h"
+    "${PROJECT_SOURCE_DIR}/src/logic/starter/StartNodeTimer.cpp"
     "${PROJECT_SOURCE_DIR}/src/logic/starter/main.cpp"
     )
 

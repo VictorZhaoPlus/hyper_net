@@ -38,8 +38,10 @@ void TimerMgr::Loop() {
 			Delete(base);
 		else if (base->IsPaused())
 			_suspended->PushBack(base);
-		else
+		else {
+			base->AdjustExpire(_jiffies);
 			Schedule(base);
+		}
 	}
 }
 
