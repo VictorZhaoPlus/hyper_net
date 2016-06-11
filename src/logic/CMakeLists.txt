@@ -12,6 +12,7 @@ SET(LOGIC_INTERFACE
     "${PROJECT_SOURCE_DIR}/src/logic/interface/ICluster.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IScriptEngine.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/ITest.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/interface/IAgent.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IMonitor.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IAnalysis.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IHttpMgr.h"
@@ -22,7 +23,7 @@ ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/harbor)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/cluster)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/scriptengine)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/redis)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/rpc)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/luaserver)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/agent)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/test)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/startnodestrategy)

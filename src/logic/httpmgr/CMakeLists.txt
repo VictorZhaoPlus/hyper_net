@@ -11,8 +11,6 @@ SET(HTTPMGR
     "${PROJECT_SOURCE_DIR}/src/logic/httpmgr/HttpMgr.cpp"
 	"${PROJECT_SOURCE_DIR}/src/logic/httpmgr/HttpBase.h"
     "${PROJECT_SOURCE_DIR}/src/logic/httpmgr/HttpBase.cpp"
-	"${PROJECT_SOURCE_DIR}/src/logic/httpmgr/HttpScriptModule.h"
-    "${PROJECT_SOURCE_DIR}/src/logic/httpmgr/HttpScriptModule.cpp"
     "${PROJECT_SOURCE_DIR}/src/logic/httpmgr/main.cpp"
     )
 
