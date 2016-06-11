@@ -1,11 +1,11 @@
 #ifndef __STARTNODESTRATEGY_H__
 #define __STARTNODESTRATEGY_H__
 #include "util.h"
-#include "IStartNodeStrategy.h"
-#include "IStarter.h"
+#include "IModule.h"
+#include "ICluster.h"
 #include <unordered_map>
 
-class StartNodeStrategy : public IStartNodeStrategy, public IStartStrategy {
+class StartNodeStrategy : public IModule, public IStartStrategy {
 	enum {
 		OVERLOAD = 0,
 		BANDWIDTH,

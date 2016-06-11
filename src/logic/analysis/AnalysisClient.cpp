@@ -2,7 +2,7 @@
 #include "NodeType.h"
 #include "IHarbor.h"
 #include "OArgs.h"
-#include "NodeProtocol.h"
+#include "CoreProtocol.h"
 
 AnalysisClient * AnalysisClient::s_self = nullptr;
 IKernel * AnalysisClient::s_kernel = nullptr;
@@ -22,7 +22,7 @@ bool AnalysisClient::Launched(IKernel * kernel) {
 	if (s_harbor->GetNodeType() < node_type::USER)
 		return true;
 
-	REGPROTOCOL(node_proto::TEST_DELAY_RESPONE, AnalysisClient::TestDelay);
+	REGPROTOCOL(core_proto::TEST_DELAY_RESPONE, AnalysisClient::TestDelay);
     return true;
 }
 
@@ -32,5 +32,5 @@ bool AnalysisClient::Destroy(IKernel * kernel) {
 }
 
 void AnalysisClient::TestDelay(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args) {
-	s_harbor->Send(nodeType, nodeId, node_proto::TEST_DELAY_RESPONE, args);
+	s_harbor->Send(nodeType, nodeId, core_proto::TEST_DELAY_RESPONE, args);
 }

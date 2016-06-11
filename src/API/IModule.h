@@ -34,6 +34,8 @@ public:
 
     inline const char * GetName() { return _name; }
 
+	inline s32 GetKernelVersion() const { return KERNEL_VERSION; }
+
 private:
     IModule * _nextModule;
     char _name[MODULE_NAME_LEN];

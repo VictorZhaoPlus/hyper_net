@@ -25,4 +25,4 @@ ADD_LIBRARY(Rpc SHARED
         ${PUBLIC}
         ${PUBLIC_XML}
         )
-
+SET_TARGET_PROPERTIES(Rpc PROPERTIES FOLDER "framework")

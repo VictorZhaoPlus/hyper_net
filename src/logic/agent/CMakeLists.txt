@@ -27,4 +27,4 @@ ADD_LIBRARY(Agent SHARED
         ${PUBLIC}
         ${PUBLIC_XML}
         )
-
+SET_TARGET_PROPERTIES(Agent PROPERTIES FOLDER "core")

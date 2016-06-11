@@ -25,4 +25,4 @@ ADD_LIBRARY(Test SHARED
         ${PUBLIC}
         ${PUBLIC_XML}
         )
-
+SET_TARGET_PROPERTIES(Test PROPERTIES FOLDER "logic")

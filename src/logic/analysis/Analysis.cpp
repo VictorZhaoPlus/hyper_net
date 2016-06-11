@@ -1,6 +1,6 @@
 #include "Analysis.h"
 #include "NodeType.h"
-#include "NodeProtocol.h"
+#include "CoreProtocol.h"
 #include "ICapacitySubscriber.h"
 #include "OArgs.h"
 
@@ -25,7 +25,7 @@ bool Analysis::Launched(IKernel * kernel) {
 	if (s_harbor->GetNodeType() < node_type::USER) {
 		s_harbor->AddNodeListener(this, "Analysis");
 
-		REGPROTOCOL(node_proto::TEST_DELAY_RESPONE, Analysis::TestDelayRespone);
+		REGPROTOCOL(core_proto::TEST_DELAY_RESPONE, Analysis::TestDelayRespone);
 
 		s_capacitySubscriber = (ICapacitySubscriber*)kernel->FindModule("CapacitySubscriber");
 		OASSERT(s_capacitySubscriber, "where is CapacitySubscriber");
@@ -56,6 +56,6 @@ void Analysis::OnTimer(IKernel * kernel, s64 tick) {
 
 	for (auto itr = s_nodes.begin(); itr != s_nodes.end(); ++itr) {
 		for (auto itrType = itr->second.begin(); itrType != itr->second.end(); ++itrType)
-			s_harbor->Send(itr->first, itrType->first, node_proto::TEST_DELAY, args.Out());
+			s_harbor->Send(itr->first, itrType->first, core_proto::TEST_DELAY, args.Out());
 	}
 }

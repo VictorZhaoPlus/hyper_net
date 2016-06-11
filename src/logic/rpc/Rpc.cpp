@@ -1,7 +1,7 @@
 #include "Rpc.h"
 #include "IScriptEngine.h"
 #include "IHarbor.h"
-#include "NodeProtocol.h"
+#include "FrameworkProtocol.h"
 
 Rpc * Rpc::s_self = nullptr;
 IKernel * Rpc::s_kernel = nullptr;
@@ -20,9 +20,9 @@ bool Rpc::Initialize(IKernel * kernel) {
 	s_harbor = (IHarbor*)kernel->FindModule("Harbor");
 	OASSERT(s_harbor, "where is harbor");
 
-	REGPROTOCOL(node_proto::RPC, Rpc::OnCall);
-	REGPROTOCOL(node_proto::RPCNR, Rpc::OnCallNoRet);
-	REGPROTOCOL(node_proto::RESPONE, Rpc::OnRespone);
+	REGPROTOCOL(framework_proto::RPC, Rpc::OnCall);
+	REGPROTOCOL(framework_proto::RPCNR, Rpc::OnCallNoRet);
+	REGPROTOCOL(framework_proto::RESPONE, Rpc::OnRespone);
 	s_harbor->AddNodeListener(this, "Rpc");
 
     return true;
@@ -53,7 +53,7 @@ void Rpc::Call(IKernel * kernel, const IScriptArgumentReader * reader, IScriptRe
 	if (!reader->Read("iiS", &nodeType, &nodeId, &buffer, &size))
 		return;
 	
-	s_harbor->PrepareSend(nodeType, nodeId, node_proto::RPC, size);
+	s_harbor->PrepareSend(nodeType, nodeId, framework_proto::RPC, size);
 	s_harbor->Send(nodeType, nodeId, buffer, size);
 }
 
@@ -66,7 +66,7 @@ void Rpc::CallNoRet(IKernel * kernel, const IScriptArgumentReader * reader, IScr
 	if (!reader->Read("iiS", &nodeType, &nodeId, &buffer, &size))
 		return;
 
-	s_harbor->PrepareSend(nodeType, nodeId, node_proto::RPCNR, size);
+	s_harbor->PrepareSend(nodeType, nodeId, framework_proto::RPCNR, size);
 	s_harbor->Send(nodeType, nodeId, buffer, size);
 }
 
@@ -78,7 +78,7 @@ void Rpc::TypeCall(IKernel * kernel, const IScriptArgumentReader * reader, IScri
 	if (!reader->Read("iS", &nodeType, &buffer, &size))
 		return;
 
-	s_harbor->PrepareBrocast(nodeType, node_proto::RPCNR, size);
+	s_harbor->PrepareBrocast(nodeType, framework_proto::RPCNR, size);
 	s_harbor->Brocast(nodeType, buffer, size);
 }
 
@@ -91,7 +91,7 @@ void Rpc::Respone(IKernel * kernel, const IScriptArgumentReader * reader, IScrip
 	if (!reader->Read("iiS", &nodeType, &nodeId, &buffer, &size))
 		return;
 
-	s_harbor->PrepareSend(nodeType, nodeId, node_proto::RESPONE, size);
+	s_harbor->PrepareSend(nodeType, nodeId, framework_proto::RESPONE, size);
 	s_harbor->Send(nodeType, nodeId, buffer, size);
 }
 

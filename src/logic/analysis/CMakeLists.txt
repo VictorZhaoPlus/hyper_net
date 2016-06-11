@@ -27,4 +27,5 @@ ADD_LIBRARY(Analysis SHARED
         ${PUBLIC}
         ${PUBLIC_XML}
         )
-
+		
+SET_TARGET_PROPERTIES(Analysis PROPERTIES FOLDER "core") 

@@ -2,6 +2,8 @@
 #define __IKERNEL_H__
 #include "util.h"
 
+#define KERNEL_VERSION 20160609
+
 class IModule;
 namespace core {
     class IKernel;

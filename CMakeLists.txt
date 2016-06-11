@@ -9,9 +9,11 @@ IF(UNIX)
     SET(CMAKE_CXX_COMPILER "/usr/bin/g++")
     SET(CMAKE_CXX_FLAGS "-g -Wall -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux -D_DEBUG")
     SET(CMAKE_CXX_FLAGS_DEBUG "-g -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux -D_DEBUG")
-    SET(CMAKE_CXX_FLAGS_RELEASE "-g -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux")
+    SET(CMAKE_CXX_FLAGS_RELEASE "-g -o2 -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux")
     MESSAGE(STATUS "Linux")
 ENDIF(UNIX)
+
+SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS On)
 
 SET(JIT OFF)
 
@@ -28,7 +30,7 @@ SET(PUBLIC
 	"${PROJECT_SOURCE_DIR}/src/public/Fsm.h"
 	"${PROJECT_SOURCE_DIR}/src/public/ThreadModule.h"
 	"${PROJECT_SOURCE_DIR}/src/public/OArgs.h"
-	"${PROJECT_SOURCE_DIR}/src/public/spin_mutex.h"
+	"${PROJECT_SOURCE_DIR}/src/public/OString.h"
     )
 
 SET(PUBLIC_XML

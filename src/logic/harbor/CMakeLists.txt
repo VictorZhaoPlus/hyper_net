@@ -27,4 +27,4 @@ ADD_LIBRARY(Harbor SHARED
         ${PUBLIC}
         ${PUBLIC_XML}
         )
-
+SET_TARGET_PROPERTIES(Harbor PROPERTIES FOLDER "core")

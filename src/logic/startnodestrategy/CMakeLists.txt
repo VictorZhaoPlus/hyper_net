@@ -26,3 +26,4 @@ ADD_LIBRARY(StartNodeStrategy SHARED
         ${PUBLIC_XML}
         )
 
+SET_TARGET_PROPERTIES(StartNodeStrategy PROPERTIES FOLDER "framework") 

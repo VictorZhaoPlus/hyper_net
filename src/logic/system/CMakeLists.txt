@@ -25,4 +25,4 @@ ADD_LIBRARY(Cluster SHARED
         ${PUBLIC}
         ${PUBLIC_XML}
         )
-
+SET_TARGET_PROPERTIES(Cluster PROPERTIES FOLDER "core")

@@ -84,6 +84,11 @@ bool LogicMgr::LoadModule(const char * path) {
             return false;
         }
 
+		if (logic->GetKernelVersion() != KERNEL_VERSION) {
+			OASSERT(false, "kernel version not match %s", name);
+			return false;
+		}
+
         _modules.insert(std::make_pair(name, logic));
 		_moduleList.push_back(logic);
 

@@ -240,5 +240,5 @@ ADD_LIBRARY(ScriptEngine SHARED
         ${PUBLIC}
         ${PUBLIC_XML}
         )
-
+SET_TARGET_PROPERTIES(ScriptEngine PROPERTIES FOLDER "core")
 
