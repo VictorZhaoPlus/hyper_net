@@ -16,7 +16,6 @@ SET(LOGIC_INTERFACE
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IAnalysis.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IHttpMgr.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IObjectMgr.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IGameControl.h"
 )
 
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/harbor)
@@ -30,5 +29,4 @@ ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/startnodestrategy)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/monitor)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/analysis)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/httpmgr)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/gamecontrol)
 #ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/objectmgr)
