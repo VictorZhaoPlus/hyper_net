@@ -13,6 +13,7 @@ SET(LOGIC_INTERFACE
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IScriptEngine.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/ITest.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IAgent.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/interface/IRedis.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IMonitor.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IAnalysis.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IHttpMgr.h"
