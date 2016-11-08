@@ -3,13 +3,6 @@
 
 #include "IModule.h"
 
-class IMaster : public IModule {
-public:
-    virtual ~IMaster() {}
-
-    virtual s32 GetPort() const = 0;
-};
-
 class IStartStrategy {
 public:
 	virtual ~IStartStrategy() {}

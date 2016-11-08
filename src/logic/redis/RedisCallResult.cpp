@@ -7,7 +7,7 @@
 //#define REDIS_REPLY_INTEGER 3
 //#define REDIS_REPLY_NIL 4
 
-s8 RedisCallResult::AsInt8() {
+s8 RedisCallResult::AsInt8() const {
 	if (_reply->type == REDIS_REPLY_INTEGER)
 		return _reply->integer;
 
@@ -18,7 +18,7 @@ s8 RedisCallResult::AsInt8() {
 	return 0;
 }
 
-s16 RedisCallResult::AsInt16() {
+s16 RedisCallResult::AsInt16() const {
 	if (_reply->type == REDIS_REPLY_INTEGER)
 		return _reply->integer;
 
@@ -29,7 +29,7 @@ s16 RedisCallResult::AsInt16() {
 	return 0;
 }
 
-s32 RedisCallResult::AsInt32() {
+s32 RedisCallResult::AsInt32() const {
 	if (_reply->type == REDIS_REPLY_INTEGER)
 		return _reply->integer;
 
@@ -40,7 +40,7 @@ s32 RedisCallResult::AsInt32() {
 	return 0;
 }
 
-s64 RedisCallResult::AsInt64() {
+s64 RedisCallResult::AsInt64() const {
 	if (_reply->type == REDIS_REPLY_INTEGER)
 		return _reply->integer;
 
@@ -51,7 +51,7 @@ s64 RedisCallResult::AsInt64() {
 	return 0;
 }
 
-float RedisCallResult::AsFloat() {
+float RedisCallResult::AsFloat() const {
 	if (_reply->type == REDIS_REPLY_STRING)
 		return tools::StringAsFloat(_reply->str);
 
@@ -59,7 +59,7 @@ float RedisCallResult::AsFloat() {
 	return 0;
 }
 
-const char* RedisCallResult::AsString() {
+const char* RedisCallResult::AsString() const {
 	if (_reply->type == REDIS_REPLY_STRING)
 		return _reply->str;
 
@@ -67,7 +67,7 @@ const char* RedisCallResult::AsString() {
 	return "";
 }
 
-const void* RedisCallResult::AsStruct(const s32 size) {
+const void* RedisCallResult::AsStruct(const s32 size) const {
 	if (_reply->type == REDIS_REPLY_STRING) {
 		OASSERT(_reply->len == size, "wtf");
 		return _reply->str;
@@ -77,7 +77,7 @@ const void* RedisCallResult::AsStruct(const s32 size) {
 	return nullptr;
 }
 
-const void* RedisCallResult::AsBlob(s32& size) {
+const void* RedisCallResult::AsBlob(s32& size) const {
 	if (_reply->type == REDIS_REPLY_STRING) {
 		size = _reply->len;
 		return _reply->str;
@@ -87,7 +87,7 @@ const void* RedisCallResult::AsBlob(s32& size) {
 	return nullptr;
 }
 
-s32 RedisCallResult::Count() {
+s32 RedisCallResult::Count() const {
 	if (_reply->type == REDIS_REPLY_ARRAY) {
 		return _reply->elements;
 	}
@@ -96,7 +96,7 @@ s32 RedisCallResult::Count() {
 	return 0;
 }
 
-bool RedisCallResult::GetResult(s32 idx, const std::function<bool(IKernel *, const IRedisResult *)>& f) {
+bool RedisCallResult::GetResult(s32 idx, const std::function<bool(IKernel *, const IRedisResult *)>& f) const {
 	if (_reply->type == REDIS_REPLY_ARRAY) {
 		OASSERT(idx >= 0 && idx < _reply->elements, "out of range");
 		if (idx >= 0 && idx < _reply->elements) {

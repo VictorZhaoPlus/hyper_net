@@ -15,17 +15,17 @@ class IRedisResult {
 public:
 	virtual ~IRedisResult() {}
 
-	virtual s8 AsInt8() = 0;
-	virtual s16 AsInt16() = 0;
-	virtual s32 AsInt32() = 0;
-	virtual s64 AsInt64() = 0;
-	virtual float AsFloat() = 0;
-	virtual const char* AsString() = 0;
-	virtual const void* AsStruct(const s32 size) = 0;
-	virtual const void* AsBlob(s32& size) = 0;
+	virtual s8 AsInt8() const = 0;
+	virtual s16 AsInt16() const = 0;
+	virtual s32 AsInt32() const = 0;
+	virtual s64 AsInt64() const = 0;
+	virtual float AsFloat() const = 0;
+	virtual const char* AsString() const = 0;
+	virtual const void* AsStruct(const s32 size) const = 0;
+	virtual const void* AsBlob(s32& size) const = 0;
 
-	virtual s32 Count() = 0;
-	virtual bool GetResult(s32 idx, const std::function<bool(IKernel *, const IRedisResult *)>& f) = 0;
+	virtual s32 Count()const = 0;
+	virtual bool GetResult(s32 idx, const std::function<bool(IKernel *, const IRedisResult *)>& f) const = 0;
 };
 
 class OArgs;

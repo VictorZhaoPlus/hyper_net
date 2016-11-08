@@ -1,4 +1,4 @@
-
+IF(UNIX)
 INCLUDE_DIRECTORIES(
     "${PROJECT_SOURCE_DIR}/src/API"
     "${PROJECT_SOURCE_DIR}/src/public"
@@ -7,6 +7,7 @@ INCLUDE_DIRECTORIES(
 	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis"
     )
 	
+
 SET(HIREDIS
 	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis/dict.c"
 	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis/dict.h"
@@ -15,12 +16,34 @@ SET(HIREDIS
 	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis/hiredis.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis/net.c"
 	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis/net.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis/read.c"
-	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis/read.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis/sds.c"
 	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis/sds.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis/sdsalloc.h"
 	)
+ENDIF(UNIX)
+
+IF(WIN32)
+INCLUDE_DIRECTORIES(
+    "${PROJECT_SOURCE_DIR}/src/API"
+    "${PROJECT_SOURCE_DIR}/src/public"
+    "${PROJECT_SOURCE_DIR}/src/public/tinyxml"
+    "${PROJECT_SOURCE_DIR}/src/logic/interface"
+	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis_win32"
+    )
+	
+SET(HIREDIS
+	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis_win32/dict.c"
+	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis_win32/dict.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis_win32/fmacros.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis_win32/hiredis.c"
+	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis_win32/hiredis.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis_win32/net.c"
+	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis_win32/net.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis_win32/sds.c"
+	"${PROJECT_SOURCE_DIR}/src/logic/redis/hiredis_win32/sds.h"
+	)
+ENDIF(WIN32)
+
 
 SET(REDIS
     "${PROJECT_SOURCE_DIR}/src/logic/redis/Redis.h"

@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include "Define.h"
 
-class Master : public IMaster, public INodeListener {
+class Master : public IModule, public INodeListener {
     struct NodeInfo {
         s32 nodeType;
         s32 nodeId;
@@ -22,20 +22,14 @@ public:
     virtual void OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port);
     virtual void OnClose(IKernel * kernel, s32 nodeType, s32 nodeId);
 
-    virtual s32 GetPort() const { return s_port; }
-
-    static Master * Self() { return s_self; }
+private:
+    void SendNewNode(IKernel * kernel, s32 nodeType, s32 nodeId, s32 newNodeType, s32 newNodeId, const char * ip, s32 port);
 
 private:
-    static void SendNewNode(IKernel * kernel, s32 nodeType, s32 nodeId, s32 newNodeType, s32 newNodeId, const char * ip, s32 port);
-
-private:
-    static Master * s_self;
     IKernel * _kernel;
-    static IHarbor * s_harbor;
+    IHarbor * _harbor;
 
-    static s32 s_port;
-    static std::unordered_map<s64, NodeInfo> s_nodes;
+    std::unordered_map<s64, NodeInfo> _nodes;
 };
 
 #endif //__MASTER_H__

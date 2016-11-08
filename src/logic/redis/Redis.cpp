@@ -166,7 +166,10 @@ bool Redis::LoadScript(IKernel * kernel, const s64 id, const char * proc) {
 		if (itrId == ctx.scriptIds.end()) {
 			IArgs<2, 1024> args;
 			args << "LOAD" << itr->second.GetString();
-			return s_self->Exec(id, "SCRIPT", args.Out(), nullptr);
+			return s_self->Exec(id, "SCRIPT", args.Out(), [&ctx, proc](IKernel * kernel, const IRedisResult * ret) {
+				ctx.scriptIds[proc] = ret->AsString();
+				return true;
+			});
 		}
 	}
 	return false;

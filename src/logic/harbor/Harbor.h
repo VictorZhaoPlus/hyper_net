@@ -71,7 +71,7 @@ public:
 	virtual void Brocast(const void * context, const s32 size);
 
     virtual void RegProtocolHandler(s32 messageId, const NodeCB& handler, const char * debug);
-	virtual void RegProtocolHandler(s32 messageId, const NodeArgsCB& handler, const char * debug);
+	virtual void RegProtocolArgsHandler(s32 messageId, const NodeArgsCB& handler, const char * debug);
 
     virtual s32 GetNodeType() const { return _nodeType; }
     virtual s32 GetNodeId() const { return _nodeId; }

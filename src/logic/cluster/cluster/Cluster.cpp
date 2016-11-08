@@ -4,15 +4,7 @@
 #include "CoreProtocol.h"
 #include "NodeType.h"
 
-Cluster * Cluster::s_self = nullptr;
-IHarbor * Cluster::s_harbor = nullptr;
-
-std::unordered_set<s64> Cluster::s_openNode;
-std::string Cluster::_ip;
-s32 Cluster::_port = 0;
-
 bool Cluster::Initialize(IKernel * kernel) {
-    s_self = this;
     _kernel = kernel;
 
     TiXmlDocument doc;
@@ -33,12 +25,11 @@ bool Cluster::Initialize(IKernel * kernel) {
 }
 
 bool Cluster::Launched(IKernel * kernel) {
-    s_harbor = (IHarbor*)kernel->FindModule("Harbor");
-    OASSERT(s_harbor, "where is harbor");
+	FIND_MODULE(_harbor, Harbor);
 
-	if (s_harbor->GetNodeType() != node_type::MASTER) {
-		s_harbor->Connect(_ip.c_str(), _port);
-		REGPROTOCOL(core_proto::NEW_NODE, Cluster::NewNodeComming);
+	if (_harbor->GetNodeType() != node_type::MASTER) {
+		_harbor->Connect(_ip.c_str(), _port);
+		RGS_HABOR_HANDLER(core_proto::NEW_NODE, Cluster::NewNodeComming);
 	}
     return true;
 }
@@ -54,12 +45,12 @@ void Cluster::NewNodeComming(IKernel * kernel, s32 nodeType, s32 nodeId, const v
     OASSERT(info.port > 0, "where is harbor port");
 
 	s64 check = ((s64)info.nodeType << 32) | ((s64)info.nodeId);
-    if (s_openNode.find(check) != s_openNode.end())
+    if (_openNode.find(check) != _openNode.end())
         return;
 
-    if (info.nodeType == s_harbor->GetNodeType() && info.nodeId <= s_harbor->GetNodeId())
+    if (info.nodeType == _harbor->GetNodeType() && info.nodeId <= _harbor->GetNodeId())
         return;
 
-    s_openNode.insert(check);
-    s_harbor->Connect(info.ip, info.port);
+    _openNode.insert(check);
+    _harbor->Connect(info.ip, info.port);
 }

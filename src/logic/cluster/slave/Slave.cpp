@@ -3,8 +3,12 @@
 #include "OArgs.h"
 #include "CoreProtocol.h"
 #include "XmlReader.h"
-#include <sys/wait.h>
 #include "NodeType.h"
+#ifdef WIN32
+#include <process.h>
+#else
+#include <sys/wait.h>
+#endif
 
 #define EXECUTE_CMD_PORT "$port$"
 #define EXECUTE_CMD_PORT_SIZE 6
@@ -14,84 +18,71 @@
 #define EXECUTE_CMD_ID_SIZE 4
 #define EXECUTE_NAME "serverd"
 
-Slave * Slave::s_self = nullptr;
-IKernel * Slave::s_kernel = nullptr;
-IHarbor * Slave::s_harbor = nullptr;
-
-s32 Slave::s_startPort = 0;
-s32 Slave::s_endPort = 0;
-s32 Slave::s_startOutPort = 0;
-s32 Slave::s_endOutPort = 0;
-std::unordered_map<s32, Slave::Execute> Slave::s_executes;
-std::unordered_map<s64, Slave::Node> Slave::s_cmds;
-
 bool Slave::Initialize(IKernel * kernel) {
-    s_self = this;
-    s_kernel = kernel;
-
-	olib::XmlReader conf;
-	std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
-	if (!conf.LoadXml(coreConfigPath.c_str())) {
-		OASSERT(false, "wtf");
-		return false;
-	}
-
-	const olib::IXmlObject& starter = conf.Root()["starter"][0];
-
-	bool find = false;
-	const olib::IXmlObject& ports = starter["port"];
-	for (s32 i = 0; i < ports.Count(); ++i) {
-		if (ports[i].GetAttributeInt32("node") == s_harbor->GetNodeId()) {
-			s_startPort = ports[i].GetAttributeInt32("start");
-			s_endPort = ports[i].GetAttributeInt32("end");
-			find = true;
-		}
-	}
-	OASSERT(find, "wtf");
-
-	const olib::IXmlObject& outPorts = starter["out_port"];
-	for (s32 i = 0; i < outPorts.Count(); ++i) {
-		if (outPorts[i].GetAttributeInt32("node") == s_harbor->GetNodeId()) {
-			s_startOutPort = outPorts[i].GetAttributeInt32("start");
-			s_endOutPort = outPorts[i].GetAttributeInt32("end");
-			find = true;
-		}
-	}
-	OASSERT(find, "wtf");
-
-	std::unordered_map<std::string, std::string> defines;
-	const olib::IXmlObject& defs = starter["define"];
-	for (s32 i = 0; i < defs.Count(); ++i)
-		defines[defs[i].GetAttributeString("name")] = defs[i].GetAttributeString("value");
-
-	const olib::IXmlObject& nodes = starter["node"];
-	for (s32 i = 0; i < nodes.Count(); ++i) {
-		Execute info;
-		info.type = nodes[i].GetAttributeInt32("nodeType");
-		SafeSprintf(info.name, sizeof(info.name), nodes[i].GetAttributeString("name"));
-
-		std::string cmd = nodes[i].GetAttributeString("cmd");
-		for (auto itr = defines.begin(); itr != defines.end(); ++itr) {
-			std::string::size_type pos = cmd.find(itr->first);
-			while (pos != std::string::npos) {
-				cmd.replace(pos, itr->first.size(), itr->second.c_str());
-				pos = cmd.find(itr->first);
-			}
-		}
-		SafeSprintf(info.cmd, sizeof(info.cmd), cmd.c_str());
-
-		s_executes[info.type] = info;
-	}
+    _kernel = kernel;
 
     return true;
 }
 
 bool Slave::Launched(IKernel * kernel) {
-	s_harbor = (IHarbor*)kernel->FindModule("Harbor");
-	OASSERT(s_harbor, "where is harbor");
+	FIND_MODULE(_harbor, Harbor);
 
-	if (s_harbor->GetNodeType() == node_type::SLAVE) {
-		REGPROTOCOL(core_proto::START_NODE, Slave::OpenNewNode);
+	if (_harbor->GetNodeType() == node_type::SLAVE) {
+		olib::XmlReader conf;
+		std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
+		if (!conf.LoadXml(coreConfigPath.c_str())) {
+			OASSERT(false, "wtf");
+			return false;
+		}
+
+		const olib::IXmlObject& starter = conf.Root()["starter"][0];
+
+		bool find = false;
+		const olib::IXmlObject& ports = starter["port"];
+		for (s32 i = 0; i < ports.Count(); ++i) {
+			if (ports[i].GetAttributeInt32("node") == _harbor->GetNodeId()) {
+				_startPort = ports[i].GetAttributeInt32("start");
+				_endPort = ports[i].GetAttributeInt32("end");
+				find = true;
+			}
+		}
+		OASSERT(find, "wtf");
+
+		const olib::IXmlObject& outPorts = starter["out_port"];
+		for (s32 i = 0; i < outPorts.Count(); ++i) {
+			if (outPorts[i].GetAttributeInt32("node") == _harbor->GetNodeId()) {
+				_startOutPort = outPorts[i].GetAttributeInt32("start");
+				_endOutPort = outPorts[i].GetAttributeInt32("end");
+				find = true;
+			}
+		}
+		OASSERT(find, "wtf");
+
+		std::unordered_map<std::string, std::string> defines;
+		const olib::IXmlObject& defs = starter["define"];
+		for (s32 i = 0; i < defs.Count(); ++i)
+			defines[defs[i].GetAttributeString("name")] = defs[i].GetAttributeString("value");
+
+		const olib::IXmlObject& nodes = starter["node"];
+		for (s32 i = 0; i < nodes.Count(); ++i) {
+			Execute info;
+			info.type = nodes[i].GetAttributeInt32("nodeType");
+			SafeSprintf(info.name, sizeof(info.name), nodes[i].GetAttributeString("name"));
+
+			std::string cmd = nodes[i].GetAttributeString("cmd");
+			for (auto itr = defines.begin(); itr != defines.end(); ++itr) {
+				std::string::size_type pos = cmd.find(itr->first);
+				while (pos != std::string::npos) {
+					cmd.replace(pos, itr->first.size(), itr->second.c_str());
+					pos = cmd.find(itr->first);
+				}
+			}
+			SafeSprintf(info.cmd, sizeof(info.cmd), cmd.c_str());
+
+			_executes[info.type] = info;
+		}
+
+		RGS_HABOR_ARGS_HANDLER(core_proto::START_NODE, Slave::OpenNewNode);
 	}
     return true;
 }
@@ -105,18 +96,32 @@ void Slave::OpenNewNode(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs 
 	s32 newNodeType = args.GetDataInt32(0);
 	s32 newNodeId = args.GetDataInt32(1);
 
-	OASSERT(s_executes.find(newNodeType) != s_executes.end(), "unknown nodeType %d", newNodeType);
+	OASSERT(_executes.find(newNodeType) != _executes.end(), "unknown nodeType %d", newNodeType);
 
 	s64 node = (((s64)newNodeType) << 32) | newNodeId;
-	auto itr = s_cmds.find(node);
-	if (itr != s_cmds.end())
+	auto itr = _cmds.find(node);
+	if (itr != _cmds.end())
 		StartNode(kernel, itr->second.cmd);
 	else
-		StartNewNode(kernel, s_executes[newNodeType].name, s_executes[newNodeType].cmd, newNodeType, newNodeId);
+		StartNewNode(kernel, _executes[newNodeType].name, _executes[newNodeType].cmd, newNodeType, newNodeId);
 }
 
 void Slave::StartNode(IKernel * kernel, const char * cmd) {
 	char process[MAX_CMD_LEN];
+#ifdef WIN32
+	SafeSprintf(process, sizeof(process), "%s/%s.exe", tools::GetAppPath(), EXECUTE_NAME);
+
+	STARTUPINFO si = { sizeof(si) };
+	si.dwFlags = STARTF_USESHOWWINDOW;
+	si.wShowWindow = TRUE;
+	si.lpTitle = (char*)cmd;
+
+	PROCESS_INFORMATION pi;
+	BOOL ret = CreateProcess(process, (char*)cmd, nullptr, nullptr, false, CREATE_NEW_CONSOLE, nullptr, nullptr, &si, &pi);
+	OASSERT(ret, "create process failed");
+	::CloseHandle(pi.hThread);
+	::CloseHandle(pi.hProcess);
+#else
 	SafeSprintf(process, sizeof(process), "%s/%s", tools::GetAppPath(), EXECUTE_NAME);
 
 	char args[MAX_CMD_LEN];
@@ -149,16 +154,17 @@ void Slave::StartNode(IKernel * kernel, const char * cmd) {
 		s32 status;
 		waitpid(pid, &status, 0);
 	}
+#endif
 }
 
 void Slave::StartNewNode(IKernel * kernel, const char * name, const char * cmd, const s32 nodeType, const s32 nodeId) {
 	std::string tmp(cmd);
 	std::string::size_type pos = tmp.find(EXECUTE_CMD_PORT);
 	while (pos != std::string::npos) {
-		OASSERT(s_startPort < s_endPort, "port is not enough");
+		OASSERT(_startPort < _endPort, "port is not enough");
 
 		char portStr[64];
-		SafeSprintf(portStr, sizeof(portStr), "%d", s_startPort++);
+		SafeSprintf(portStr, sizeof(portStr), "%d", _startPort++);
 		tmp.replace(pos, EXECUTE_CMD_PORT_SIZE, portStr);
 	
 		pos = tmp.find(EXECUTE_CMD_PORT);
@@ -166,10 +172,10 @@ void Slave::StartNewNode(IKernel * kernel, const char * name, const char * cmd, 
 
 	pos = tmp.find(EXECUTE_CMD_OUT_PORT);
 	while (pos != std::string::npos) {
-		OASSERT(s_startOutPort < s_endOutPort, "out port is not enough");
+		OASSERT(_startOutPort < _endOutPort, "out port is not enough");
 
 		char portStr[64];
-		SafeSprintf(portStr, sizeof(portStr), "%d", s_startOutPort++);
+		SafeSprintf(portStr, sizeof(portStr), "%d", _startOutPort++);
 		tmp.replace(pos, EXECUTE_CMD_OUT_PORT_SIZE, portStr);
 
 		pos = tmp.find(EXECUTE_CMD_OUT_PORT);
@@ -183,7 +189,7 @@ void Slave::StartNewNode(IKernel * kernel, const char * name, const char * cmd, 
 	}
 
 	s64 node = (((s64)nodeType) << 32) | nodeId;
-	SafeSprintf(s_cmds[node].cmd, MAX_CMD_LEN, tmp.c_str());
+	SafeSprintf(_cmds[node].cmd, MAX_CMD_LEN, tmp.c_str());
 
-	StartNode(kernel, s_cmds[node].cmd);
+	StartNode(kernel, _cmds[node].cmd);
 }

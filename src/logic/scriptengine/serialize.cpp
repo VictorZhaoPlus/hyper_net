@@ -90,7 +90,7 @@ void pack_nil(lua_State * L, SerializeStream& s) {
 }
 
 void pack_integer(lua_State * L, SerializeStream& s, s64 n) {
-	if (!s.write(INT)) {
+	if (!s.write(lseri::INT)) {
 		s.release();
 		luaL_error(L, "serialize buffer full");
 	}
@@ -102,7 +102,7 @@ void pack_integer(lua_State * L, SerializeStream& s, s64 n) {
 }
 
 void pack_double(lua_State * L, SerializeStream& s, double n) {
-	if (!s.write(DOUBLE)) {
+	if (!s.write(lseri::DOUBLE)) {
 		s.release();
 		luaL_error(L, "serialize buffer full");
 	}
@@ -125,7 +125,7 @@ void pack_number(lua_State * L, SerializeStream& s, s32 index) {
 
 void pack_boolean(lua_State * L, SerializeStream& s, s32 index) {
 	bool b = lua_toboolean(L, index);
-	if (!s.write(BOOLEAN)) {
+	if (!s.write(lseri::BOOLEAN)) {
 		s.release();
 		luaL_error(L, "serialize buffer full");
 	}
@@ -215,29 +215,29 @@ void push_table(lua_State * L, SerializeStream& s) {
 
 void push_value(lua_State * L, SerializeStream& s, s8 type) {
 	switch (type) {
-		case NIL: lua_pushnil(L); break;
-		case BOOLEAN: {
+		case lseri::NIL: lua_pushnil(L); break;
+		case lseri::BOOLEAN: {
 			bool value;
 			if (!s.read(value))
 				luaL_error(L, "unserialize failed");
 			lua_pushboolean(L, value); 
 			break;
 		}
-		case INT: {
+		case lseri::INT: {
 			s64 value;
 			if (!s.read(value))
 				luaL_error(L, "unserialize failed");
 			lua_pushinteger(L, value); 
 			break;
 		}
-		case DOUBLE: {
+		case lseri::DOUBLE: {
 			double value;
 			if (!s.read(value))
 				luaL_error(L, "unserialize failed");
 			lua_pushnumber(L, value); 
 			break;
 		}
-		case STRING: {
+		case lseri::STRING: {
 			s32 len = 0; 
 			const char * str = NULL;
 			if (!s.readString(str, len)) 
@@ -245,7 +245,7 @@ void push_value(lua_State * L, SerializeStream& s, s8 type) {
 			lua_pushlstring(L, str, len); 
 			break;
 		}
-		case TABLE: push_table(L, s); break;
+		case lseri::TABLE: push_table(L, s); break;
 		default: 
 			luaL_error(L, "Unsupport type %d to unserialize", type);
 	}

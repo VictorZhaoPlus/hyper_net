@@ -14,7 +14,7 @@ class Redis : public IRedis {
 		olib::OString<32> ip;
 		s32 port;
 		redisContext* ctx;
-		std::unordered_map<olib::OString<32>, s32, olib::OStringHash<32>> scriptIds;
+		std::unordered_map<olib::OString<32>, olib::OString<32>, olib::OStringHash<32>> scriptIds;
 
 		Context() : ctx(nullptr) {}
 	};

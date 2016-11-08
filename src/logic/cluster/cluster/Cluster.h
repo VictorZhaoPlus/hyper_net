@@ -11,19 +11,16 @@ public:
     virtual bool Launched(IKernel * kernel);
     virtual bool Destroy(IKernel * kernel);
 
-    static Cluster * Self() { return s_self; }
+private:
+    void NewNodeComming(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size);
 
 private:
-    static void NewNodeComming(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size);
-
-private:
-    static Cluster * s_self;
     IKernel * _kernel;
-    static IHarbor * s_harbor;
+    IHarbor * _harbor;
 
-    static std::unordered_set<s64> s_openNode;
-    static std::string _ip;
-    static s32 _port;
+    std::unordered_set<s64> _openNode;
+    std::string _ip;
+    s32 _port;
 };
 
 #endif //__CLUSTER_H__

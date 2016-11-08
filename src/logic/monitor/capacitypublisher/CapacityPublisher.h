@@ -16,14 +16,11 @@ public:
 	virtual void OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port);
 	virtual void OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) {}
 
-	static CapacityPublisher * Self() { return s_self; }
-
 private:
-	static CapacityPublisher * s_self;
-    static IKernel * s_kernel;
-	static IHarbor * s_harbor;
+    IKernel * _kernel;
+	IHarbor * _harbor;
 
-	static s32 s_load;
+	s32 _load;
 };
 
 #endif //__CAPACITYPUBLISHER_H__

@@ -4,10 +4,11 @@
 #include "ICluster.h"
 #include <unordered_map>
 #include "IHarbor.h"
+#include "singleton.h"
 
 class ICapacitySubscriber;
 class StartNodeTimer;
-class Starter : public IStarter, public INodeListener {
+class Starter : public IStarter, public INodeListener, public OHolder<Starter> {
 	struct Execute {
 		s32 type;
 		s32 min;
@@ -34,31 +35,28 @@ public:
     virtual bool Launched(IKernel * kernel);
     virtual bool Destroy(IKernel * kernel);
 
-	virtual void SetStrategy(IStartStrategy * strategy) { s_strategy = strategy; }
+	virtual void SetStrategy(IStartStrategy * strategy) { _strategy = strategy; }
 
 	virtual void OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port);
 	virtual void OnClose(IKernel * kernel, s32 nodeType, s32 nodeId);
 
-	static void OnNodeTimerStart(IKernel * kernel, s32 type, s64 tick);
-	static void OnNodeTimer(IKernel * kernel, s32 type, s64 tick);
-	static void OnNodeTimerEnd(IKernel * kernel, s32 type, s64 tick);
+	void OnNodeTimerStart(IKernel * kernel, s32 type, s64 tick);
+	void OnNodeTimer(IKernel * kernel, s32 type, s64 tick);
+	void OnNodeTimerEnd(IKernel * kernel, s32 type, s64 tick);
 
-	static void StartNode(IKernel * kernel, s32 nodeType, s32 nodeId);
-
-    static Starter * Self() { return s_self; }
+	void StartNode(IKernel * kernel, s32 nodeType, s32 nodeId);
 
 private:
-    static Starter * s_self;
-    static IKernel * s_kernel;
-	static IHarbor * s_harbor;
-	static IStartStrategy * s_strategy;
-	static ICapacitySubscriber * s_capacitySubscriber;
+    IKernel * _kernel;
+	IHarbor * _harbor;
+	IStartStrategy * _strategy;
+	ICapacitySubscriber * _capacitySubscriber;
 
-	static s32 s_checkInterval;
-	static s32 s_deadInterval;
+	s32 _checkInterval;
+	s32 _deadInterval;
 
-	static std::unordered_map<s32, Execute> s_executes;
-	static std::unordered_map<s32, NodeGroup> s_nodes;
+	std::unordered_map<s32, Execute> _executes;
+	std::unordered_map<s32, NodeGroup> _nodes;
 };
 
 #endif //__STARTER_H__

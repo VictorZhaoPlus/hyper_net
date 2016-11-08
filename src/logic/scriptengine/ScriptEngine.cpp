@@ -1,5 +1,4 @@
 #include "ScriptEngine.h"
-#include "NodeProtocol.h"
 #include "tinyxml.h"
 #include <string>
 #include "serialize.h"
@@ -7,6 +6,8 @@
 #include "buffer.h"
 
 #define MAX_MODULE_LEN 64
+#define MAX_LUA_RESULT 8
+#define MAX_CODE_SIZE 256
 
 ScriptEngine * ScriptEngine::s_self = nullptr;
 IKernel * ScriptEngine::s_kernel = nullptr;

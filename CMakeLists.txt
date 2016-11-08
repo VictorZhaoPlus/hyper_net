@@ -13,6 +13,13 @@ IF(UNIX)
     MESSAGE(STATUS "Linux")
 ENDIF(UNIX)
 
+IF(WIN32)
+    SET(CMAKE_CXX_FLAGS "-g -Wall -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux -D_DEBUG")
+    SET(CMAKE_CXX_FLAGS_DEBUG "-g -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux -D_DEBUG")
+    SET(CMAKE_CXX_FLAGS_RELEASE "-g -o2 -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux")
+    MESSAGE(STATUS "Linux")	
+ENDIF(WIN32)
+
 SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS On)
 
 SET(JIT OFF)

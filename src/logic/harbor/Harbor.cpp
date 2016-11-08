@@ -3,7 +3,6 @@
 #include "XmlReader.h"
 #include "tools.h"
 #include <algorithm>
-#include "ICluster.h"
 
 Harbor * Harbor::s_harbor = nullptr;
 IKernel * Harbor::s_kernel = nullptr;
@@ -77,11 +76,6 @@ bool Harbor::Initialize(IKernel * kernel) {
 }
 
 bool Harbor::Launched(IKernel * kernel) {
-    IMaster * master =(IMaster*)kernel->FindModule("Master");
-    if (master) {
-        _port = master->GetPort();
-    }
-
     if (_port) {
         if (!kernel->Listen("0.0.0.0", _port, _sendBuffSize, _recvBuffSize, this)) {
             OASSERT(false, "listen failed");
@@ -237,7 +231,7 @@ void Harbor::RegProtocolHandler(s32 messageId, const NodeCB& handler, const char
     _handlers[messageId].push_back(unit);
 }
 
-void Harbor::RegProtocolHandler(s32 messageId, const NodeArgsCB& handler, const char * debug) {
+void Harbor::RegProtocolArgsHandler(s32 messageId, const NodeArgsCB& handler, const char * debug) {
 	NodeArgsCBProtoHandler * unit = NEW NodeArgsCBProtoHandler(handler);
 	unit->SetDebug(debug);
 

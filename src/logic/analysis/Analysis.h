@@ -4,9 +4,10 @@
 #include "IAnalysis.h"
 #include "IHarbor.h"
 #include <unordered_map>
+#include "singleton.h"
 
 class ICapacitySubscriber;
-class Analysis : public IAnalysis, public INodeListener, public ITimer {
+class Analysis : public IAnalysis, public INodeListener, public ITimer, public OHolder<Analysis> {
 	struct DataSample {
 
 	};
@@ -18,7 +19,7 @@ public:
 	virtual void OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port);
 	virtual void OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) {}
 
-	static void TestDelayRespone(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args);
+	void TestDelayRespone(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args);
 
 	virtual void OnStart(IKernel * kernel, s64 tick) {}
 	virtual void OnTimer(IKernel * kernel, s64 tick);
@@ -27,15 +28,12 @@ public:
 	virtual void OnPause(IKernel * kernel, s64 tick) {}
 	virtual void OnResume(IKernel * kernel, s64 tick) {}
 
-	static Analysis * Self() { return s_self; }
-
 private:
-	static Analysis * s_self;
-    static IKernel * s_kernel;
-	static IHarbor * s_harbor;
-	static ICapacitySubscriber * s_capacitySubscriber;
+    IKernel * _kernel;
+	IHarbor * _harbor;
+	ICapacitySubscriber * _capacitySubscriber;
 
-	static std::unordered_map<s32, std::unordered_map<s32, DataSample>> s_nodes;
+	std::unordered_map<s32, std::unordered_map<s32, DataSample>> _nodes;
 };
 
 #endif //__ANALYSIS_H__
