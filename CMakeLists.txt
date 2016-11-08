@@ -21,6 +21,7 @@ SET(PUBLIC
     "${PROJECT_SOURCE_DIR}/src/public/util.h"
     "${PROJECT_SOURCE_DIR}/src/public/util.cpp"
     "${PROJECT_SOURCE_DIR}/src/public/tools.h"
+	"${PROJECT_SOURCE_DIR}/src/public/tools.cpp"
     "${PROJECT_SOURCE_DIR}/src/public/singleton.h"
 	"${PROJECT_SOURCE_DIR}/src/public/XmlReader.h"
 	"${PROJECT_SOURCE_DIR}/src/public/XmlReader.cpp"

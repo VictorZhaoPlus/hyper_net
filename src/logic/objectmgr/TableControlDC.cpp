@@ -1,19 +1,16 @@
 #include "TableControl.h"
-
-s32 TableControl::RowCount() const{
-    return m_oRows.size();
-}
+#include "ObjectMgr.h"
 
 //数据控制接口
 RowIndex TableControl::FindRow(const s64 key) const {
-    OASSERT(m_oColumnInfo.key.type == DTYPE_INT8
-        || m_oColumnInfo.key.type == DTYPE_INT16
-        || m_oColumnInfo.key.type == DTYPE_INT32
-        || m_oColumnInfo.key.type == DTYPE_INT64, "WTF");
+    OASSERT(_columnInfo.key.type == DTYPE_INT8
+        || _columnInfo.key.type == DTYPE_INT16
+        || _columnInfo.key.type == DTYPE_INT32
+        || _columnInfo.key.type == DTYPE_INT64, "WTF");
     RowIndex index = -1;
-    if (m_oColumnInfo.key.type != DTYPE_STRING && m_oColumnInfo.key.type < DTYPE_CANT_BE_KEY) {
-        KEY_INT_MAP::const_iterator itor = m_oIntKeyMap.find(key);
-        if (itor != m_oIntKeyMap.end()) {
+    if (_columnInfo.key.type != DTYPE_STRING && _columnInfo.key.type < DTYPE_CANT_BE_KEY) {
+        KEY_INT_MAP::const_iterator itor = _intKeyMap.find(key);
+        if (itor != _intKeyMap.end()) {
             index = itor->second;
         }
     }
@@ -22,11 +19,11 @@ RowIndex TableControl::FindRow(const s64 key) const {
 }
 
 RowIndex TableControl::FindRow(const char * key) const {
-    OASSERT(m_oColumnInfo.key.type == DTYPE_STRING, "WTF");
+    OASSERT(_columnInfo.key.type == DTYPE_STRING, "WTF");
     RowIndex index = -1;
-    if (m_oColumnInfo.key.type == DTYPE_STRING) {
-        KEY_STRING_MAP::const_iterator itor = m_oStringKeyMap.find(key);
-        if (itor != m_oStringKeyMap.end()) {
+    if (_columnInfo.key.type == DTYPE_STRING) {
+        KEY_STRING_MAP::const_iterator itor = _stringKeyMap.find(key);
+        if (itor != _stringKeyMap.end()) {
             index = itor->second;
         }
     }
@@ -36,117 +33,117 @@ RowIndex TableControl::FindRow(const char * key) const {
 
 
 RowIndex TableControl::AddRow() {
-    OASSERT(m_oColumnInfo.key.type == DTYPE_CANT_BE_KEY, "wtf");
+    OASSERT(_columnInfo.key.type == DTYPE_CANT_BE_KEY, "wtf");
     RowIndex index = -1;
-    if (m_oColumnInfo.key.type == DTYPE_CANT_BE_KEY) {
-        index = m_oRows.size();
-        TableRow * pRow = TableRowPool::GetInterface()->Create(&m_oColumnInfo);
-        m_oRows.push_back(pRow);
-        AddCallBack(g_pKernel, this, index, nullptr, 0, DTYPE_CANT_BE_KEY);
+    if (_columnInfo.key.type == DTYPE_CANT_BE_KEY) {
+        index = _rows.size();
+        TableRow * pRow = TableRowPool::GetInterface()->Create(&_columnInfo);
+        _rows.push_back(pRow);
+        AddCallBack(ObjectMgr::Instance()->GetKernel(), this, index, nullptr, 0, DTYPE_CANT_BE_KEY);
     }
     return index;
 }
 
 RowIndex TableControl::AddRowKeyInt8(const s8 key) {
-    OASSERT(m_oColumnInfo.key.type == DTYPE_INT8, "wtf");
+    OASSERT(_columnInfo.key.type == DTYPE_INT8, "wtf");
     RowIndex index = -1;
-    if (m_oColumnInfo.key.type == DTYPE_INT8) {
-        if (m_oIntKeyMap.find(key) != m_oIntKeyMap.end()) {
+    if (_columnInfo.key.type == DTYPE_INT8) {
+        if (_intKeyMap.find(key) != _intKeyMap.end()) {
             OASSERT(false, "key is already exits");
             return index;
         }
 
-        index = m_oRows.size();
-        TableRow * pRow = TableRowPool::GetInterface()->Create(&m_oColumnInfo);
-        m_oIntKeyMap.insert(make_pair(key, index));
-        pRow->SetValue(m_oColumnInfo.key.index, DTYPE_INT8, &key, sizeof(key));
-        m_oRows.push_back(pRow);
+        index = _rows.size();
+        TableRow * pRow = TableRowPool::GetInterface()->Create(&_columnInfo);
+        _intKeyMap.insert(std::make_pair(key, index));
+        pRow->SetValue(_columnInfo.key.index, DTYPE_INT8, &key, sizeof(key));
+        _rows.push_back(pRow);
 
-        AddCallBack(g_pKernel, this, index, &key, sizeof(key), DTYPE_INT8);
+        AddCallBack(ObjectMgr::Instance()->GetKernel(), this, index, &key, sizeof(key), DTYPE_INT8);
     }
 
     return index;
 }
 
 RowIndex TableControl::AddRowKeyInt16(const s16 key) {
-    OASSERT(m_oColumnInfo.key.type == DTYPE_INT16, "wtf");
+    OASSERT(_columnInfo.key.type == DTYPE_INT16, "wtf");
     RowIndex index = -1;
-    if (m_oColumnInfo.key.type == DTYPE_INT16) {
-        if (m_oIntKeyMap.find(key) != m_oIntKeyMap.end()) {
+    if (_columnInfo.key.type == DTYPE_INT16) {
+        if (_intKeyMap.find(key) != _intKeyMap.end()) {
             OASSERT(false, "key is already exits");
             return index;
         }
 
-        index = m_oRows.size();
-        TableRow * pRow = TableRowPool::GetInterface()->Create(&m_oColumnInfo);
-        m_oIntKeyMap.insert(make_pair(key, index));
-        pRow->SetValue(m_oColumnInfo.key.index, DTYPE_INT16, &key, sizeof(key));
-        m_oRows.push_back(pRow);
+        index = _rows.size();
+        TableRow * pRow = TableRowPool::GetInterface()->Create(&_columnInfo);
+        _intKeyMap.insert(std::make_pair(key, index));
+        pRow->SetValue(_columnInfo.key.index, DTYPE_INT16, &key, sizeof(key));
+        _rows.push_back(pRow);
 
-        AddCallBack(g_pKernel, this, index, &key, sizeof(key), DTYPE_INT16);
+        AddCallBack(ObjectMgr::Instance()->GetKernel(), this, index, &key, sizeof(key), DTYPE_INT16);
     }
 
     return index;
 }
 
 RowIndex TableControl::AddRowKeyInt32(const s32 key) {
-    OASSERT(m_oColumnInfo.key.type == DTYPE_INT32, "wtf");
+    OASSERT(_columnInfo.key.type == DTYPE_INT32, "wtf");
     RowIndex index = -1;
-    if (m_oColumnInfo.key.type == DTYPE_INT32) {
-        if (m_oIntKeyMap.find(key) != m_oIntKeyMap.end()) {
+    if (_columnInfo.key.type == DTYPE_INT32) {
+        if (_intKeyMap.find(key) != _intKeyMap.end()) {
             OASSERT(false, "key is already exits");
             return index;
         }
 
-        index = m_oRows.size();
-        TableRow * pRow = TableRowPool::GetInterface()->Create(&m_oColumnInfo);
-        m_oIntKeyMap.insert(make_pair(key, index));
-        pRow->SetValue(m_oColumnInfo.key.index, DTYPE_INT32, &key, sizeof(key));
-        m_oRows.push_back(pRow);
+        index = _rows.size();
+        TableRow * pRow = TableRowPool::GetInterface()->Create(&_columnInfo);
+        _intKeyMap.insert(std::make_pair(key, index));
+        pRow->SetValue(_columnInfo.key.index, DTYPE_INT32, &key, sizeof(key));
+        _rows.push_back(pRow);
 
-        AddCallBack(g_pKernel, this, index, &key, sizeof(key), DTYPE_INT32);
+        AddCallBack(ObjectMgr::Instance()->GetKernel(), this, index, &key, sizeof(key), DTYPE_INT32);
     }
 
     return index;
 }
 
 RowIndex TableControl::AddRowKeyInt64(const s64 key) {
-    OASSERT(m_oColumnInfo.key.type == DTYPE_INT64, "wtf");
+    OASSERT(_columnInfo.key.type == DTYPE_INT64, "wtf");
     RowIndex index = -1;
-    if (m_oColumnInfo.key.type == DTYPE_INT64) {
-        if (m_oIntKeyMap.find(key) != m_oIntKeyMap.end()) {
+    if (_columnInfo.key.type == DTYPE_INT64) {
+        if (_intKeyMap.find(key) != _intKeyMap.end()) {
             OASSERT(false, "key is already exits");
             return index;
         }
 
-        index = m_oRows.size();
-        TableRow * pRow = TableRowPool::GetInterface()->Create(&m_oColumnInfo);
-        m_oIntKeyMap.insert(make_pair(key, index));
-        pRow->SetValue(m_oColumnInfo.key.index, DTYPE_INT64, &key, sizeof(key));
-        m_oRows.push_back(pRow);
+        index = _rows.size();
+        TableRow * pRow = TableRowPool::GetInterface()->Create(&_columnInfo);
+        _intKeyMap.insert(std::make_pair(key, index));
+        pRow->SetValue(_columnInfo.key.index, DTYPE_INT64, &key, sizeof(key));
+        _rows.push_back(pRow);
 
-        AddCallBack(g_pKernel, this, index, &key, sizeof(key), DTYPE_INT64);
+        AddCallBack(ObjectMgr::Instance()->GetKernel(), this, index, &key, sizeof(key), DTYPE_INT64);
     }
 
     return index;
 }
 
 RowIndex TableControl::AddRowKeyString(const char * key) {
-    OASSERT(m_oColumnInfo.key.type == DTYPE_STRING, "wtf");
+    OASSERT(_columnInfo.key.type == DTYPE_STRING, "wtf");
     RowIndex index = -1;
-    if (m_oColumnInfo.key.type == DTYPE_STRING) {
-        if (m_oStringKeyMap.find(key) != m_oStringKeyMap.end()) {
+    if (_columnInfo.key.type == DTYPE_STRING) {
+        if (_stringKeyMap.find(key) != _stringKeyMap.end()) {
             OASSERT(false, "key is already exits");
             return index;
         }
 
-        index = m_oRows.size();
-        TableRow * pRow = TableRowPool::GetInterface()->Create(&m_oColumnInfo);
-        m_oStringKeyMap.insert(make_pair(key, index));
-        pRow->SetValue(m_oColumnInfo.key.index, DTYPE_STRING, key, strlen(key));
-        m_oRows.push_back(pRow);
+        index = _rows.size();
+        TableRow * pRow = TableRowPool::GetInterface()->Create(&_columnInfo);
+        _stringKeyMap.insert(std::make_pair(key, index));
+        pRow->SetValue(_columnInfo.key.index, DTYPE_STRING, key, strlen(key));
+        _rows.push_back(pRow);
 
-        AddCallBack(g_pKernel, this, index, key, strlen(key) + 1, DTYPE_STRING);
+        AddCallBack(ObjectMgr::Instance()->GetKernel(), this, index, key, strlen(key) + 1, DTYPE_STRING);
     }
 
     return index;
@@ -154,204 +151,199 @@ RowIndex TableControl::AddRowKeyString(const char * key) {
 
 //插入行
 bool TableControl::InsertRow(const RowIndex index) {
-    OASSERT(index < m_oRows.size() && index >= 0 && m_oColumnInfo.key.type == DTYPE_CANT_BE_KEY, "index over flow");
-    if (index >= m_oRows.size() || index < 0 || m_oColumnInfo.key.type != DTYPE_CANT_BE_KEY) {
+    OASSERT(index < (s32)_rows.size() && index >= 0 && _columnInfo.key.type == DTYPE_CANT_BE_KEY, "index over flow");
+    if (index >= (s32)_rows.size() || index < 0 || _columnInfo.key.type != DTYPE_CANT_BE_KEY) {
         return false;
     }
 
-    m_oRows.insert(m_oRows.begin() + index, TableRowPool::GetInterface()->Create(&m_oColumnInfo));
-    AddCallBack(g_pKernel, this, index, nullptr, 0, DTYPE_CANT_BE_KEY);
+    _rows.insert(_rows.begin() + index, TableRowPool::GetInterface()->Create(&_columnInfo));
+    AddCallBack(ObjectMgr::Instance()->GetKernel(), this, index, nullptr, 0, DTYPE_CANT_BE_KEY);
     return true;
 }
 
 bool TableControl::InsertRowKeyInt8(const s8 key, const RowIndex index) {
-    OASSERT(index < m_oRows.size() && index >= 0 && m_oColumnInfo.key.type == DTYPE_INT8, "index over flow");
-    if (index >= m_oRows.size() || index < 0 || m_oColumnInfo.key.type != DTYPE_INT8) {
+    OASSERT(index < (s32)_rows.size() && index >= 0 && _columnInfo.key.type == DTYPE_INT8, "index over flow");
+    if (index >= (s32)_rows.size() || index < 0 || _columnInfo.key.type != DTYPE_INT8) {
         return false;
     }
 
-    if (m_oColumnInfo.key.type == DTYPE_INT8) {
-        if (m_oIntKeyMap.find(key) != m_oIntKeyMap.end()) {
+    if (_columnInfo.key.type == DTYPE_INT8) {
+        if (_intKeyMap.find(key) != _intKeyMap.end()) {
             OASSERT(false, "key is already exits");
             return false;
         }
-        TableRow * pRow = TableRowPool::GetInterface()->Create(&m_oColumnInfo);
-        pRow->SetValue(m_oColumnInfo.key.index, DTYPE_INT8, &key, sizeof(key));
-        m_oRows.insert(m_oRows.begin() + index, pRow);
+        TableRow * pRow = TableRowPool::GetInterface()->Create(&_columnInfo);
+        pRow->SetValue(_columnInfo.key.index, DTYPE_INT8, &key, sizeof(key));
+        _rows.insert(_rows.begin() + index, pRow);
         OrderProcIndex(index, 1);
-        m_oIntKeyMap.insert(make_pair(key, index));
+        _intKeyMap.insert(std::make_pair(key, index));
 
-        AddCallBack(g_pKernel, this, index, &key, sizeof(key), DTYPE_INT8);
+        AddCallBack(ObjectMgr::Instance()->GetKernel(), this, index, &key, sizeof(key), DTYPE_INT8);
         return true;
     } 
     return false;
 }
 
 bool TableControl::InsertRowKeyInt16(const s16 key, const RowIndex index) {
-    OASSERT(index < m_oRows.size() && index >= 0 && m_oColumnInfo.key.type == DTYPE_INT16, "index over flow");
-    if (index >= m_oRows.size() || index < 0 || m_oColumnInfo.key.type != DTYPE_INT16) {
+    OASSERT(index < (s32)_rows.size() && index >= 0 && _columnInfo.key.type == DTYPE_INT16, "index over flow");
+    if (index >= (s32)_rows.size() || index < 0 || _columnInfo.key.type != DTYPE_INT16) {
         return false;
     }
 
-    if (m_oColumnInfo.key.type == DTYPE_INT16) {
-        if (m_oIntKeyMap.find(key) != m_oIntKeyMap.end()) {
+    if (_columnInfo.key.type == DTYPE_INT16) {
+        if (_intKeyMap.find(key) != _intKeyMap.end()) {
             OASSERT(false, "key is already exits");
             return false;
         }
 
-        TableRow * pRow = TableRowPool::GetInterface()->Create(&m_oColumnInfo);
-        pRow->SetValue(m_oColumnInfo.key.index, DTYPE_INT16, &key, sizeof(key));
-        m_oRows.insert(m_oRows.begin() + index, pRow);
+        TableRow * pRow = TableRowPool::GetInterface()->Create(&_columnInfo);
+        pRow->SetValue(_columnInfo.key.index, DTYPE_INT16, &key, sizeof(key));
+        _rows.insert(_rows.begin() + index, pRow);
         OrderProcIndex(index, 1);
-        m_oIntKeyMap.insert(make_pair(key, index));
-        AddCallBack(g_pKernel, this, index, &key, sizeof(key), DTYPE_INT16);
+        _intKeyMap.insert(std::make_pair(key, index));
+        AddCallBack(ObjectMgr::Instance()->GetKernel(), this, index, &key, sizeof(key), DTYPE_INT16);
         return true;
     }
     return false;
 }
 
 bool TableControl::InsertRowKeyInt32(const s32 key, const RowIndex index) {
-    OASSERT(index < m_oRows.size() && index >= 0 && m_oColumnInfo.key.type == DTYPE_INT32, "index over flow");
-    if (index >= m_oRows.size() || index < 0 || m_oColumnInfo.key.type != DTYPE_INT32) {
+    OASSERT(index < (s32)_rows.size() && index >= 0 && _columnInfo.key.type == DTYPE_INT32, "index over flow");
+    if (index >= (s32)_rows.size() || index < 0 || _columnInfo.key.type != DTYPE_INT32) {
         return false;
     }
 
-    if (m_oColumnInfo.key.type == DTYPE_INT32) {
-        if (m_oIntKeyMap.find(key) != m_oIntKeyMap.end()) {
+    if (_columnInfo.key.type == DTYPE_INT32) {
+        if (_intKeyMap.find(key) != _intKeyMap.end()) {
             OASSERT(false, "key is already exits");
             return false;
         }
 
-        TableRow * pRow = TableRowPool::GetInterface()->Create(&m_oColumnInfo);
-        pRow->SetValue(m_oColumnInfo.key.index, DTYPE_INT32, &key, sizeof(key));
-        m_oRows.insert(m_oRows.begin() + index, pRow);
+        TableRow * pRow = TableRowPool::GetInterface()->Create(&_columnInfo);
+        pRow->SetValue(_columnInfo.key.index, DTYPE_INT32, &key, sizeof(key));
+        _rows.insert(_rows.begin() + index, pRow);
         OrderProcIndex(index, 1);
-        m_oIntKeyMap.insert(make_pair(key, index));
-        AddCallBack(g_pKernel, this, index, &key, sizeof(key), DTYPE_INT32);
+        _intKeyMap.insert(std::make_pair(key, index));
+        AddCallBack(ObjectMgr::Instance()->GetKernel(), this, index, &key, sizeof(key), DTYPE_INT32);
         return true;
     }
     return false;
 }
 
 bool TableControl::InsertRowKeyInt64(const s64 key, const RowIndex index) {
-    OASSERT(index < m_oRows.size() && index >= 0 && m_oColumnInfo.key.type == DTYPE_INT64, "index over flow");
-    if (index >= m_oRows.size() || index < 0 || m_oColumnInfo.key.type != DTYPE_INT64) {
+    OASSERT(index < (s32)_rows.size() && index >= 0 && _columnInfo.key.type == DTYPE_INT64, "index over flow");
+    if (index >= (s32)_rows.size() || index < 0 || _columnInfo.key.type != DTYPE_INT64) {
         return false;
     }
 
-    if (m_oColumnInfo.key.type == DTYPE_INT64) {
-        if (m_oIntKeyMap.find(key) != m_oIntKeyMap.end()) {
+    if (_columnInfo.key.type == DTYPE_INT64) {
+        if (_intKeyMap.find(key) != _intKeyMap.end()) {
             OASSERT(false, "key is already exits");
             return false;
         }
 
-        TableRow * pRow = TableRowPool::GetInterface()->Create(&m_oColumnInfo);
-        pRow->SetValue(m_oColumnInfo.key.index, DTYPE_INT64, &key, sizeof(key));
-        m_oRows.insert(m_oRows.begin() + index, pRow);
+        TableRow * pRow = TableRowPool::GetInterface()->Create(&_columnInfo);
+        pRow->SetValue(_columnInfo.key.index, DTYPE_INT64, &key, sizeof(key));
+        _rows.insert(_rows.begin() + index, pRow);
         OrderProcIndex(index, 1);
-        m_oIntKeyMap.insert(make_pair(key, index));
-        AddCallBack(g_pKernel, this, index, &key, sizeof(key), DTYPE_INT64);
+        _intKeyMap.insert(std::make_pair(key, index));
+        AddCallBack(ObjectMgr::Instance()->GetKernel(), this, index, &key, sizeof(key), DTYPE_INT64);
         return true;
     }
     return false;
 }
 
 bool TableControl::InsertRowKeyString(const char * key, const RowIndex index) {
-    OASSERT(index < m_oRows.size() && index >= 0 && m_oColumnInfo.key.type == DTYPE_STRING, "index over flow");
-    if (index >= m_oRows.size() || index < 0 || m_oColumnInfo.key.type != DTYPE_STRING) {
+    OASSERT(index < (s32)_rows.size() && index >= 0 && _columnInfo.key.type == DTYPE_STRING, "index over flow");
+    if (index >= (s32)_rows.size() || index < 0 || _columnInfo.key.type != DTYPE_STRING) {
         return false;
     }
 
-    if (m_oColumnInfo.key.type == DTYPE_STRING) {
-        if (m_oStringKeyMap.find(key) != m_oStringKeyMap.end()) {
+    if (_columnInfo.key.type == DTYPE_STRING) {
+        if (_stringKeyMap.find(key) != _stringKeyMap.end()) {
             OASSERT(false, "key is already exits");
             return false;
         }
 
-        TableRow * pRow = TableRowPool::GetInterface()->Create(&m_oColumnInfo);
-        pRow->SetValue(m_oColumnInfo.key.index, DTYPE_STRING, key, strlen(key));
-        m_oRows.insert(m_oRows.begin() + index, pRow);
+        TableRow * pRow = TableRowPool::GetInterface()->Create(&_columnInfo);
+        pRow->SetValue(_columnInfo.key.index, DTYPE_STRING, key, strlen(key));
+        _rows.insert(_rows.begin() + index, pRow);
         OrderProcIndex(index, 1);
-        m_oStringKeyMap.insert(make_pair(key, index));
-        AddCallBack(g_pKernel, this, index, key, strlen(key) + 1, DTYPE_STRING);
+        _stringKeyMap.insert(std::make_pair(key, index));
+        AddCallBack(ObjectMgr::Instance()->GetKernel(), this, index, key, strlen(key) + 1, DTYPE_STRING);
         return true;
     }
     return false;
 }
 
 void TableControl::OrderProcIndex(const RowIndex index, const s32 index_diff) {
-    switch (m_oColumnInfo.key.type) {
+    switch (_columnInfo.key.type) {
 	case DTYPE_INT8:
 		{
-			for (s32 i = index + 1; i < m_oRows.size(); i++) {
+			for (s32 i = index + 1; i < (s32)_rows.size(); i++) {
 				s32 nSize = 0;
-				s8 key = *(s8 *)m_oRows[i]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-				KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-				OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-				if (itor != m_oIntKeyMap.end()) {
+				s8 key = *(s8 *)_rows[i]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+				KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+				OASSERT(itor != _intKeyMap.end(), "where is key");
+				if (itor != _intKeyMap.end()) {
 					s32 oldIndex = itor->second;
                     itor->second += index_diff;
-					OM_TRACE("table %s row %lld index %d changed to %d", m_oTableName.GetString(), key, oldIndex, itor->second);
 				}
 			}
 		}
 		break;
 	case DTYPE_INT16:
 		{
-			for (s32 i = index + 1; i < m_oRows.size(); i++) {
+			for (s32 i = index + 1; i < (s32)_rows.size(); i++) {
 				s32 nSize = 0;
-				s16 key = *(s16 *)m_oRows[i]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-				KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-				OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-				if (itor != m_oIntKeyMap.end()) {
+				s16 key = *(s16 *)_rows[i]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+				KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+				OASSERT(itor != _intKeyMap.end(), "where is key");
+				if (itor != _intKeyMap.end()) {
 					s32 oldIndex = itor->second;
                     itor->second += index_diff;
-					OM_TRACE("table %s row %lld index %d changed to %d", m_oTableName.GetString(), key, oldIndex, itor->second);
 				}
 			}
 		}
 		break;
 	case DTYPE_INT32:
 		{
-			for (s32 i = index + 1; i < m_oRows.size(); i++) {
+			for (s32 i = index + 1; i < (s32)_rows.size(); i++) {
 				s32 nSize = 0;
-				s32 key = *(s32 *)m_oRows[i]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-				KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-				OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-				if (itor != m_oIntKeyMap.end()) {
+				s32 key = *(s32 *)_rows[i]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+				KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+				OASSERT(itor != _intKeyMap.end(), "where is key");
+				if (itor != _intKeyMap.end()) {
 					s32 oldIndex = itor->second;
                     itor->second += index_diff;
-					OM_TRACE("table %s row %lld index %d changed to %d", m_oTableName.GetString(), key, oldIndex, itor->second);
 				}
 			}
 		}
 		break;
 	case DTYPE_INT64:
 		{
-			for (s32 i = index + 1; i < m_oRows.size(); i++) {
+			for (s32 i = index + 1; i < (s32)_rows.size(); i++) {
 				s32 nSize = 0;
-				s64 key = *(s64 *)m_oRows[i]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-				KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-				OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-				if (itor != m_oIntKeyMap.end()) {
+				s64 key = *(s64 *)_rows[i]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+				KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+				OASSERT(itor != _intKeyMap.end(), "where is key");
+				if (itor != _intKeyMap.end()) {
 					s32 oldIndex = itor->second;
                     itor->second += index_diff;
-					OM_TRACE("table %s row %lld index %d changed to %d", m_oTableName.GetString(), key, oldIndex, itor->second);
 				}
 			}
 		}
 		break;
 	case DTYPE_STRING:
 		{
-			for (s32 i = index + 1; i < m_oRows.size(); i++) {
+			for (s32 i = index + 1; i < (s32)_rows.size(); i++) {
 				s32 nSize = 0;
-				const char * key = (const char *)m_oRows[i]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-				KEY_STRING_MAP::iterator itor = m_oStringKeyMap.find(key);
-				OASSERT(itor != m_oStringKeyMap.end(), "where is key");
-				if (itor != m_oStringKeyMap.end()) {
+				const char * key = (const char *)_rows[i]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+				KEY_STRING_MAP::iterator itor = _stringKeyMap.find(key);
+				OASSERT(itor != _stringKeyMap.end(), "where is key");
+				if (itor != _stringKeyMap.end()) {
 					s32 oldIndex = itor->second;
                     itor->second += index_diff;
-					OM_TRACE("table %s row %s index %d changed to %d", m_oTableName.GetString(), key, oldIndex, itor->second);
 				}
 			}
 		}
@@ -365,75 +357,75 @@ void TableControl::OrderProcIndex(const RowIndex index, const s32 index_diff) {
 }
 
 bool TableControl::DelRow(const RowIndex index) {
-    OASSERT(index < m_oRows.size() && index >= 0, "index over flow");
-    if (index >= m_oRows.size() || index < 0) {
+    OASSERT(index < (s32)_rows.size() && index >= 0, "index over flow");
+    if (index >= (s32)_rows.size() || index < 0) {
         return false;
     }
     
-    switch (m_oColumnInfo.key.type) {
+    switch (_columnInfo.key.type) {
 	case DTYPE_INT8:
 		{
 			s32 nSize = 0;
-			s8 key = *(s8 *)m_oRows[index]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-			KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-			OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-			if (itor != m_oIntKeyMap.end()) {
-				m_oIntKeyMap.erase(itor);
+			s8 key = *(s8 *)_rows[index]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+			KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+			OASSERT(itor != _intKeyMap.end(), "where is key");
+			if (itor != _intKeyMap.end()) {
+				_intKeyMap.erase(itor);
 				//OM_TRACE("Table %s delete key %ld", m_oTableName.GetString(), key);
 
-                DeleteCallBack(g_pKernel, this, index);
+                DeleteCallBack(ObjectMgr::Instance()->GetKernel(), this, index);
 			}
 			break;
 		}
 	case DTYPE_INT16:
 		{
 			s32 nSize = 0;
-			s16 key = *(s16 *)m_oRows[index]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-			KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-			OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-			if (itor != m_oIntKeyMap.end()) {
-				m_oIntKeyMap.erase(itor);
+			s16 key = *(s16 *)_rows[index]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+			KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+			OASSERT(itor != _intKeyMap.end(), "where is key");
+			if (itor != _intKeyMap.end()) {
+				_intKeyMap.erase(itor);
                 //OM_TRACE("Table %s delete key %ld", m_oTableName.GetString(), key);
-                DeleteCallBack(g_pKernel, this, index);
+                DeleteCallBack(ObjectMgr::Instance()->GetKernel(), this, index);
 			}
 			break;
 		}
 	case DTYPE_INT32:
 		{
 			s32 nSize = 0;
-			s32 key = *(s32 *)m_oRows[index]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-			KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-			OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-			if (itor != m_oIntKeyMap.end()) {
-				m_oIntKeyMap.erase(itor);
+			s32 key = *(s32 *)_rows[index]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+			KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+			OASSERT(itor != _intKeyMap.end(), "where is key");
+			if (itor != _intKeyMap.end()) {
+				_intKeyMap.erase(itor);
                 //OM_TRACE("Table %s delete key %ld", m_oTableName.GetString(), key);
-                DeleteCallBack(g_pKernel, this, index);
+                DeleteCallBack(ObjectMgr::Instance()->GetKernel(), this, index);
 			}
 			break;
 		}
     case DTYPE_INT64:
         {
             s32 nSize = 0;
-            s64 key = *(s64 *)m_oRows[index]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-            KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-            OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-            if (itor != m_oIntKeyMap.end()) {
-                m_oIntKeyMap.erase(itor);
+            s64 key = *(s64 *)_rows[index]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+            KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+            OASSERT(itor != _intKeyMap.end(), "where is key");
+            if (itor != _intKeyMap.end()) {
+                _intKeyMap.erase(itor);
                 //OM_TRACE("Table %s delete key %ld", m_oTableName.GetString(), key);
-                DeleteCallBack(g_pKernel, this, index);
+                DeleteCallBack(ObjectMgr::Instance()->GetKernel(), this, index);
             }
         }
         break;
     case DTYPE_STRING:
         {
             s32 nSize = 0;
-            const char * key = (const char *)m_oRows[index]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-            KEY_STRING_MAP::iterator itor = m_oStringKeyMap.find(key);
-            OASSERT(itor != m_oStringKeyMap.end(), "where is key");
-            if (itor != m_oStringKeyMap.end()) {
-                m_oStringKeyMap.erase(itor);
+            const char * key = (const char *)_rows[index]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+            KEY_STRING_MAP::iterator itor = _stringKeyMap.find(key);
+            OASSERT(itor != _stringKeyMap.end(), "where is key");
+            if (itor != _stringKeyMap.end()) {
+                _stringKeyMap.erase(itor);
                 //OM_TRACE("Table %s delete key %s", m_oTableName.GetString(), key);
-                DeleteCallBack(g_pKernel, this, index);
+                DeleteCallBack(ObjectMgr::Instance()->GetKernel(), this, index);
             }
         }
         break;
@@ -445,38 +437,38 @@ bool TableControl::DelRow(const RowIndex index) {
     }
 
 
-    TABLE_ROWS::iterator itor = m_oRows.begin() + index;
+    TABLE_ROWS::iterator itor = _rows.begin() + index;
     TableRowPool::GetInterface()->Recover(*itor);
 
     OrderProcIndex(index, -1);
 
-    m_oRows.erase(itor);
+    _rows.erase(itor);
 
     return true;
 }
 
 bool TableControl::SwapRowIndex(const RowIndex src, const RowIndex dst) {
-    OASSERT(src < m_oRows.size() && dst < m_oRows.size(), "wtf");
+    OASSERT(src < (s32)_rows.size() && dst < (s32)_rows.size(), "wtf");
 
-    switch (m_oColumnInfo.key.type) {
+    switch (_columnInfo.key.type) {
 		case DTYPE_INT8:
 		{
 			{
 				s32 nSize = 0;
-				s8 key = *(s8 *)m_oRows[src]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-				KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-				OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-				if (itor != m_oIntKeyMap.end()) {
+				s8 key = *(s8 *)_rows[src]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+				KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+				OASSERT(itor != _intKeyMap.end(), "where is key");
+				if (itor != _intKeyMap.end()) {
 					itor->second = dst;
 					//OM_TRACE("table %s row %lld index %d changed to %d", m_oTableName.GetString(), key, src, itor->second);
 				}
 			}
 			{
 				s32 nSize = 0;
-				s8 key = *(s8 *)m_oRows[dst]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-				KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-				OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-				if (itor != m_oIntKeyMap.end()) {
+				s8 key = *(s8 *)_rows[dst]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+				KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+				OASSERT(itor != _intKeyMap.end(), "where is key");
+				if (itor != _intKeyMap.end()) {
 					itor->second = src;
 					//OM_TRACE("table %s row %lld index %d changed to %d", m_oTableName.GetString(), key, dst, itor->second);
 				}
@@ -487,20 +479,20 @@ bool TableControl::SwapRowIndex(const RowIndex src, const RowIndex dst) {
 		{
 			{
 				s32 nSize = 0;
-				s16 key = *(s16 *)m_oRows[src]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-				KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-				OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-				if (itor != m_oIntKeyMap.end()) {
+				s16 key = *(s16 *)_rows[src]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+				KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+				OASSERT(itor != _intKeyMap.end(), "where is key");
+				if (itor != _intKeyMap.end()) {
 					itor->second = dst;
 					//OM_TRACE("table %s row %lld index %d changed to %d", m_oTableName.GetString(), key, src, itor->second);
 				}
 			}
 			{
 				s32 nSize = 0;
-				s16 key = *(s16 *)m_oRows[dst]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-				KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-				OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-				if (itor != m_oIntKeyMap.end()) {
+				s16 key = *(s16 *)_rows[dst]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+				KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+				OASSERT(itor != _intKeyMap.end(), "where is key");
+				if (itor != _intKeyMap.end()) {
 					itor->second = src;
 					//OM_TRACE("table %s row %lld index %d changed to %d", m_oTableName.GetString(), key, dst, itor->second);
 				}
@@ -511,19 +503,19 @@ bool TableControl::SwapRowIndex(const RowIndex src, const RowIndex dst) {
 		{
 			{
 				s32 nSize = 0;
-				s32 key = *(s32 *)m_oRows[src]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-				KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-				OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-				if (itor != m_oIntKeyMap.end()) {
+				s32 key = *(s32 *)_rows[src]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+				KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+				OASSERT(itor != _intKeyMap.end(), "where is key");
+				if (itor != _intKeyMap.end()) {
 					itor->second = dst;
 				}
 			}
 			{
 				s32 nSize = 0;
-				s32 key = *(s32 *)m_oRows[dst]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-				KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-				OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-				if (itor != m_oIntKeyMap.end()) {
+				s32 key = *(s32 *)_rows[dst]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+				KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+				OASSERT(itor != _intKeyMap.end(), "where is key");
+				if (itor != _intKeyMap.end()) {
 					itor->second = src;
 				}
 			}
@@ -533,19 +525,19 @@ bool TableControl::SwapRowIndex(const RowIndex src, const RowIndex dst) {
         {
             {
                 s32 nSize = 0;
-                s64 key = *(s64 *)m_oRows[src]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-                KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-                OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-                if (itor != m_oIntKeyMap.end()) {
+                s64 key = *(s64 *)_rows[src]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+                KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+                OASSERT(itor != _intKeyMap.end(), "where is key");
+                if (itor != _intKeyMap.end()) {
                     itor->second = dst;
                 }
             }
             {
                 s32 nSize = 0;
-                s64 key = *(s64 *)m_oRows[dst]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-                KEY_INT_MAP::iterator itor = m_oIntKeyMap.find(key);
-                OASSERT(itor != m_oIntKeyMap.end(), "where is key");
-                if (itor != m_oIntKeyMap.end()) {
+                s64 key = *(s64 *)_rows[dst]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+                KEY_INT_MAP::iterator itor = _intKeyMap.find(key);
+                OASSERT(itor != _intKeyMap.end(), "where is key");
+                if (itor != _intKeyMap.end()) {
                     itor->second = src;
                 }
             }
@@ -555,10 +547,10 @@ bool TableControl::SwapRowIndex(const RowIndex src, const RowIndex dst) {
         {
             {
                 s32 nSize = 0;
-                const char * key = (const char *)m_oRows[src]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-                KEY_STRING_MAP::iterator itor = m_oStringKeyMap.find(key);
-                OASSERT(itor != m_oStringKeyMap.end(), "where is key");
-                if (itor != m_oStringKeyMap.end()) {
+                const char * key = (const char *)_rows[src]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+                KEY_STRING_MAP::iterator itor = _stringKeyMap.find(key);
+                OASSERT(itor != _stringKeyMap.end(), "where is key");
+                if (itor != _stringKeyMap.end()) {
                     itor->second = dst;
                     //OM_TRACE("table %s row %s index %d changed to %d", m_oTableName.GetString(), key, src, itor->second);
                 }
@@ -566,10 +558,10 @@ bool TableControl::SwapRowIndex(const RowIndex src, const RowIndex dst) {
 
             {
                 s32 nSize = 0;
-                const char * key = (const char *)m_oRows[dst]->GetValue(m_oColumnInfo.key.index, m_oColumnInfo.key.type, nSize);
-                KEY_STRING_MAP::iterator itor = m_oStringKeyMap.find(key);
-                OASSERT(itor != m_oStringKeyMap.end(), "where is key");
-                if (itor != m_oStringKeyMap.end()) {
+                const char * key = (const char *)_rows[dst]->GetValue(_columnInfo.key.index, _columnInfo.key.type, nSize);
+                KEY_STRING_MAP::iterator itor = _stringKeyMap.find(key);
+                OASSERT(itor != _stringKeyMap.end(), "where is key");
+                if (itor != _stringKeyMap.end()) {
                     itor->second = src;
                     //OM_TRACE("table %s row %s index %d changed to %d", m_oTableName.GetString(), key, dst, itor->second);
                 }
@@ -583,11 +575,11 @@ bool TableControl::SwapRowIndex(const RowIndex src, const RowIndex dst) {
             break;
     }
 
-    TableRow * pSwap = m_oRows[src];
-    m_oRows[src] = m_oRows[dst];
-    m_oRows[dst] = pSwap;
+    TableRow * pSwap = _rows[src];
+    _rows[src] = _rows[dst];
+    _rows[dst] = pSwap;
 
-    ChangeCallBack(g_pKernel, this, src, dst);
+    SwapCallBack(ObjectMgr::Instance()->GetKernel(), this, src, dst);
     return true;
 }
 
@@ -596,136 +588,132 @@ bool TableControl::ChangeKey(const s64 oldKey, const s64 newKey, const s8 type) 
     OASSERT(type == DTYPE_INT8 || type == DTYPE_INT16
         ||type == DTYPE_INT32 || type == DTYPE_INT64, "wtf");
 
-    OASSERT(m_oColumnInfo.key.type == type, "wtf");
-    if (m_oColumnInfo.key.type != type) {
+    OASSERT(_columnInfo.key.type == type, "wtf");
+    if (_columnInfo.key.type != type) {
         return false;
     }
 
-    KEY_INT_MAP::iterator iNewtor = m_oIntKeyMap.find(newKey);
-    if (iNewtor != m_oIntKeyMap.end()) {
-        OM_TRACE("table %s key %lld is exist", m_oTableName.GetString(), newKey);
+    KEY_INT_MAP::iterator iNewtor = _intKeyMap.find(newKey);
+    if (iNewtor != _intKeyMap.end()) {
         return false;
     }
 
-    KEY_INT_MAP::iterator iOldtor = m_oIntKeyMap.find(oldKey);
-    OASSERT(iOldtor != m_oIntKeyMap.end(), "where is old key");
-    if (iOldtor == m_oIntKeyMap.end()) {
-        OM_TRACE("table %s can't find key %lld", m_oTableName.GetString(), oldKey);
+    KEY_INT_MAP::iterator iOldtor = _intKeyMap.find(oldKey);
+    OASSERT(iOldtor != _intKeyMap.end(), "where is old key");
+    if (iOldtor == _intKeyMap.end()) {
         return false;
     }
-    m_oIntKeyMap.insert(make_pair(newKey, iOldtor->second));
-    m_oIntKeyMap.erase(iOldtor);
+    _intKeyMap.insert(std::make_pair(newKey, iOldtor->second));
+    _intKeyMap.erase(iOldtor);
     return false;
 }
 
 bool TableControl::ChangeKey(const char * oldKey, const char * newKey, const s8 type) {
-    OASSERT(type == DTYPE_STRING && m_oColumnInfo.key.type == type, "wtf");
+    OASSERT(type == DTYPE_STRING && _columnInfo.key.type == type, "wtf");
 
-    if (m_oColumnInfo.key.type != type) {
+    if (_columnInfo.key.type != type) {
         return false;
     }
 
-    KEY_STRING_MAP::iterator iNewtor = m_oStringKeyMap.find(newKey);
-    if (iNewtor != m_oStringKeyMap.end()) {
-        OM_TRACE("table %s key %s is exist", m_oTableName.GetString(), newKey);
+    KEY_STRING_MAP::iterator iNewtor = _stringKeyMap.find(newKey);
+    if (iNewtor != _stringKeyMap.end()) {
         return false;
     }
 
-    KEY_STRING_MAP::iterator iOldtor = m_oStringKeyMap.find(oldKey);
-    OASSERT(iOldtor != m_oStringKeyMap.end(), "where is old key");
-    if (iOldtor == m_oStringKeyMap.end()) {
-        OM_TRACE("table %s can't find key %s", m_oTableName.GetString(), oldKey);
+    KEY_STRING_MAP::iterator iOldtor = _stringKeyMap.find(oldKey);
+    OASSERT(iOldtor != _stringKeyMap.end(), "where is old key");
+    if (iOldtor == _stringKeyMap.end()) {
         return false;
     }
-    m_oStringKeyMap.insert(make_pair(newKey, iOldtor->second));
-    m_oStringKeyMap.erase(iOldtor);
+    _stringKeyMap.insert(std::make_pair(newKey, iOldtor->second));
+    _stringKeyMap.erase(iOldtor);
     return false;
 }
 
 bool TableControl::GetRowData(const s32 row, const void * & pData, s32 & size) {
-    pData = m_oRows[row]->GetData();
-    size = m_oRows[row]->GetSize();
+    pData = _rows[row]->GetData();
+    size = _rows[row]->GetSize();
     return true;
 }
 
 RowIndex TableControl::AddRowData(const void * pData, const s32 size) {
-    TableRow * pRow = TableRowPool::GetInterface()->Create(&m_oColumnInfo);
+    TableRow * pRow = TableRowPool::GetInterface()->Create(&_columnInfo);
     pRow->Copy(pData, size);
-    s32 index = m_oRows.size();
+    s32 index = _rows.size();
 
-    switch (m_oColumnInfo.key.type) {
+    switch (_columnInfo.key.type) {
     case DTYPE_INT8:
     {
                        s32 size = 0;
-                       s8 key = *(s8*)pRow->GetValue(m_oColumnInfo.key.index, DTYPE_INT8, size);
+                       s8 key = *(s8*)pRow->GetValue(_columnInfo.key.index, DTYPE_INT8, size);
                        OASSERT(size == sizeof(key), "wtf");
-                       if (m_oIntKeyMap.find(key) != m_oIntKeyMap.end()) {
+                       if (_intKeyMap.find(key) != _intKeyMap.end()) {
                            OASSERT(false, "key is already exits");
                            TableRowPool::GetInterface()->Recover(pRow);
                            return false;
                        }
 
-                       m_oRows.push_back(pRow);
-                       m_oIntKeyMap.insert(make_pair(key, index));
+                       _rows.push_back(pRow);
+                       _intKeyMap.insert(std::make_pair(key, index));
                        break;
     }
     case DTYPE_INT16:
     {
                         s32 size = 0;
-                        s16 key = *(s16*)pRow->GetValue(m_oColumnInfo.key.index, DTYPE_INT16, size);
+                        s16 key = *(s16*)pRow->GetValue(_columnInfo.key.index, DTYPE_INT16, size);
                         OASSERT(size == sizeof(key), "wtf");
-                        if (m_oIntKeyMap.find(key) != m_oIntKeyMap.end()) {
+                        if (_intKeyMap.find(key) != _intKeyMap.end()) {
                             OASSERT(false, "key is already exits");
                             TableRowPool::GetInterface()->Recover(pRow);
                             return false;
                         }
 
-                        m_oRows.push_back(pRow);
-                        m_oIntKeyMap.insert(make_pair(key, index));
+                        _rows.push_back(pRow);
+                        _intKeyMap.insert(std::make_pair(key, index));
                         break;
     }
     case DTYPE_INT32:
     {
                         s32 size = 0;
-                        s32 key = *(s32*)pRow->GetValue(m_oColumnInfo.key.index, DTYPE_INT32, size);
+                        s32 key = *(s32*)pRow->GetValue(_columnInfo.key.index, DTYPE_INT32, size);
                         OASSERT(size == sizeof(key), "wtf");
-                        if (m_oIntKeyMap.find(key) != m_oIntKeyMap.end()) {
+                        if (_intKeyMap.find(key) != _intKeyMap.end()) {
                             OASSERT(false, "key is already exits");
                             TableRowPool::GetInterface()->Recover(pRow);
                             return false;
                         }
 
-                        m_oRows.push_back(pRow);
-                        m_oIntKeyMap.insert(make_pair(key, index));
+                        _rows.push_back(pRow);
+                        _intKeyMap.insert(std::make_pair(key, index));
                         break;
     }
     case DTYPE_INT64:
     {
                         s32 size = 0;
-                        s64 key = *(s64*)pRow->GetValue(m_oColumnInfo.key.index, DTYPE_INT64, size);
+                        s64 key = *(s64*)pRow->GetValue(_columnInfo.key.index, DTYPE_INT64, size);
                         OASSERT(size == sizeof(key), "wtf");
-                        if (m_oIntKeyMap.find(key) != m_oIntKeyMap.end()) {
+                        if (_intKeyMap.find(key) != _intKeyMap.end()) {
                             OASSERT(false, "key is already exits");
                             TableRowPool::GetInterface()->Recover(pRow);
                             return false;
                         }
 
-                        m_oRows.push_back(pRow);
-                        m_oIntKeyMap.insert(make_pair(key, index));
+                        _rows.push_back(pRow);
+                        _intKeyMap.insert(std::make_pair(key, index));
                         break;
     }
     case DTYPE_STRING:
     {
                          s32 size = 0;
-                         const char * key = (const char *)pRow->GetValue(m_oColumnInfo.key.index, DTYPE_STRING, size);
-                         if (m_oStringKeyMap.find(key) != m_oStringKeyMap.end()) {
+                         const char * key = (const char *)pRow->GetValue(_columnInfo.key.index, DTYPE_STRING, size);
+                         if (_stringKeyMap.find(key) != _stringKeyMap.end()) {
                              OASSERT(false, "key is already exits");
                              TableRowPool::GetInterface()->Recover(pRow);
                              return false;
                          }
 
-                         m_oRows.push_back(pRow);
-                         m_oStringKeyMap.insert(make_pair(key, index));
+                         _rows.push_back(pRow);
+                         _stringKeyMap.insert(std::make_pair(key, index));
                          break;
     }
     default:
@@ -737,39 +725,34 @@ RowIndex TableControl::AddRowData(const void * pData, const s32 size) {
 
 /*==============================================================================*/
 s8 TableControl::GetDataInt8(const RowIndex rowIndex, const ColumnIndex clmIndex) const {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size())
         return 0;
-    }
 
     s32 nLen = 0;
-    const void * pValue = m_oRows[rowIndex]->GetValue(clmIndex, DTYPE_INT8, nLen);
+    const void * value = _rows[rowIndex]->GetValue(clmIndex, DTYPE_INT8, nLen);
     OASSERT(nLen == sizeof(s8), "wtf");
 
-    return *(s8 *)pValue;
+    return *(s8 *)value;
 }
 
 bool TableControl::SetDataInt8(const RowIndex rowIndex, const ColumnIndex clmIndex, const s8 value) {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size()) {
         return 0;
     }
 
-    if (m_oColumnInfo.key.index == clmIndex) {
+    if (_columnInfo.key.index == clmIndex) {
         OASSERT(false, "wtf");
-        OASSERT(m_oColumnInfo.key.type == DTYPE_INT8, "key type error, check ur om logic");
-        s8 oldValue = GetDataInt8(rowIndex, m_oColumnInfo.key.index);
+        OASSERT(_columnInfo.key.type == DTYPE_INT8, "key type error, check ur om logic");
+        s8 oldValue = GetDataInt8(rowIndex, _columnInfo.key.index);
         if (!ChangeKey(oldValue, value, DTYPE_INT8)) {
             return false;
         }
-
-        OM_TRACE("table %s changer key %d to %d", m_oTableName.GetString(), oldValue, value);
     }
 
-    if (m_oRows[rowIndex]->SetValue(clmIndex, DTYPE_INT8, &value, sizeof(value))) {
-        UpdateCallBack(g_pKernel, this, rowIndex, clmIndex, &value, sizeof(value), DTYPE_INT8);
+    if (_rows[rowIndex]->SetValue(clmIndex, DTYPE_INT8, &value, sizeof(value))) {
+        UpdateCallBack(ObjectMgr::Instance()->GetKernel(), rowIndex, clmIndex, &value, sizeof(value), DTYPE_INT8);
         return true;
     }
 
@@ -777,38 +760,34 @@ bool TableControl::SetDataInt8(const RowIndex rowIndex, const ColumnIndex clmInd
 }
 /*==============================================================================*/
 s16 TableControl::GetDataInt16(const RowIndex rowIndex, const ColumnIndex clmIndex) const {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size()) {
         return 0;
     }
 
     s32 nLen = 0;
-    const void * pValue = m_oRows[rowIndex]->GetValue(clmIndex, DTYPE_INT16, nLen);
+    const void * value = _rows[rowIndex]->GetValue(clmIndex, DTYPE_INT16, nLen);
     OASSERT(nLen == sizeof(s16), "wtf");
-    return *(s16 *)pValue;
+    return *(s16 *)value;
 }
 
 bool TableControl::SetDataInt16(const RowIndex rowIndex, const ColumnIndex clmIndex, const s16 value) {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size()) {
         return 0;
     }
 
-    if (m_oColumnInfo.key.index == clmIndex) {
+    if (_columnInfo.key.index == clmIndex) {
         OASSERT(false, "wtf");
-        OASSERT(m_oColumnInfo.key.type == DTYPE_INT16, "key type error, check ur om logic");
-        s16 oldValue = GetDataInt16(rowIndex, m_oColumnInfo.key.index);
+        OASSERT(_columnInfo.key.type == DTYPE_INT16, "key type error, check ur om logic");
+        s16 oldValue = GetDataInt16(rowIndex, _columnInfo.key.index);
         if (!ChangeKey(oldValue, value, DTYPE_INT16)) {
             return false;
         }
-
-        OM_TRACE("table %s changer key %d to %d", m_oTableName.GetString(), oldValue, value);
     }
 
-    if (m_oRows[rowIndex]->SetValue(clmIndex, DTYPE_INT16, &value, sizeof(value))) {
-        UpdateCallBack(g_pKernel, this, rowIndex, clmIndex, &value, sizeof(value), DTYPE_INT16);
+    if (_rows[rowIndex]->SetValue(clmIndex, DTYPE_INT16, &value, sizeof(value))) {
+        UpdateCallBack(ObjectMgr::Instance()->GetKernel(), rowIndex, clmIndex, &value, sizeof(value), DTYPE_INT16);
         return true;
     }
     return false;
@@ -816,102 +795,92 @@ bool TableControl::SetDataInt16(const RowIndex rowIndex, const ColumnIndex clmIn
 
 /*==============================================================================*/
 s32 TableControl::GetDataInt32(const RowIndex rowIndex, const ColumnIndex clmIndex) const {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size()) {
         return 0;
     }
 
     s32 nLen = 0;
-    const void * pValue = m_oRows[rowIndex]->GetValue(clmIndex, DTYPE_INT32, nLen);
+    const void * value = _rows[rowIndex]->GetValue(clmIndex, DTYPE_INT32, nLen);
     OASSERT(nLen == sizeof(s32), "wtf");
-    return *(s32 *)pValue;
+    return *(s32 *)value;
 }
 
 bool TableControl::SetDataInt32(const RowIndex rowIndex, const ColumnIndex clmIndex, const s32 value) {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size()) {
         return 0;
     }
 
-    if (m_oColumnInfo.key.index == clmIndex) {
+    if (_columnInfo.key.index == clmIndex) {
         OASSERT(false, "wtf");
-        OASSERT(m_oColumnInfo.key.type == DTYPE_INT32, "key type error, check ur om logic");
-        s32 oldValue = GetDataInt32(rowIndex, m_oColumnInfo.key.index);
+        OASSERT(_columnInfo.key.type == DTYPE_INT32, "key type error, check ur om logic");
+        s32 oldValue = GetDataInt32(rowIndex, _columnInfo.key.index);
         if (!ChangeKey(oldValue, value, DTYPE_INT32)) {
             return false;
         }
-
-        OM_TRACE("table %s changer key %d to %d", m_oTableName.GetString(), oldValue, value);
     }
 
-    if (m_oRows[rowIndex]->SetValue(clmIndex, DTYPE_INT32, &value, sizeof(value))) {
-        UpdateCallBack(g_pKernel, this, rowIndex, clmIndex, &value, sizeof(value), DTYPE_INT32);
+    if (_rows[rowIndex]->SetValue(clmIndex, DTYPE_INT32, &value, sizeof(value))) {
+        UpdateCallBack(ObjectMgr::Instance()->GetKernel(), rowIndex, clmIndex, &value, sizeof(value), DTYPE_INT32);
         return true;
     }
     return false;
 }
 /*==============================================================================*/
 s64 TableControl::GetDataInt64(const RowIndex rowIndex, const ColumnIndex clmIndex) const {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size()) {
         return 0;
     }
 
     s32 nLen = 0;
-    const void * pValue = m_oRows[rowIndex]->GetValue(clmIndex, DTYPE_INT64, nLen);
+    const void * value = _rows[rowIndex]->GetValue(clmIndex, DTYPE_INT64, nLen);
     OASSERT(nLen == sizeof(s64), "wtf");
-    return *(s64 *)pValue;
+    return *(s64 *)value;
 }
 
 bool TableControl::SetDataInt64(const RowIndex rowIndex, const ColumnIndex clmIndex, const s64 value) {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size()) {
         return 0;
     }
-    if (m_oColumnInfo.key.index == clmIndex) {
+    if (_columnInfo.key.index == clmIndex) {
         OASSERT(false, "wtf");
-        OASSERT(m_oColumnInfo.key.type == DTYPE_INT64, "key type error, check ur om logic");
-        s64 oldValue = GetDataInt64(rowIndex, m_oColumnInfo.key.index);
+        OASSERT(_columnInfo.key.type == DTYPE_INT64, "key type error, check ur om logic");
+        s64 oldValue = GetDataInt64(rowIndex, _columnInfo.key.index);
         if (!ChangeKey(oldValue, value, DTYPE_INT64)) {
             return false;
         }
-
-        OM_TRACE("table %s changer key %d to %d", m_oTableName.GetString(), oldValue, value);
     }
 
-    if (m_oRows[rowIndex]->SetValue(clmIndex, DTYPE_INT64, &value, sizeof(value))) {
-        UpdateCallBack(g_pKernel, this, rowIndex, clmIndex, &value, sizeof(value), DTYPE_INT64);
+    if (_rows[rowIndex]->SetValue(clmIndex, DTYPE_INT64, &value, sizeof(value))) {
+        UpdateCallBack(ObjectMgr::Instance()->GetKernel(), rowIndex, clmIndex, &value, sizeof(value), DTYPE_INT64);
         return true;
     }
     return false;
 }
 /*==============================================================================*/
 float TableControl::GetDataFloat(const RowIndex rowIndex, const ColumnIndex clmIndex) const {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size()) {
         return 0;
     }    
     
     s32 nLen = 0;
-    const void * pValue = m_oRows[rowIndex]->GetValue(clmIndex, DTYPE_FLOAT, nLen);
+    const void * value = _rows[rowIndex]->GetValue(clmIndex, DTYPE_FLOAT, nLen);
     OASSERT(nLen == sizeof(float), "wtf");
-    return *(float *)pValue;
+    return *(float *)value;
 }
 
 bool TableControl::SetDataFloat(const RowIndex rowIndex, const ColumnIndex clmIndex, const float value) {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size()) {
         return 0;
     }
 
-    if (m_oRows[rowIndex]->SetValue(clmIndex, DTYPE_FLOAT, &value, sizeof(value))) {
-        UpdateCallBack(g_pKernel, this, rowIndex, clmIndex, &value, sizeof(value), DTYPE_FLOAT);
+    if (_rows[rowIndex]->SetValue(clmIndex, DTYPE_FLOAT, &value, sizeof(value))) {
+        UpdateCallBack(ObjectMgr::Instance()->GetKernel(), rowIndex, clmIndex, &value, sizeof(value), DTYPE_FLOAT);
         return true;
     }
     return false;
@@ -919,36 +888,32 @@ bool TableControl::SetDataFloat(const RowIndex rowIndex, const ColumnIndex clmIn
 
 /*==============================================================================*/
 const char * TableControl::GetDataString(const RowIndex rowIndex, const ColumnIndex clmIndex) const {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size()) {
         return 0;
     }
 
     s32 nLen = 0;
-    const void * pValue = m_oRows[rowIndex]->GetValue(clmIndex, DTYPE_STRING, nLen);
-    return (const char *)pValue;
+    const void * value = _rows[rowIndex]->GetValue(clmIndex, DTYPE_STRING, nLen);
+    return (const char *)value;
 }
 
 bool TableControl::SetDataString(const RowIndex rowIndex, const ColumnIndex clmIndex, const char * value) {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size()) {
         return 0;
     }
-    if (m_oColumnInfo.key.index == clmIndex) {
+    if (_columnInfo.key.index == clmIndex) {
         OASSERT(false, "wtf");
-        OASSERT(m_oColumnInfo.key.type == DTYPE_STRING, "key type error, check ur om logic");
-        const char * oldValue = GetDataString(rowIndex, m_oColumnInfo.key.index);
+        OASSERT(_columnInfo.key.type == DTYPE_STRING, "key type error, check ur om logic");
+        const char * oldValue = GetDataString(rowIndex, _columnInfo.key.index);
         if (!ChangeKey(oldValue, value, DTYPE_STRING)) {
             return false;
         }
-
-        OM_TRACE("table %s changer key %s to %s", m_oTableName.GetString(), oldValue, value);
     }
 
-    if (m_oRows[rowIndex]->SetValue(clmIndex, DTYPE_STRING, value, strlen(value) + 1)) {
-        UpdateCallBack(g_pKernel, this, rowIndex, clmIndex, value, strlen(value) + 1, DTYPE_STRING);
+    if (_rows[rowIndex]->SetValue(clmIndex, DTYPE_STRING, value, strlen(value) + 1)) {
+        UpdateCallBack(ObjectMgr::Instance()->GetKernel(), rowIndex, clmIndex, value, strlen(value) + 1, DTYPE_STRING);
         return true;
     }
     return false;
@@ -956,27 +921,25 @@ bool TableControl::SetDataString(const RowIndex rowIndex, const ColumnIndex clmI
 
 /*==============================================================================*/
 const void * TableControl::GetDataStruct(const RowIndex rowIndex, const ColumnIndex clmIndex, const s32 size) const {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size()) {
         return 0;
     }
 
     s32 nLen = 0;
-    const void * pValue = m_oRows[rowIndex]->GetValue(clmIndex, DTYPE_STRUCT, nLen);
+    const void * value = _rows[rowIndex]->GetValue(clmIndex, DTYPE_STRUCT, nLen);
     OASSERT(nLen == size, "wtf");
-    return pValue;
+    return value;
 }
 
-bool TableControl::SetDataStruct(const RowIndex rowIndex, const ColumnIndex clmIndex, const void * pValue, const s32 size) {
-    OASSERT(rowIndex < m_oRows.size(), "row index over flow");
-    if (rowIndex >= m_oRows.size()) {
-        OM_TRACE("table %s, row index %d over flow, row count %d", m_oTableName.GetString(), rowIndex, m_oRows.size());
+bool TableControl::SetDataStruct(const RowIndex rowIndex, const ColumnIndex clmIndex, const void * value, const s32 size) {
+    OASSERT(rowIndex < (s32)_rows.size(), "row index over flow");
+    if (rowIndex >= (s32)_rows.size()) {
         return 0;
     }
 
-    if (m_oRows[rowIndex]->SetValue(clmIndex, DTYPE_STRUCT, pValue, size)) {
-        UpdateCallBack(g_pKernel, this, rowIndex, clmIndex, pValue, size, DTYPE_STRUCT);
+    if (_rows[rowIndex]->SetValue(clmIndex, DTYPE_STRUCT, value, size)) {
+        UpdateCallBack(ObjectMgr::Instance()->GetKernel(), rowIndex, clmIndex, value, size, DTYPE_STRUCT);
         return true;
     }
     return false;

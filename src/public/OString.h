@@ -27,11 +27,11 @@ namespace olib {
 			return *this;
 		}
 
-		bool operator == (const char * str) const { return !strcmp(_buf, str); }
-		bool operator != (const char * str) const { return strcmp(_buf, str); }
-		bool operator == (const OString & str) const { return !strcmp(_buf, str._buff); }
-		bool operator != (const OString & str) const { return strcmp(_buf, str._buff); }
-		bool operator < (const OString & str) const { return strcmp(_buf, str._buff) < 0; }
+		bool operator == (const char * str) const { return !strcmp(_buff, str); }
+		bool operator != (const char * str) const { return strcmp(_buff, str); }
+		bool operator == (const OString & str) const { return !strcmp(_buff, str._buff); }
+		bool operator != (const OString & str) const { return strcmp(_buff, str._buff); }
+		bool operator < (const OString & str) const { return strcmp(_buff, str._buff) < 0; }
 
 
 		s64 Hash() const {
@@ -50,7 +50,7 @@ namespace olib {
 	template <s16 size = 16>
 	struct OStringHash {
 		size_t operator()(const OString<size>& src) const {
-			return src.Hash();
+			return (size_t)src.Hash();
 		}
 	};
 }

@@ -2,18 +2,16 @@
 #define __@_H__
 #include "util.h"
 #include "I&.h"
+#include "singleton.h"
 
-class & : public I& {
+class & : public I&, public OHolder<&> {
 public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);
     virtual bool Destroy(IKernel * kernel);
 
-	static & * Self() { return s_self; }
-
 private:
-	static & * s_self;
-    static IKernel * s_kernel;
+    IKernel * _kernel;
 };
 
 #endif //__@_H__

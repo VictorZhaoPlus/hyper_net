@@ -6,11 +6,11 @@
  */
 #ifndef __TableStruct_h__
 #define __TableStruct_h__
-#include "MultiSys.h"
-#include "TString.h"
-#include "ObjectMgrMacro.h"
+#include "util.h"
+#include "OString.h"
 #include <vector>
 #include <unordered_map>
+#include "IObjectMgr.h"
 
 typedef s32 ColumnIndex;
 typedef s32 MemOffset;
@@ -36,233 +36,143 @@ class TableColumnInfo {
     };
     typedef std::vector<ColumnInfo> COLUMN_INDEX;
 public:
-    TableColumnInfo() : m_nMemorySize(0) {
-        shadow = false;
+    TableColumnInfo() : _memorySize(0) {
         key.index = -1;
         key.type = DTYPE_CANT_BE_KEY;
     }
 
-    inline bool AddColumnInt8(const ColumnIndex index, bool isKey) {
-        if (isKey) {
-            OASSERT(key.type >= DTYPE_CANT_BE_KEY, "key is already set");
-            if (key.type < DTYPE_CANT_BE_KEY) {
-                OM_TRACE("Can not set Column as key, key is already set");
-                return false;
-            }
-        }
-
-        const ColumnInfo * pColumnInfo = AddColumn(index, sizeof(s8), DTYPE_INT8);
-        if (NULL == pColumnInfo) {
-            return false;
-        }
-
-        if (isKey) {
-            key.type = DTYPE_INT8;
-            key.index = pColumnInfo->index;
-        }
-
-        return true;
-    }
-
-    bool AddColumnInt16(const ColumnIndex index, bool isKey) {
-        if (isKey) {
-            OASSERT(key.type >= DTYPE_CANT_BE_KEY, "key is already set");
-            if (key.type < DTYPE_CANT_BE_KEY) {
-                OM_TRACE("Can not set Column as key, key is already set");
-                return false;
-            }
-        }
-
-        const ColumnInfo * pColumnInfo = AddColumn(index, sizeof(s16), DTYPE_INT16);
-        if (NULL == pColumnInfo) {
-            return false;
-        }
-
-        if (isKey) {
-            key.type = DTYPE_INT16;
-            key.index = pColumnInfo->index;
-        }
-
-        return true;
-    }
-
-    bool AddColumnInt32(const ColumnIndex index, bool isKey) {
-        if (isKey) {
-            OASSERT(key.type >= DTYPE_CANT_BE_KEY, "key is already set");
-            if (key.type < DTYPE_CANT_BE_KEY) {
-                OM_TRACE("Can not set Column as key, key is already set");
-                return false;
-            }
-        }
-
-        const ColumnInfo * pColumnInfo = AddColumn(index, sizeof(s32), DTYPE_INT32);
-        if (NULL == pColumnInfo) {
-            return false;
-        }
-
-        if (isKey) {
-            key.type = DTYPE_INT32;
-            key.index = pColumnInfo->index;
-        }
-        return true;
-    }
-
-    bool AddColumnInt64(const ColumnIndex index, bool isKey) {
-        if (isKey) {
-            OASSERT(key.type >= DTYPE_CANT_BE_KEY, "key is already set");
-            if (key.type < DTYPE_CANT_BE_KEY) {
-                OM_TRACE("Can not set Column as key, key is already set");
-                return false;
-            }
-        }
-
-        const ColumnInfo * pColumnInfo = AddColumn(index, sizeof(s64), DTYPE_INT64);
-        if (NULL == pColumnInfo) {
-            return false;
-        }
-
-        if (isKey) {
-            key.type = DTYPE_INT64;
-            key.index = pColumnInfo->index;
-        }
-        return true;
-    }
-
-    bool AddColumnString(const ColumnIndex index, const s32 maxlen, bool isKey) {
-        if (isKey) {
-            OASSERT(key.type >= DTYPE_CANT_BE_KEY, "key is already set");
-            if (key.type < DTYPE_CANT_BE_KEY) {
-                OM_TRACE("Can not set Column as key, key is already set");
-                return false;
-            }
-        }
-
-        const ColumnInfo * pColumnInfo = AddColumn(index, maxlen, DTYPE_STRING);
-        if (NULL == pColumnInfo) {
-            return false;
-        }
-
-        if (isKey) {
-            key.type = DTYPE_STRING;
-            key.index = pColumnInfo->index;
-        }
-        return true;
-    }
-
-    bool AddColumnFloat(const ColumnIndex index) {
-        return NULL != AddColumn(index, sizeof(float), DTYPE_FLOAT);
-    }
+	inline bool AddColumnInt8(const ColumnIndex index, bool isKey) { return AddColumnWithKey(index, sizeof(s8), isKey, DTYPE_INT8); }
+	inline bool AddColumnInt16(const ColumnIndex index, bool isKey) { return AddColumnWithKey(index, sizeof(s16), isKey, DTYPE_INT16); }
+	inline bool AddColumnInt32(const ColumnIndex index, bool isKey) { return AddColumnWithKey(index, sizeof(s32), isKey, DTYPE_INT32); }
+	inline bool AddColumnInt64(const ColumnIndex index, bool isKey) { return AddColumnWithKey(index, sizeof(s64), isKey, DTYPE_INT64); }
+    inline bool AddColumnString(const ColumnIndex index, const s32 maxlen, bool isKey) { return AddColumnWithKey(index, maxlen, isKey, DTYPE_STRING); }
+    inline bool AddColumnFloat(const ColumnIndex index) { return nullptr != AddColumn(index, sizeof(float), DTYPE_FLOAT); }
 
     bool AddColumnStruct(const ColumnIndex index, const s32 size) {
-        return NULL != AddColumn(index, size, DTYPE_STRUCT);
+        return nullptr != AddColumn(index, size, DTYPE_STRUCT);
     }
 
+	inline bool AddColumnWithKey(const ColumnIndex index, const s32 size, bool isKey, const s32 type) {
+		if (isKey) {
+			OASSERT(key.type >= DTYPE_CANT_BE_KEY, "key is already set");
+			if (key.type < DTYPE_CANT_BE_KEY)
+				return false;
+		}
+
+		const ColumnInfo * columnInfo = AddColumn(index, size, type);
+		if (nullptr == columnInfo) {
+			return false;
+		}
+
+		if (isKey) {
+			key.type = type;
+			key.index = columnInfo->index;
+		}
+		return true;
+	}
+
     inline const ColumnInfo * AddColumn(const ColumnIndex index, const s32 size, const s8 mask) {
-        if (index != m_oColumnIndex.size()) {
+        if (index != _columnIndex.size()) {
             OASSERT(false, "column index error");
-            return NULL;
+            return nullptr;
         }
 
-        ColumnInfo info(m_oColumnIndex.size(), m_nMemorySize, size, mask);
-        m_oColumnIndex.push_back(info);
-        m_nMemorySize += size;
-        return &m_oColumnIndex[m_oColumnIndex.size() - 1];
+        ColumnInfo info(_columnIndex.size(), _memorySize, size, mask);
+        _columnIndex.push_back(info);
+		_memorySize += size;
+        return &_columnIndex[_columnIndex.size() - 1];
     }
 
     inline const ColumnInfo * QueryColumnInfo(const ColumnIndex index) const {
-        if (index >= m_oColumnIndex.size()) {
+        if (index >= (s32)_columnIndex.size()) {
             OASSERT(false, "column index over flow");
-            return NULL;
+            return nullptr;
         }
-        return &m_oColumnIndex[index];
+        return &_columnIndex[index];
     }
 
-    inline s32 CalcMemorySize() const {
-        return m_nMemorySize;
-    }
+    inline s32 CalcMemorySize() const { return _memorySize; }
 
     inline void Copy(const TableColumnInfo & target) {
-        tools::SafeMemcpy(&key, sizeof(key), &target.key, sizeof(target.key));
-        shadow = target.shadow;
-        m_oColumnIndex.assign(target.m_oColumnIndex.cbegin(), target.m_oColumnIndex.cend());
-        m_nMemorySize = target.m_nMemorySize;
+        SafeMemcpy(&key, sizeof(key), &target.key, sizeof(target.key));
+		_columnIndex.assign(target._columnIndex.cbegin(), target._columnIndex.cend());
+		_memorySize = target._memorySize;
     }
 
     KeyInfo key;
-    bool shadow;
 private:
-    COLUMN_INDEX m_oColumnIndex;
-    s32 m_nMemorySize;
+    COLUMN_INDEX _columnIndex;
+    s32 _memorySize;
 };
 
 class TableRowPool;
 class TableRow {
 public:
-    inline bool SetValue(const ColumnIndex index, const s8 mask, const void * pValue, const s32 size) {
-        const ColumnInfo * pInfo = m_pColumnInfo->QueryColumnInfo(index);
-        if (NULL == pInfo) {
+    inline bool SetValue(const ColumnIndex index, const s8 mask, const void * value, const s32 size) {
+        const ColumnInfo * info = _columnInfo->QueryColumnInfo(index);
+        if (nullptr == info) {
             OASSERT(false, "wtf");
             return false;
         }
 
-        OASSERT(pInfo->mask == mask, "value type error");
-        OASSERT(pInfo->size >= size, "value size over flow");
+        OASSERT(info->mask == mask, "value type error");
+        OASSERT(info->size >= size, "value size over flow");
 
-        tools::SafeMemcpy(m_pBuff + pInfo->offset, pInfo->size, pValue, size);
+        SafeMemcpy(_buff + info->offset, info->size, value, size);
         return true;
     }
 
     inline const void * GetValue(const ColumnIndex index, const s8 mask, s32 & size) {
-        const ColumnInfo * pInfo = m_pColumnInfo->QueryColumnInfo(index);
-        if (NULL == pInfo) {
+        const ColumnInfo * info = _columnInfo->QueryColumnInfo(index);
+        if (nullptr == info) {
             OASSERT(false, "wtf");
-            return NULL;
+            return nullptr;
         }
 
-        OASSERT(pInfo->mask == mask, "value type error");
+        OASSERT(info->mask == mask, "value type error");
 
-        size = pInfo->size;
-        return m_pBuff + pInfo->offset;
+        size = info->size;
+        return _buff + info->offset;
     }
 
-    inline void Copy(const void * pData, const s32 size) {
-        OASSERT(size == m_nBuffSize, "wtf");
-        tools::SafeMemcpy(m_pBuff, m_nBuffSize, pData, size);
+    inline void Copy(const void * data, const s32 size) {
+        OASSERT(size == _buffSize, "wtf");
+        SafeMemcpy(_buff, _buffSize, data, size);
     }
 
-    inline const void * GetData() { return m_pBuff; }
+    inline const void * GetData() { return _buff; }
 
-    inline s32 GetSize() {return m_nBuffSize;}
+    inline s32 GetSize() {return _buffSize;}
 
 private:
     friend TableRowPool;
-    inline bool SetColumnInfo(const TableColumnInfo * pColumnInfo) {
-        if (pColumnInfo->CalcMemorySize() != m_nBuffSize && m_nBuffSize != 0) {
+    inline bool SetColumnInfo(const TableColumnInfo * columnInfo) {
+        if (columnInfo->CalcMemorySize() != _buffSize && _buffSize != 0) {
             OASSERT(false, "memory size diff");
             return false;
         }
 
-        m_pColumnInfo = pColumnInfo;
-        tools::SafeMemset(m_pBuff, m_nBuffSize, 0, m_nBuffSize);
+		_columnInfo = columnInfo;
+        SafeMemset(_buff, _buffSize, 0, _buffSize);
         return true;
     }
 
-    inline void Clear() {tools::SafeMemset(m_pBuff, m_nBuffSize, 0, m_nBuffSize);}
+    inline void Clear() { SafeMemset(_buff, _buffSize, 0, _buffSize);}
 
-    TableRow(const TableColumnInfo * pColumnInfo) : m_pColumnInfo(pColumnInfo), m_pBuff(NULL), m_nBuffSize(pColumnInfo->CalcMemorySize()) {
-        OASSERT(pColumnInfo && pColumnInfo->CalcMemorySize() > 0 && m_nBuffSize == pColumnInfo->CalcMemorySize(), "nullptr ColumnInfo");
-        m_pBuff = NEW char[m_nBuffSize];
-        tools::SafeMemset(m_pBuff, m_nBuffSize, 0, m_nBuffSize);
+    TableRow(const TableColumnInfo * columnInfo) : _columnInfo(columnInfo), _buff(nullptr), _buffSize(columnInfo->CalcMemorySize()) {
+        OASSERT(columnInfo && columnInfo->CalcMemorySize() > 0 && _buffSize == columnInfo->CalcMemorySize(), "nullptrptr ColumnInfo");
+		_buff = NEW char[_buffSize];
+        SafeMemset(_buff, _buffSize, 0, _buffSize);
     }
 
     virtual ~TableRow() {
-        DEL[] m_pBuff;
+        DEL[] _buff;
     }
 
 private:
-    const TableColumnInfo * m_pColumnInfo;
-    char * m_pBuff;
-    const s32 m_nBuffSize;
+    const TableColumnInfo * _columnInfo;
+    char * _buff;
+    const s32 _buffSize;
 };
 
 #endif //defined __TableStruct_h__

@@ -11,6 +11,7 @@
 #include "IModule.h"
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 #define INVALID_ROW_INDEX -1
 #define OUT 
@@ -36,43 +37,31 @@ enum {
 };
 
 class ITableControl;
-typedef void(*table_update)(IKernel * kernel, ITableControl * table, bool copy, const s32 row, const s32 column, const void * value, const s32 size, const s8 type);
-typedef void(*table_add)(IKernel * kernel, ITableControl * table, bool copy, const s32 row, const void * key, const s32 size, const s8 type);
-typedef void(*table_delete)(IKernel * kernel, ITableControl * table, bool copy, const s32 row);
-typedef void(*table_change)(IKernel * kernel, ITableControl * table, bool copy, const s32 src, const s32 dst);
+typedef std::function<void (IKernel * kernel, ITableControl * table, const s32 row, const s32 column, const void * value, const s32 size, const s8 type)> TableUpdateCallback;
+typedef std::function<void (IKernel * kernel, ITableControl * table, const s32 row, const void * key, const s32 size, const s8 type)> TableAddCallback;
+typedef std::function<void (IKernel * kernel, ITableControl * table, const s32 row)> TableDeleteCallback;
+typedef std::function<void (IKernel * kernel, ITableControl * table, const s32 src, const s32 dst)> TableSwapCallback;
 
-#define RGS_TABLE_UPDATE(table, call) table->RgsUpdate(call, #call);
-#define RGS_TABLE_ADD(table, call) table->RgsAdd(call, #call);
-#define RGS_TABLE_DELETE(table, call) table->RgsDelete(call, #call);
-#define RGS_TABLE_CHANGE(table, call) table->RgsChange(call, #call);
+#define RGS_TABLE_UPDATE(table, call) table->RgsUpdate(std::bind(&call, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6, std::placeholders::_7), #call);
+#define RGS_TABLE_ADD(table, call) table->RgsAdd(std::bind(&call, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6), #call);
+#define RGS_TABLE_DELETE(table, call) table->RgsDelete(std::bind(&call, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), #call);
+#define RGS_TABLE_CHANGE(table, call) table->RgsChange(std::bind(&call, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), #call);
 
+#define INVALID_ROW_INDEX -1
 class ITableControl {
 public:
     virtual ~ITableControl() {}
 
-    virtual void RgsUpdate(table_update callback, const char * debug) = 0;
-    virtual void RgsAdd(table_add callback, const char * debug) = 0;
-    virtual void RgsDelete(table_delete callback, const char * debug) = 0;
-    virtual void RgsChange(table_change callback, const char * debug) = 0;
-
-    //是否为同步到影子
-    virtual bool IsShadow() const = 0;
+    virtual void RgsUpdate(TableUpdateCallback callback, const char * debug) = 0;
+    virtual void RgsAdd(TableAddCallback callback, const char * debug) = 0;
+    virtual void RgsDelete(TableDeleteCallback callback, const char * debug) = 0;
+    virtual void RgsChange(TableSwapCallback callback, const char * debug) = 0;
 
     //获取表主对象,如果是静态表则返回NULL
     virtual IObject * GetHost() = 0;
 
 	//获取表名字
-	virtual const char * GetTableName() const = 0;
-
-    //初始化表结构(尽量在创建对象时初始化), 调用Forming生成表结构
-    virtual bool AddColumnInt8(const ColumnIndex index, bool isKey = false) = 0;
-    virtual bool AddColumnInt16(const ColumnIndex index, bool isKey = false) = 0;
-    virtual bool AddColumnInt32(const ColumnIndex index, bool isKey = false) = 0;
-    virtual bool AddColumnInt64(const ColumnIndex index, bool isKey = false) = 0;
-    virtual bool AddColumnString(const ColumnIndex index, const s32 maxlen, bool isKey = false) = 0;
-    virtual bool AddColumnFloat(const ColumnIndex index) = 0;
-    virtual bool AddColumnStruct(const ColumnIndex index, const s32 size) = 0;
-    virtual bool Forming() = 0;
+	virtual s32 GetTableName() const = 0;
 
     //清空表
     virtual void ClearRows() = 0;
@@ -134,40 +123,25 @@ public:
 	}\
 }
 
-struct PropSetting {
-    const bool visable;
-    const bool share;
-    const bool save;
-    const bool signficant;
-    const bool copy;
-    PropSetting(const bool _visable, const bool _share, const bool _save, const bool _signficant, const bool _copy)
-        : visable(_visable), share(_share), save(_save), signficant(_signficant), copy(_copy) {}
-};
-
 struct PropInfo{
-    PropInfo(const s32 _index, const s32 _offset, const s32 _size, const s8 _mask,
-    const bool _visable, const bool _share, const bool _save, const bool _signficant, const bool _copy)
-    : index(_index), offset(_offset), size(_size), mask(_mask),
-    setting(_visable, _share, _save, _signficant, _copy){}
-    const s32 index;
     const s32 offset;
     const s32 size;
-    const s8 mask;
-    const PropSetting setting;
+    const s8 type;
+    const s32 setting;
 };
+
 typedef std::vector<PropInfo> PROP_INDEX;
+typedef std::function<void(IKernel *, IObject *)> StatusCallback;
+#define RGS_ENTRY_STATUS(obj, status, cb) obj->RgsEntryCB(status, std::bind(&cb, this, std::placeholders::_1, std::placeholders::_2), #cb)
+#define RGS_LEAVE_STATUS(obj, status, cb) obj->RgsLeaveCB(status, std::bind(&cb, this, std::placeholders::_1, std::placeholders::_2), #cb)
 
-#define RGS_ENTRY_STATUS(obj, status, cb) obj->RgsEntryCB(status, cb, #cb)
-#define RGS_LEAVE_STATUS(obj, status, cb) obj->RgsLeaveCB(status, cb, #cb)
-typedef void(*status_cb)(IKernel *, IObject *);
-
-#define RGS_ENTRY_JUDEG(obj, status, cb) obj->RgsEntryJudegCB(status, cb, #cb)
-#define RGS_LEAVE_JUDEG(obj, status, cb) obj->RgsLeaveJudegCB(status, cb, #cb)
-typedef bool(*status_judeg_cb)(IKernel *, IObject *);
+typedef std::function<bool (IKernel *, IObject *)> StatusJudgeCallback;
+#define RGS_ENTRY_JUDEG(obj, status, cb) obj->RgsEntryJudegCB(status, std::bind(&cb, this, std::placeholders::_1, std::placeholders::_2), #cb)
+#define RGS_LEAVE_JUDEG(obj, status, cb) obj->RgsLeaveJudegCB(status, std::bind(&cb, this, std::placeholders::_1, std::placeholders::_2), #cb)
 
 #define ANY_CALL NULL
-typedef void(*prop_cb)(IKernel * kernel, IObject * pObject, const char * name, const char * prop, const PropInfo * setting, const bool sync);
-#define RGS_PROP_CHANGER(obj, prop, cb) obj->RgsPropChangeCB(prop, cb, #cb)
+typedef std::function<void (IKernel * kernel, IObject * object, const char * name, const s32 prop, const PropInfo * setting, const bool sync)> PropCallback;
+#define RGS_PROP_CHANGER(obj, prop, cb) obj->RgsPropChangeCB(prop, std::bind(&cb, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6), #cb)
 
 
 #define CREATE_OBJECT_TABLE(obj, name) obj->CreateTable(name, __FILE__, __LINE__)
@@ -196,20 +170,20 @@ public:
     virtual const char * GetPropString(const s32 prop) const = 0;
     virtual const void * GetPropStruct(const s32 prop, s32& len) const = 0;
 
-    virtual bool RgsPropChangeCB(const s32 prop, const prop_cb cb, const char * debug_info) = 0;
+    virtual void RgsPropChangeCB(const s32 prop, const PropCallback& cb, const char * debug_info) = 0;
 
     //创建对象所有表
-    virtual ITableControl * CreateTable(const char * name, const char * file, const s32 line) = 0;
+    virtual ITableControl * CreateTable(const s32 name, const char * file, const s32 line) = 0;
     //通过名称获取表
-    virtual ITableControl * FindTable(const char * name) const = 0;
+    virtual ITableControl * FindTable(const s32 name) const = 0;
     //删除表
-    virtual bool RemoveTable(const char * name) = 0;
+    virtual bool RemoveTable(const s32 name) = 0;
 
     //状态机
-    virtual bool RgsEntryCB(const s32 status, const status_cb cb, const char * debuginfo) = 0;
-    virtual bool RgsLeaveCB(const s32 status, const status_cb cb, const char * debuginfo) = 0;
-    virtual bool RgsEntryJudegCB(const s32 status, const status_judeg_cb cb, const char * debuginfo) = 0;
-    virtual bool RgsLeaveJudegCB(const s32 status, const status_judeg_cb cb, const char * debuginfo) = 0;
+    virtual void RgsEntryCB(const s32 status, const StatusCallback& cb, const char * debuginfo) = 0;
+    virtual void RgsLeaveCB(const s32 status, const StatusCallback& cb, const char * debuginfo) = 0;
+    virtual void RgsEntryJudegCB(const s32 status, const StatusJudgeCallback& cb, const char * debuginfo) = 0;
+    virtual void RgsLeaveJudegCB(const s32 status, const StatusJudgeCallback& cb, const char * debuginfo) = 0;
     virtual bool EntryStatus(const s32 status, const bool b = false) = 0;
     virtual const s32 GetStatus() const = 0;
 };
@@ -222,7 +196,6 @@ class IObjectMgr : public IModule {
 public:
     virtual ~IObjectMgr() {}
 
-    virtual s64 AllotID() = 0;
     virtual IObject * Create(const char * file, const s32 line, const char * name, bool shadow = false) = 0;
     virtual IObject * CreateObjectByID(const char * file, const s32 line, const char * name, const s64 id, bool shadow = false) = 0;
     virtual IObject * FindObject(const s64 id) = 0;
@@ -231,10 +204,10 @@ public:
     virtual const PROP_INDEX * GetPropsInfo(const char * type, bool noFather = false) const = 0;
 
     //创建对象类型静态表
-    virtual ITableControl * CreateStaticTable(const char * name, const char * file, const s32 line) = 0;
+    virtual ITableControl * CreateStaticTable(const s32 name, const char * file, const s32 line) = 0;
     virtual void RecoverStaticTable(ITableControl * table) = 0;
     //通过名称获取静态表
-    virtual ITableControl * FindStaticTable(const char * name) = 0;
+    virtual ITableControl * FindStaticTable(const s32 name) = 0;
 };
 
 #endif //define __IOBJECTMGR_h__

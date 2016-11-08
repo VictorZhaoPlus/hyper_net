@@ -3,14 +3,14 @@
 #include "XmlReader.h"
 #include "tools.h"
 #include <algorithm>
-#include "IMaster.h"
+#include "ICluster.h"
 
 Harbor * Harbor::s_harbor = nullptr;
 IKernel * Harbor::s_kernel = nullptr;
 
 class NodeCBProtoHandler : public IHarborProtoHandler {
 public:
-	NodeCBProtoHandler(const node_cb cb) : _cb(cb) {}
+	NodeCBProtoHandler(const NodeCB cb) : _cb(cb) {}
 	virtual ~NodeCBProtoHandler() {}
 
 	virtual void DealNodeProto(IKernel * kernel, const s32 nodeType, const s32 nodeId, const void * context, const s32 size) {
@@ -18,12 +18,12 @@ public:
 	}
 
 private:
-	node_cb _cb;
+	NodeCB _cb;
 };
 
 class NodeArgsCBProtoHandler : public IHarborProtoHandler {
 public:
-	NodeArgsCBProtoHandler(const node_args_cb cb) : _cb(cb) {}
+	NodeArgsCBProtoHandler(const NodeArgsCB cb) : _cb(cb) {}
 	virtual ~NodeArgsCBProtoHandler() {}
 
 	virtual void DealNodeProto(IKernel * kernel, const s32 nodeType, const s32 nodeId, const void * context, const s32 size) {
@@ -32,7 +32,7 @@ public:
 	}
 
 private:
-	node_args_cb _cb;
+	NodeArgsCB _cb;
 };
 
 bool Harbor::Initialize(IKernel * kernel) {
@@ -230,14 +230,14 @@ void Harbor::Brocast(const void * context, const s32 size) {
 	}
 }
 
-void Harbor::RegProtocolHandler(s32 messageId, const node_cb& handler, const char * debug) {
+void Harbor::RegProtocolHandler(s32 messageId, const NodeCB& handler, const char * debug) {
 	NodeCBProtoHandler * unit = NEW NodeCBProtoHandler(handler);
 	unit->SetDebug(debug);
 
     _handlers[messageId].push_back(unit);
 }
 
-void Harbor::RegProtocolHandler(s32 messageId, const node_args_cb& handler, const char * debug) {
+void Harbor::RegProtocolHandler(s32 messageId, const NodeArgsCB& handler, const char * debug) {
 	NodeArgsCBProtoHandler * unit = NEW NodeArgsCBProtoHandler(handler);
 	unit->SetDebug(debug);
 

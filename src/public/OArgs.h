@@ -10,6 +10,7 @@ enum ArgType {
 	TYPE_FLOAT,
 	TYPE_STRING,
 	TYPE_BOOL,
+	TYPE_STUCT,
 
 	TYPE_COUNT,
 };
@@ -103,6 +104,8 @@ public:
 
 	const void * GetContext() const { return _context; }
 	const s32 GetSize() const { return _size; }
+
+	const s8 Count() const { return *_count; }
 
 protected:
 	const ArgInfo& GetArgInfo(s8 index) const {

@@ -13,8 +13,8 @@ public:
     virtual void OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) = 0;
 };
 
-typedef void (* node_cb)(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size);
-typedef void (* node_args_cb)(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args);
+typedef std::function<void(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size)> NodeCB;
+typedef std::function<void(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args)> NodeArgsCB;
 
 class IHarbor : public IModule {
 public:
@@ -36,13 +36,14 @@ public:
 	virtual void PrepareBrocast(const s32 messageId, const s32 size) = 0;
 	virtual void Brocast(const void * context, const s32 size) = 0;
 
-    virtual void RegProtocolHandler(s32 messageId, const node_cb& handler, const char * debug) = 0;
-	virtual void RegProtocolHandler(s32 messageId, const node_args_cb& handler, const char * debug) = 0;
+    virtual void RegProtocolHandler(s32 messageId, const NodeCB& handler, const char * debug) = 0;
+	virtual void RegProtocolArgsHandler(s32 messageId, const NodeArgsCB& handler, const char * debug) = 0;
 
     virtual s32 GetNodeType() const = 0;
     virtual s32 GetNodeId() const = 0;
 };
 
-#define REGPROTOCOL(messageId, handler) s_harbor->RegProtocolHandler(messageId, handler, #handler)
+#define RGS_HABOR_HANDLER(messageId, handler) _harbor->RegProtocolHandler(messageId, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), #handler)
+#define RGS_HABOR_ARGS_HANDLER(messageId, handler) _harbor->RegProtocolArgsHandler(messageId, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), #handler)
 
 #endif //__IHARBOR_H__

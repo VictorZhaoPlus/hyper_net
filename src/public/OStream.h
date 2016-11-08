@@ -47,7 +47,7 @@ namespace olib {
 
 		inline s32 GetCapacity() { return _size; }
 		inline s32 GetSize() const { return _offset; }
-		inline s32 GetFreeSpace() { return _size - _offset; }
+		inline s32 GetFreeSize() { return _size - _offset; }
 
     private:
         char * _buffer;

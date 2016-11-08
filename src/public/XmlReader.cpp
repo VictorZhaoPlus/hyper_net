@@ -17,6 +17,7 @@ namespace olib {
 		virtual float GetAttributeFloat(const char * attr) const { OASSERT(false, "this is a null xml"); return 0.f; }
 		virtual bool GetAttributeBoolean(const char * attr) const { OASSERT(false, "this is a null xml"); return false; }
 		virtual const char * GetAttributeString(const char * attr) const { OASSERT(false, "this is a null xml"); return nullptr; }
+		virtual bool HasAttribute(const char * attr) const { OASSERT(false, "this is a null xml"); return false; }
 
 		virtual const char * CData() const { OASSERT(false, "this is a null xml"); return nullptr; }
 		virtual const char * Text() const { OASSERT(false, "this is a null xml"); return nullptr; }
@@ -32,11 +33,7 @@ namespace olib {
 	class XmlArray : public IXmlObject {
 	public:
 		XmlArray() {}
-		virtual ~XmlArray() {
-			for (auto * element : _elements)
-				DEL element;
-			_elements.clear();
-		}
+		virtual ~XmlArray();
 
 		void AddElement(const TiXmlElement * element);
 
@@ -47,6 +44,7 @@ namespace olib {
 		virtual float GetAttributeFloat(const char * attr) const { OASSERT(false, "this is a array xml"); return 0.f; }
 		virtual bool GetAttributeBoolean(const char * attr) const { OASSERT(false, "this is a array xml"); return false; }
 		virtual const char * GetAttributeString(const char * attr) const { OASSERT(false, "this is a array xml"); return nullptr; }
+		virtual bool HasAttribute(const char * attr) const { OASSERT(false, "this is a array xml"); return false; }
 
 		virtual const char * CData() const { OASSERT(false, "this is a array xml"); return nullptr; }
 		virtual const char * Text() const { OASSERT(false, "this is a array xml"); return nullptr; }
@@ -90,6 +88,7 @@ namespace olib {
 		virtual float GetAttributeFloat(const char * attr) const { const Value * value = FindAttr(attr); return value ? value->valueFloat : 0; }
 		virtual bool GetAttributeBoolean(const char * attr) const { const Value * value = FindAttr(attr); return value ? value->valueBoolean : 0; }
 		virtual const char * GetAttributeString(const char * attr) const { const Value * value = FindAttr(attr); return value ? value->valueString.c_str() : nullptr; }
+		virtual bool HasAttribute(const char * attr) const { const Value * value = FindAttr(attr); return value != nullptr; }
 
 		virtual const char * CData() const {  return _text.c_str(); }
 		virtual const char * Text() const { return _text.c_str();}
@@ -151,6 +150,13 @@ namespace olib {
 		std::unordered_map<std::string, XmlArray*> _objects;
 		XmlNull _null;
 	};
+
+	XmlArray::~XmlArray() {
+		for (auto * element : _elements) {
+			DEL element;
+		}
+		_elements.clear();
+	}
 
 	void XmlArray::AddElement(const TiXmlElement * element) {
 		_elements.push_back(NEW XmlObject(element));

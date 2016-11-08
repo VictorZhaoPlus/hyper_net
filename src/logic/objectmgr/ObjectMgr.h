@@ -10,71 +10,57 @@
 #include "TableStruct.h"
 #include <unordered_map>
 #include "OString.h"
+#include "singleton.h"
+#include "IObjectMgr.h"
 
 class MMObject;
-class IHarbor;
-class ObjectMgr : public IObjectMgr {
+class IIdMgr;
+class ObjectMgr : public IObjectMgr, public OHolder<ObjectMgr> {
     struct TableInfo {
-        TableInfo(const char * name_, const TableColumnInfo * columnInfo_) : name(name_), columnInfo(columnInfo_) {
-            OASSERT(pName && _pColumnInfo, "wtf");
-        }
-        const olib::OString<MAX_TABLE_NAME_LEN> name;
+        const s32 name;
         const TableColumnInfo * columnInfo;
     };
     typedef std::vector<const TableInfo *> TABLE_MODEL_LIST;
+
     struct ObjectModel {
-        ObjectModel() : pTableModels(NULL), pObjectPropInfo(NULL) {}
-        ObjectModel(const ObjectPropInfo * _pObjectPropInfo, const TABLE_MODEL_LIST * _oTableModels) : pObjectPropInfo(_pObjectPropInfo), pTableModels(_oTableModels) { }
-        const TABLE_MODEL_LIST * pTableModels;
-        const ObjectPropInfo * pObjectPropInfo;
+        const TABLE_MODEL_LIST * tableModels;
+        const ObjectPropInfo * objectPropInfo;
     };
 
-    typedef std::unordered_map<
-		olib::OString<MAX_MODEL_NAME_LEN>,
-        const ObjectModel, 
-		olib::OStringHash<MAX_MODEL_NAME_LEN>
-    > OBJECT_MODEL_MAP;
-
-    typedef std::unordered_map<
-		olib::OString<MAX_MODEL_NAME_LEN>,
-		olib::OString<MAX_MODEL_PATH_LEN>,
-		olib::OStringHash<MAX_MODEL_NAME_LEN>
-    > NAME_PATH_MAP;
+    typedef std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, const ObjectModel,  olib::OStringHash<MAX_MODEL_NAME_LEN>> OBJECT_MODEL_MAP;
+    typedef std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, olib::OString<MAX_MODEL_PATH_LEN>, olib::OStringHash<MAX_MODEL_NAME_LEN>> NAME_PATH_MAP;
 
     struct ObjectCreateInfo {
-        ObjectCreateInfo(MMObject * _obj, const char * _file, const s32 _line) : pObject(_obj), file(_file), line(_line) {}
-        MMObject * pObject;
+        MMObject * object;
         const olib::OString<128> file;
         const s32 line;
     };
-    typedef std::unordered_map<s64, ObjectCreateInfo> OBJCET_MAP;
 
-	typedef std::unordered_map<
-		olib::OString<MAX_TABLE_NAME_LEN>,
-		ITableControl *,
-		olib::OStringHash<MAX_MODEL_NAME_LEN>
-	> TABLE_MAP;
+    typedef std::unordered_map<s64, ObjectCreateInfo> OBJCET_MAP;
+	typedef std::unordered_map<s32, ITableControl *> TABLE_MAP;
+	typedef std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, s32, olib::OStringHash<MAX_MODEL_NAME_LEN>> PROP_DEFINES;
 public:
     ObjectMgr() {}
+	virtual ~ObjectMgr() {}
 
-    virtual bool Initialize(IKernel * pKernel);
-    virtual bool Launched(IKernel * pKernel);
-    virtual bool Destroy(IKernel * pKernel);
-
-    virtual s64 AllotID();
+    virtual bool Initialize(IKernel * kernel);
+    virtual bool Launched(IKernel * kernel);
+    virtual bool Destroy(IKernel * kernel);
 
     virtual IObject * Create(const char * file, const s32 line, const char * name, bool shadow);
     virtual IObject * CreateObjectByID(const char * file, const s32 line, const char * name, const s64 id, bool shadow);
     virtual IObject * FindObject(const s64 id);
-    virtual void Recove(IObject * pObject);
+    virtual void Recove(IObject * object);
 
     virtual const PROP_INDEX * GetPropsInfo(const char * type, bool noFather = false) const;
 
     //通过名称获取静态表
-    virtual ITableControl * FindStaticTable(const char * name);
-    virtual void RecoverStaticTable(ITableControl * pTable);
+    virtual ITableControl * FindStaticTable(const s32 name);
+    virtual void RecoverStaticTable(ITableControl * table);
     //创建对象类型静态表(同类型对象共有)
-    virtual ITableControl * CreateStaticTable(const char * name, const char * file, const s32 line);
+    virtual ITableControl * CreateStaticTable(const s32 name, const char * file, const s32 line);
+
+	IKernel * GetKernel() const { return _kernel; }
 
 private:
     const ObjectModel * QueryTemplate(IKernel * pKernel, const char * name);
@@ -85,11 +71,11 @@ private:
     OBJECT_MODEL_MAP _propMap;
     OBJCET_MAP _objects;
     TABLE_MAP _tableMap;
+	PROP_DEFINES _defines;
 
 private:
-	static ObjectMgr * s_self;
-	static IKernel * s_kernel;
-    static IHarbor * s_harbor;
+	IKernel * _kernel;
+	IIdMgr * _idMgr;
 };
 
 #endif //define __ObjectMgr_h__

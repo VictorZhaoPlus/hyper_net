@@ -4,15 +4,8 @@
 #include "IScriptEngine.h"
 #include "XmlReader.h"
 
-Agent * Agent::s_self = nullptr;
-IKernel * Agent::s_kernel = nullptr;
-
-s64 Agent::s_nextSessionId = 1;
-std::unordered_map<s64, AgentSession*> Agent::s_sessions;
-
 bool Agent::Initialize(IKernel * kernel) {
-    s_self = this;
-	s_kernel = kernel;
+	_kernel = kernel;
 
     return true;
 }
@@ -58,27 +51,27 @@ s64 Agent::OnOpen(AgentSession * session) {
 	s64 ret = s_nextSessionId++;
 	s_sessions[ret] = session;
 
-	s_listener->OnAgentOpen(s_kernel, ret);
+	_listener->OnAgentOpen(_kernel, ret);
 	return ret;
 }
 
 s32 Agent::OnRecv(const s64 id, const void * context, const s32 size) {
-	OASSERT(s_sessions.find(id) != s_sessions.end(), "where is agent %d", id);
+	OASSERT(s_sessions.find(id) != s_sessions.end(), "where is agent %lld", id);
 
-	return s_listener->OnAgentRecvPacket(s_kernel, id, context, size);;
+	return _listener->OnAgentRecvPacket(_kernel, id, context, size);;
 }
 
 void Agent::OnClose(const s64 id) {
-	OASSERT(s_sessions.find(id) != s_sessions.end(), "where is agent %d", id);
+	OASSERT(s_sessions.find(id) != s_sessions.end(), "where is agent %lld", id);
 	s_sessions.erase(id);
 
-	s_listener->OnAgentOpen(s_kernel, id);
+	_listener->OnAgentOpen(_kernel, id);
 }
 
 void Agent::Send(const s64 id, const void * context, const s32 size) {
 	auto itr = s_sessions.find(id);
 	if (itr == s_sessions.end()) {
-		OASSERT(false, "where is agent %d", id);
+		OASSERT(false, "where is agent %lld", id);
 		return;
 	}
 
@@ -88,7 +81,7 @@ void Agent::Send(const s64 id, const void * context, const s32 size) {
 void Agent::Kick(const s64 id) {
 	auto itr = s_sessions.find(id);
 	if (itr == s_sessions.end()) {
-		OASSERT(false, "where is agent %d", id);
+		OASSERT(false, "where is agent %lld", id);
 		return;
 	}
 

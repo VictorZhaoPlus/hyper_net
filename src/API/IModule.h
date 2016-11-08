@@ -64,7 +64,7 @@ typedef IModule * (*GetModuleFun)(void);
 #define GET_DLL_ENTRANCE \
 static IModule * g_logicModule = nullptr; \
 extern "C" IModule * GET_LOGIC_FUN() {    \
-    srand(tools::GetTimeMillisecond()); \
+    srand((s32)tools::GetTimeMillisecond()); \
     return g_logicModule; \
 }
 

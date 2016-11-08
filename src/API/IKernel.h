@@ -135,10 +135,19 @@ namespace core {
     };
 }
 
-#define DBG_INFO(format, a...) { \
+#define DBG_INFO(format, ...) { \
     char debug[4096] = {0}; \
-    SafeSprintf(debug, sizeof(debug), format, ##a); \
+    SafeSprintf(debug, sizeof(debug), format, __VA_ARGS__); \
     printf("%s\n", debug); \
+}
+
+#define START_TIMER(timer, delay, count, interval) {\
+	kernel->StartTimer(timer, delay, count, interval);\
+}
+
+#define FIND_MODULE(m, name) {\
+	m = (I##name *)kernel->FindModule(#name);\
+	OASSERT(m, "where is #name");\
 }
 
 #endif // __IKERNEL_H__

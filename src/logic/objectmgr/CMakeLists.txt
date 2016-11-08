@@ -10,7 +10,6 @@ INCLUDE_DIRECTORIES(
     )
 
 SET(MAIN
-    "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/ObjectMgrMacro.h"
     "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/ObjectMgr.h"
     "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/ObjectMgr.cpp"
     "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/MMObject.h"

@@ -14,6 +14,7 @@ namespace olib {
 		virtual float GetAttributeFloat(const char * attr) const = 0;
 		virtual bool GetAttributeBoolean(const char * attr) const = 0;
 		virtual const char * GetAttributeString(const char * attr) const = 0;
+		virtual bool HasAttribute(const char * attr) const = 0;
 
 		virtual const char * CData() const = 0;
 		virtual const char * Text() const = 0;

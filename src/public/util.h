@@ -4,11 +4,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+
+#ifdef WIN32
+#ifndef _WINSOCK2API_
+#include <WinSock2.h>
+#else
+#include <Windows.h>
+#endif
+#include <Shlwapi.h>
+
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "shlwapi.lib")
+#else
 #include <unistd.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <dlfcn.h>
 #include <limits.h>
+#endif
 
 typedef unsigned char u8;
 typedef unsigned short u16;
@@ -37,13 +50,17 @@ extern "C" {
 };
 #endif
 
-#define OASSERT(p, format, a...) { \
+#define OASSERT(p, format, ...) { \
     char debug[4096] = {0}; \
-    SafeSprintf(debug, sizeof(debug), format, ##a); \
+    SafeSprintf(debug, sizeof(debug), format, __VA_ARGS__); \
     ((p) ? (void)0 : (void)__OAssert(__FILE__, __LINE__, __FUNCTION__, debug)); \
 }
 
+#ifdef WIN32
+#define CSLEEP(t) Sleep(t)
+#else
 #define CSLEEP(t) usleep((t) * 1000)
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,4 +87,6 @@ extern "C" {
 
 #define MAX_PATH 260
 
+#include <functional>
+#include <algorithm>
 #endif //__util_h__

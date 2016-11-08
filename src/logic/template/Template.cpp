@@ -1,11 +1,7 @@
 #include "&.h"
 
-& * &::s_self = nullptr;
-IKernel * &::s_kernel = nullptr;
-
 bool &::Initialize(IKernel * kernel) {
-    s_self = this;
-    s_kernel = kernel;
+    _kernel = kernel;
 
     return true;
 }

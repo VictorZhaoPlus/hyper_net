@@ -23,4 +23,19 @@ public:
     }
 };
 
+template <typename T>
+class OHolder {
+public:
+	OHolder() { s_instance = (T*)this; }
+	virtual ~OHolder() {}
+
+	inline static T * Instance() { return s_instance; }
+
+private:
+	static T * s_instance;
+};
+
+template <typename T>
+T * OHolder<T>::s_instance = nullptr;
+
 #endif // SINGLETON_H_INCLUDED
