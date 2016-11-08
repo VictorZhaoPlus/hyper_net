@@ -4,6 +4,7 @@ INCLUDE_DIRECTORIES(
     "${PROJECT_SOURCE_DIR}/src/public"
     "${PROJECT_SOURCE_DIR}/src/public/tinyxml"
     "${PROJECT_SOURCE_DIR}/src/logic/interface"
+	"${PROJECT_SOURCE_DIR}/thirdlibary/include"
     )
 
 SET(HTTPMGR
@@ -29,3 +30,9 @@ ADD_LIBRARY(HttpMgr SHARED
         )
 
 SET_TARGET_PROPERTIES(HttpMgr PROPERTIES FOLDER "core") 
+
+IF(WIN32)
+TARGET_LINK_LIBRARIES(HttpMgr
+	"${PROJECT_SOURCE_DIR}/thirdlibary/bin/libcurl.lib"
+)
+ENDIF(WIN32)

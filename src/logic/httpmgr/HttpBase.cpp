@@ -6,7 +6,7 @@ size_t WriteData(void * buffer, size_t size, size_t nmemb, void * param) {
 	if (nullptr == buffer)
 		return -1;
 
-	command->Append(buffer, size * nmemb);
+	command->Append(buffer, (s32)size * (s32)nmemb);
 	return nmemb;
 }
 
@@ -57,9 +57,9 @@ void HttpBase::Get(IHttpHandler * handler, const char * url) {
 }
 
 void HttpBase::Append(const void * context, const s32 size) {
-	while (_content.GetFreeSpace() < size)
+	while (_content.GetFreeSize() < size)
 		_content.Expand();
 
-	SafeMemcpy(_content.GetFree(), _content.GetFreeSpace(), context, size);
+	SafeMemcpy(_content.GetFree(), _content.GetFreeSize(), context, size);
 	_content.In(size);
 }
