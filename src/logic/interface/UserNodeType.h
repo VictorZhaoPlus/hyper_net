@@ -7,6 +7,9 @@ namespace user_node_type {
 		START = node_type::USER,
 
 		GATE,
+		ACCOUNT,
+		LOGIC,
+		SCENEMGR,
     };
 }
 
