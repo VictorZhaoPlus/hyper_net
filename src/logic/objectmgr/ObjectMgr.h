@@ -51,6 +51,7 @@ public:
     virtual IObject * CreateObjectByID(const char * file, const s32 line, const char * name, const s64 id, bool shadow);
     virtual IObject * FindObject(const s64 id);
     virtual void Recove(IObject * object);
+	virtual s32 CalcProp(const char * name);
 
     virtual const PROP_INDEX * GetPropsInfo(const char * type, bool noFather = false) const;
 

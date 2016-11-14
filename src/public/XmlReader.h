@@ -24,6 +24,7 @@ namespace olib {
 
 		virtual const IXmlObject& operator[](const char * name) const = 0;
 		virtual bool IsExist(const char * name) const = 0;
+		virtual void ForEach(const std::function<void(const char *, const IXmlObject&)>&) const = 0;
 	};
 
     class XmlReader {

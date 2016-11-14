@@ -64,4 +64,72 @@ private:
 	mutable s32 _offset;
 };
 
+class IBuffer {
+public:
+	IBuffer() {}
+	virtual ~IBuffer() {}
+
+	virtual IBuffer& operator<<(const s8& t) = 0;
+	virtual IBuffer& operator<<(const s16& t) = 0;
+	virtual IBuffer& operator<<(const s32& t) = 0;
+	virtual IBuffer& operator<<(const s64& t) = 0;
+	virtual IBuffer& operator<<(const float& t) = 0;
+	virtual IBuffer& operator<<(const char * t) = 0;
+	virtual IBuffer& WriteBuffer(const void * context, const s32 size) = 0;
+};
+
+namespace olib {
+	template<s32 maxSize>
+	class Buffer : public IBuffer {
+	public:
+		Buffer() {}
+		virtual ~Buffer() {}
+
+		virtual IBuffer& operator<<(const s8& t) { return Write(t); }
+		virtual IBuffer& operator<<(const s16& t) { return Write(t); }
+		virtual IBuffer& operator<<(const s32& t) { return Write(t); }
+		virtual IBuffer& operator<<(const s64& t) { return Write(t); }
+		virtual IBuffer& operator<<(const float& t) { return Write(t); }
+
+		virtual IBuffer& operator<<(const char * str) {
+			s32 size = (s32)strlen(str);
+			if (_offset + size + sizeof(s32) + 1 <= maxSize) {
+				*this << size;
+				SafeMemcpy(_buf + _offset, maxSize - _offset, str, size);
+				_offset += size;
+				_buf[_offset] = 0;
+				++_offset;
+			}
+			return *this;
+		}
+
+		template <typename T>
+		IBuffer& Write(const T& t) {
+			if (_offset + sizeof(T) <= maxSize) {
+				SafeMemcpy(_buf + _offset, maxSize - _offset, &t, sizeof(t));
+				_offset += sizeof(T);
+			}
+			return *this;
+		}
+
+		virtual IBuffer& WriteBuffer(const void * context, const s32 size) {
+			OASSERT(size + sizeof(s32) <= maxSize, "wtf");
+			if (_offset + size + sizeof(s32) <= maxSize) {
+				*this << size;
+				SafeMemcpy(_buf + _offset, maxSize - _offset, context, size);
+				_offset += size;
+			}
+			return *this;
+		}
+
+		OBuffer Out() {
+			return OBuffer(_buf, _offset);
+		}
+
+	private:
+		char _buf[maxSize];
+		s32 _offset;
+	};
+}
+
 #endif //__OBUFFER_H_

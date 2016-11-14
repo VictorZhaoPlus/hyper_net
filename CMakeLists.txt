@@ -45,6 +45,7 @@ SET(PUBLIC
 	"${PROJECT_SOURCE_DIR}/src/public/ThreadModule.h"
 	"${PROJECT_SOURCE_DIR}/src/public/OArgs.h"
 	"${PROJECT_SOURCE_DIR}/src/public/OString.h"
+	"${PROJECT_SOURCE_DIR}/src/public/OBuffer.h"
     )
 
 SET(PUBLIC_XML

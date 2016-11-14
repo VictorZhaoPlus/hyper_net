@@ -8,16 +8,17 @@
 #include <unordered_set>
 #include "OString.h"
 #include "ILogin.h"
+#include "IHarbor.h"
 
 #define MAX_ROLE_NAME 64
 
-class IHarbor;
 class OBuffer;
 class OArgs;
 class IIdMgr;
-class Gate : public ILogin, public IAgentListener, public OHolder<Gate> {
+class IProtocolMgr;
+class Gate : public IGate, public IAgentListener, public INodeListener, public OHolder<Gate> {
 	enum {
-		ST_NONE,
+		ST_NONE = 0,
 		ST_AUTHENING,
 		ST_ROLELOADED,
 		ST_DISTRIBUTE,
@@ -52,15 +53,21 @@ public:
 	virtual void OnAgentClose(IKernel * kernel, const s64 id);
 	virtual s32 OnAgentRecvPacket(IKernel * kernel, const s64 id, const void * context, const s32 size);
 
+	virtual void OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port) {}
+	virtual void OnClose(IKernel * kernel, s32 nodeType, s32 nodeId);
+
 	virtual void SetRoleMgr(IRoleMgr * roleMgr) { _roleMgr = roleMgr; }
 
 	void OnRecvLoginReq(IKernel * kernel, const s64 id, const OBuffer& buf);
-	void OnRecvConnectReq(IKernel * kernel, const s64 id, const OBuffer& buf);
+	void OnRecvReconnectReq(IKernel * kernel, const s64 id, const OBuffer& buf);
 	void OnRecvBindAccountAck(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args);
 
 	void OnRecvSelectRoleReq(IKernel * kernel, const s64 id, const OBuffer& buf);
 	void OnRecvDistributeAck(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args);
 	void OnBindLogicAck(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args);
+
+	void OnUpdateRole(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args);
+	void OnRecvReselectRole(IKernel * kernel, const s64 id, const OBuffer& buf);
 
 	void OnRecvCreateRoleReq(IKernel * kernel, const s64 id, const OBuffer& buf);
 	void OnRecvDeleteRoleReq(IKernel * kernel, const s64 id, const OBuffer& buf);
@@ -71,6 +78,9 @@ public:
 	void Reset(IKernel * kernel, s64 id, s8 state, s32 from);
 
 	void TransMsgToLogic(IKernel * kernel, const s64 id, const void * context, const s32 size);
+	void OnTransMsgToActor(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size);
+
+	void SendToClient(IKernel * kernel, const s64 id, const s32 msgId, const OBuffer& buf);
 
 private:
     IKernel * _kernel;
@@ -78,9 +88,24 @@ private:
 	IAgent * _agent;
 	IRoleMgr * _roleMgr;
 	IIdMgr * _idMgr;
+	IProtocolMgr * _protocolMgr;
 
 	bool _singleLogic;
 	s32 _maxRole;
+
+	s32 _loginAckId;
+	s32 _selectRoleAckId;
+	s32 _createRoleAckId;
+	s32 _deleteRoleAckId;
+	s32 _reselectRoleAckId;
+
+	s32 _noError;
+	s32 _errorLoadRoleListFailed;
+	s32 _errorDistributeLogicFailed;
+	s32 _errorBindLogicFailed;
+	s32 _errorTooMuchRole;
+	s32 _errorCreateRoleFailed;
+	s32 _errorDeleteRoleFailed;
 
 	std::unordered_map<s64, Player> _players;
 	std::unordered_map<s64, s64> _actors;

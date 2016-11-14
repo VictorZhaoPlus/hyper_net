@@ -266,6 +266,10 @@ void ObjectMgr::Recove(IObject * pObject) {
     _objects.erase(itor);
 }
 
+s32 ObjectMgr::CalcProp(const char * name) {
+	return tools::CalcStringUniqueId(name);
+}
+
 const PROP_INDEX * ObjectMgr::GetPropsInfo(const char * type, bool noFather) const {
     OBJECT_MODEL_MAP::const_iterator const_itor = _propMap.find(type);
     if (const_itor != _propMap.end()) {

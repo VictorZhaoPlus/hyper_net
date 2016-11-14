@@ -200,6 +200,7 @@ public:
     virtual IObject * CreateObjectByID(const char * file, const s32 line, const char * name, const s64 id, bool shadow = false) = 0;
     virtual IObject * FindObject(const s64 id) = 0;
     virtual void Recove(IObject * pObject) = 0;
+	virtual s32 CalcProp(const char * name) = 0;
 
     virtual const PROP_INDEX * GetPropsInfo(const char * type, bool noFather = false) const = 0;
 

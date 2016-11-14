@@ -10,7 +10,7 @@ namespace olib {
 		OString(const char * str) {
 			SafeMemset(_buff, sizeof(_buff), 0, sizeof(_buff));
 
-			s32 len = strlen(str);
+			s32 len = (s32)strlen(str);
 			len = (len > size) ? size : len;
 			SafeMemcpy(_buff, sizeof(_buff) - 1, str, len);
 		}
@@ -21,7 +21,7 @@ namespace olib {
 		OString & operator = (const char * str) {
 			SafeMemset(_buff, sizeof(_buff), 0, sizeof(_buff));
 
-			s32 len = strlen(str);
+			s32 len = (s32)strlen(str);
 			len = (len > size) ? size : len;
 			SafeMemcpy(_buff, sizeof(_buff) - 1, str, len);
 			return *this;
@@ -36,7 +36,7 @@ namespace olib {
 
 		s64 Hash() const {
 			s64 hash = 0;
-			s32 count = strlen(_buff);
+			s32 count = (s32)strlen(_buff);
 			for (s32 i = 0; i < count; ++i) {
 				hash = hash * 33 + _buff[i];
 			}

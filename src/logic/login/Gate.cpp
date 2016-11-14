@@ -1,17 +1,66 @@
 #include "Gate.h"
 #include "OBuffer.h"
-#include "IHarbor.h"
 #include "UserNodeType.h"
 #include "FrameworkProtocol.h"
 #include "IIdMgr.h"
+#include "XmlReader.h"
+#include "IProtocolMgr.h"
 
 bool Gate::Initialize(IKernel * kernel) {
     _kernel = kernel;
+
+	olib::XmlReader reader;
+	std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
+	if (!reader.LoadXml(coreConfigPath.c_str())) {
+		OASSERT(false, "can't find core file : %s", coreConfigPath.c_str());
+		return false;
+	}
+
+	const olib::IXmlObject& login = reader.Root()["login"][0];
+	_singleLogic = login.GetAttributeBoolean("single_logic");
+	_maxRole = login.GetAttributeBoolean("max_role");
 
     return true;
 }
 
 bool Gate::Launched(IKernel * kernel) {
+	FIND_MODULE(_harbor, Harbor);
+	if (_harbor->GetNodeType() == user_node_type::GATE) {
+		FIND_MODULE(_agent, Agent);
+		FIND_MODULE(_idMgr, IdMgr);
+
+		RGS_AGENT_LISTENER(_agent, this);
+
+		_harbor->AddNodeListener(this, "Gate");
+		RGS_HABOR_ARGS_HANDLER(framework_proto::BIND_ACCOUNT_ACK, Gate::OnRecvBindAccountAck);
+		RGS_HABOR_ARGS_HANDLER(framework_proto::DISTRIBUTE_LOGIC_ACK, Gate::OnRecvDistributeAck);
+		RGS_HABOR_ARGS_HANDLER(framework_proto::BIND_PLAYER_ACK, Gate::OnBindLogicAck);
+		RGS_HABOR_ARGS_HANDLER(framework_proto::KICK_FROM_ACCOUNT, Gate::OnRecvKickFromAccount);
+		RGS_HABOR_ARGS_HANDLER(framework_proto::KICK_FROM_LOGIC, Gate::OnRecvKickFromLogic);
+		RGS_HABOR_HANDLER(framework_proto::TRANSMIT_TO_ACTOR, Gate::OnTransMsgToActor);
+
+		_protos[_protocolMgr->GetId("proto", "login_req")] = &Gate::OnRecvLoginReq;
+		_protos[_protocolMgr->GetId("proto", "reconect_req")] = &Gate::OnRecvReconnectReq;
+		_protos[_protocolMgr->GetId("proto", "select_role_req")] = &Gate::OnRecvSelectRoleReq;
+		_protos[_protocolMgr->GetId("proto", "create_role_req")] = &Gate::OnRecvCreateRoleReq;
+		_protos[_protocolMgr->GetId("proto", "delete_role_req")] = &Gate::OnRecvDeleteRoleReq;
+		_protos[_protocolMgr->GetId("proto", "reselect_role_req")] = &Gate::OnRecvReselectRole;
+
+		_loginAckId = _protocolMgr->GetId("proto", "login_ack");
+		_selectRoleAckId = _protocolMgr->GetId("proto", "select_role_ack");
+		_createRoleAckId = _protocolMgr->GetId("proto", "create_role_ack");
+		_deleteRoleAckId = _protocolMgr->GetId("proto", "delete_role_ack");
+		_reselectRoleAckId = _protocolMgr->GetId("proto", "reselect_role_ack");
+
+		_noError = _protocolMgr->GetId("error", "no_error");
+		_errorLoadRoleListFailed = _protocolMgr->GetId("error", "load_role_failed");
+		_errorDistributeLogicFailed = _protocolMgr->GetId("error", "distribute_role_failed");
+		_errorBindLogicFailed = _protocolMgr->GetId("error", "bind_logic_failed");
+		_errorTooMuchRole = _protocolMgr->GetId("error", "too_much_role");
+		_errorCreateRoleFailed = _protocolMgr->GetId("error", "create_role_failed");
+		_errorDeleteRoleFailed = _protocolMgr->GetId("error", "delete_role_failed");
+	}
+
     return true;
 }
 
@@ -57,34 +106,83 @@ s32 Gate::OnAgentRecvPacket(IKernel * kernel, const s64 id, const void * context
 	return len;
 }
 
-void Gate::OnRecvLoginReq(IKernel * kernel, const s64 id, const OBuffer& buf) {
-
+void Gate::OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) {
+	if (nodeType == user_node_type::ACCOUNT) {
+		std::unordered_map<s64, Player> tmp(_players);
+		for (auto itr = tmp.begin(); itr != tmp.end(); ++itr)
+			_agent->Kick(itr->first);
+	}
+	else if (nodeType == user_node_type::LOGIC) {
+		std::unordered_set<s64> tmp(_logicPlayers[nodeId]);
+		for (auto agentId : tmp)
+			_agent->Kick(agentId);
+	}
 }
 
-void Gate::OnRecvConnectReq(IKernel * kernel, const s64 id, const OBuffer& buf) {
+void Gate::OnRecvLoginReq(IKernel * kernel, const s64 id, const OBuffer& buf) {
+	const char * token = nullptr;
+	if (!buf.Read(token))
+		return;
 
+	OASSERT(_players.find(id) != _players.end(), "where is agent???");
+	Player& player = _players[id];
+
+	if (player.state == ST_NONE) {
+		
+	}
+}
+
+void Gate::OnRecvReconnectReq(IKernel * kernel, const s64 id, const OBuffer& buf) {
+	const char * token = nullptr;
+	if (!buf.Read(token))
+		return;
+
+	OASSERT(_players.find(id) != _players.end(), "where is agent???");
+	Player& player = _players[id];
+
+	if (player.state == ST_NONE) {
+
+	}
 }
 
 void Gate::OnRecvBindAccountAck(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {
 	s64 agentId = args.GetDataInt64(0);
 	s64 accountId = args.GetDataInt64(1);
+	s32 errorCode = args.GetDataInt32(2);
 
 	if (_players.find(agentId) != _players.end()) {
 		Player& player = _players[agentId];
 		OASSERT(player.state == ST_AUTHENING && player.accountId == accountId, "wtf");
+		if (player.accountId != accountId)
+			return;
 
-		//load role list
-		bool ret = _roleMgr->GetRoleList(accountId, [&player](IKernel * kernel, s64 actorId, IRole * role) {
-			player.roles.push_back({ actorId, role });
-		});
+		if (errorCode == 0) {
+			bool ret = _roleMgr->GetRoleList(accountId, [&player](IKernel * kernel, s64 actorId, IRole * role) {
+				player.roles.push_back({ actorId, role });
+			});
 
-		if (ret) {
-			//send ok;
+			if (ret) {
+				olib::Buffer<4096> buf;
+				buf << _noError << (s32)player.roles.size();
+				for (const auto& role : player.roles) {
+					buf << role.actorId;
+					role.role->Pack(buf);
+				}
+
+				SendToClient(kernel, player.agentId, _loginAckId, buf.Out());
+			}
+			else {
+				Reset(kernel, agentId, ST_NONE, node_type::USER);
+
+				olib::Buffer<128> buf;
+				buf << _errorLoadRoleListFailed;
+				SendToClient(kernel, player.agentId, _loginAckId, buf.Out());
+			}
 		}
 		else {
-			Reset(kernel, agentId, ST_NONE, node_type::USER);
-
-			//send failed;
+			olib::Buffer<128> buf;
+			buf << errorCode;
+			SendToClient(kernel, player.agentId, _loginAckId, buf.Out());
 		}
 	}
 }
@@ -112,8 +210,8 @@ void Gate::OnRecvSelectRoleReq(IKernel * kernel, const s64 id, const OBuffer& bu
 			_actors[actorId] = id;
 			_logicPlayers[1].insert(id);
 
-			IArgs<1, 32> args;
-			args << actorId;
+			IArgs<2, 32> args;
+			args << actorId << player.accountId;
 			args.Fix();
 
 			_harbor->Send(user_node_type::LOGIC, 1, framework_proto::BIND_PLAYER, args.Out());
@@ -147,8 +245,8 @@ void Gate::OnRecvDistributeAck(IKernel * kernel, s32 nodeType, s32 nodeId, const
 			_actors[actorId] = agentId;
 			_logicPlayers[logic].insert(agentId);
 
-			IArgs<1, 32> args;
-			args << actorId;
+			IArgs<2, 32> args;
+			args << actorId << player.accountId;
 			args.Fix();
 
 			_harbor->Send(user_node_type::LOGIC, logic, framework_proto::BIND_PLAYER, args.Out());
@@ -156,23 +254,72 @@ void Gate::OnRecvDistributeAck(IKernel * kernel, s32 nodeType, s32 nodeId, const
 		else {
 			Reset(kernel, agentId, ST_ROLELOADED, node_type::USER);
 
-			//send to client
+			olib::Buffer<128> buf;
+			buf << _errorDistributeLogicFailed;
+			SendToClient(kernel, agentId, _selectRoleAckId, buf.Out());
 		}
 	}
 }
 
 void Gate::OnBindLogicAck(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {
-	s64 actorId = args.GetDataInt64(1);
+	s64 actorId = args.GetDataInt64(0);
+	s64 accountId = args.GetDataInt64(1);
+	s32 errorCode = args.GetDataInt32(2);
 
 	if (_actors.find(actorId) != _actors.end()) {
 		OASSERT(_players.find(_actors[actorId]) != _players.end(), "wtf");
 		Player& player = _players[_actors[actorId]];
 		OASSERT(player.state == ST_BINDING && actorId == player.selectActorId, "wtf");
 
-		player.state = ST_ONLINE;
-		player.lastActorId = actorId;
+		if (errorCode) {
+			player.state = ST_ONLINE;
+			player.lastActorId = actorId;
 
-		//update last actor
+			//update last actor
+
+			const s32 tokenCount = args.GetDataInt32(3);
+		}
+		else {
+			Reset(kernel, _actors[actorId], ST_ROLELOADED, node_type::USER);
+
+			olib::Buffer<128> buf;
+			buf << _errorBindLogicFailed;
+			SendToClient(kernel, _actors[actorId], _selectRoleAckId, buf.Out());
+		}
+	}
+}
+
+void Gate::OnUpdateRole(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {
+	s64 actorId = args.GetDataInt64(0);
+	if (_actors.find(actorId) != _actors.end()) {
+		OASSERT(_players.find(_actors[actorId]) != _players.end(), "wtf");
+		Player& player = _players[_actors[actorId]];
+		OASSERT(player.state == ST_ONLINE && actorId == player.selectActorId && nodeId == player.logic, "wtf");
+
+		auto itr = std::find_if(player.roles.begin(), player.roles.end(), [actorId](const Role& role) {
+			return role.actorId == actorId;
+		});
+
+		OASSERT(itr != player.roles.end(), "wtf");
+		if (itr != player.roles.end())
+			itr->role->Update(args);
+	}
+}
+
+void Gate::OnRecvReselectRole(IKernel * kernel, const s64 id, const OBuffer& buf) {
+	OASSERT(_players.find(id) != _players.end(), "where is agent???");
+	Player& player = _players[id];
+	if (player.state == ST_ONLINE) {
+		Reset(kernel, id, ST_ROLELOADED, node_type::USER);
+
+		olib::Buffer<4096> buf;
+		buf << _noError << (s32)player.roles.size();
+		for (const auto& role : player.roles) {
+			buf << role.actorId;
+			role.role->Pack(buf);
+		}
+
+		SendToClient(kernel, player.agentId, _reselectRoleAckId, buf.Out());
 	}
 }
 
@@ -181,7 +328,9 @@ void Gate::OnRecvCreateRoleReq(IKernel * kernel, const s64 id, const OBuffer& bu
 	Player& player = _players[id];
 	if (player.state == ST_ROLELOADED) {
 		if (player.roles.size() >= _maxRole) {
-			//send failed
+			olib::Buffer<128> buf;
+			buf << _errorTooMuchRole;
+			SendToClient(kernel, id, _createRoleAckId, buf.Out());
 			return;
 		}
 
@@ -190,29 +339,43 @@ void Gate::OnRecvCreateRoleReq(IKernel * kernel, const s64 id, const OBuffer& bu
 		if (role) {
 			player.roles.push_back({ actorId, role });
 
-			//send ok
+			olib::Buffer<128> buf;
+			buf << _noError;
+			role->Pack(buf);
+			SendToClient(kernel, id, _createRoleAckId, buf.Out());
 		}
 		else {
-			//send failed
+			olib::Buffer<128> buf;
+			buf << _errorCreateRoleFailed;
+			SendToClient(kernel, id, _createRoleAckId, buf.Out());
 		}
 	}
 }
 
 void Gate::OnRecvDeleteRoleReq(IKernel * kernel, const s64 id, const OBuffer& buf) {
+	s64 actorId = 0;
+	if (!buf.Read(actorId))
+		return;
+
 	OASSERT(_players.find(id) != _players.end(), "where is agent???");
 	Player& player = _players[id];
 	if (player.state == ST_ROLELOADED) {
-		auto itr = std::find_if(player.roles.begin(), player.roles.end(), [id](const Role& role) {
-			return role.actorId == id;
+		auto itr = std::find_if(player.roles.begin(), player.roles.end(), [actorId](const Role& role) {
+			return role.actorId == actorId;
 		});
 
 		if (itr != player.roles.end()) {
 			if (_roleMgr->DeleteRole(itr->actorId, itr->role)) {
 				player.roles.erase(itr);
-				//send ok
+				
+				olib::Buffer<128> buf;
+				buf << _noError << actorId;
+				SendToClient(kernel, id, _deleteRoleAckId, buf.Out());
 			}
 			else {
-				//send failed
+				olib::Buffer<128> buf;
+				buf << _errorDeleteRoleFailed;
+				SendToClient(kernel, id, _deleteRoleAckId, buf.Out());
 			}
 		}
 	}
@@ -260,7 +423,7 @@ void Gate::Reset(IKernel * kernel, s64 id, s8 state, s32 from) {
 
 	if (old > ST_NONE && state == ST_NONE) {
 		IArgs<1, 32> args;
-		args << player.accountId;
+		args << player.agentId << player.accountId;
 		args.Fix();
 		_harbor->Send(user_node_type::ACCOUNT, 1, framework_proto::UNBIND_ACCOUNT, args.Out());
 
@@ -277,4 +440,32 @@ void Gate::TransMsgToLogic(IKernel * kernel, const s64 id, const void * context,
 	_harbor->PrepareSend(user_node_type::LOGIC, player.logic, framework_proto::TRANSMIT_TO_LOGIC, sizeof(s64) + size);
 	_harbor->Send(user_node_type::LOGIC, player.logic, &id, sizeof(id));
 	_harbor->Send(user_node_type::LOGIC, player.logic, context, size);
+}
+
+void Gate::OnTransMsgToActor(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size) {
+	OASSERT(size >= sizeof(s32) * 2 + sizeof(s64), "wtf");
+	s32 * header = (s32 *)context;
+	s32 len = header[1];
+
+	const s64 * actors = (s64*)(((const char*)context) + len);
+	s32 count = (size - len) / sizeof(64);
+	for (s32 i = 0; i < count; ++i) {
+		s64 actorId = actors[i];
+		if (_actors.find(actorId) != _actors.end()) {
+			OASSERT(_players.find(_actors[actorId]) != _players.end(), "wtf");
+
+			Player& player = _players[_actors[actorId]];
+			if (player.state == ST_ONLINE)
+				_agent->Send(player.agentId, context, len);
+		}
+	}
+}
+
+void Gate::SendToClient(IKernel * kernel, const s64 id, const s32 msgId, const OBuffer& buf) {
+	s32 header[2];
+	header[0] = msgId;
+	header[1] = buf.GetSize() + sizeof(s32) * 2;
+
+	_agent->Send(id, header, sizeof(header));
+	_agent->Send(id, buf.GetContext(), buf.GetSize());
 }

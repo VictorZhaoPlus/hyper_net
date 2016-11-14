@@ -13,8 +13,10 @@ SET(LOGIN
     "${PROJECT_SOURCE_DIR}/src/logic/login/Login.cpp"
     "${PROJECT_SOURCE_DIR}/src/logic/login/Distribution.h"
     "${PROJECT_SOURCE_DIR}/src/logic/login/Distribution.cpp"
-    "${PROJECT_SOURCE_DIR}/src/logic/login/PlayerMgr.h"
-    "${PROJECT_SOURCE_DIR}/src/logic/login/PlayerMgr.cpp"
+    "${PROJECT_SOURCE_DIR}/src/logic/login/Logic.h"
+    "${PROJECT_SOURCE_DIR}/src/logic/login/Logic.cpp"
+    "${PROJECT_SOURCE_DIR}/src/logic/login/PacketSender.h"
+    "${PROJECT_SOURCE_DIR}/src/logic/login/PacketSender.cpp"
     "${PROJECT_SOURCE_DIR}/src/logic/login/main.cpp"
     )
 

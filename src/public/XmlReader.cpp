@@ -27,6 +27,7 @@ namespace olib {
 
 		virtual const IXmlObject& operator[](const char * name) const { OASSERT(false, "this is a null xml"); return *this; }
 		virtual bool IsExist(const char * name) const { OASSERT(false, "this is a null xml"); return false; }
+		virtual void ForEach(const std::function<void(const char *, const IXmlObject&)>&) const { OASSERT(false, "this is a null xml"); }
 	};
 
 	class XmlObject;
@@ -54,6 +55,7 @@ namespace olib {
 
 		virtual const IXmlObject& operator[](const char * name) const { OASSERT(false, "this is a array xml"); return _null; }
 		virtual bool IsExist(const char * name) const { OASSERT(false, "this is a array xml"); return false; }
+		virtual void ForEach(const std::function<void(const char *, const IXmlObject&)>&) const { OASSERT(false, "this is a array xml"); }
 
 	private:
 		std::vector<XmlObject *> _elements;
@@ -106,6 +108,12 @@ namespace olib {
 		}
 
 		virtual bool IsExist(const char * name) const { return _objects.find(name) != _objects.end(); }
+
+		virtual void ForEach(const std::function<void(const char *, const IXmlObject&)>& f) const {
+			for (auto itr = _objects.begin(); itr != _objects.end(); ++itr) {
+				f(itr->first.c_str(), *itr->second);
+			}
+		}
 
 	private:
 		const Value * FindAttr(const char * attr) const {

@@ -4,7 +4,7 @@
 
 namespace framework_proto {
     enum {
-		START = framework_proto::END,
+		START = 10000,
        
 		END,
     };
