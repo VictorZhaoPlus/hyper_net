@@ -15,6 +15,7 @@ class Logic : public ILogic, public INodeListener, public OHolder<Logic> {
 		s32 account;
 		s32 gate;
 		s32 logic;
+		s32 recoverTimer;
 	};
 
 	typedef olib::CallbackType<s32, ProtocolCB>::type ProtocolPool;
@@ -34,12 +35,16 @@ public:
 	void OnUnbindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args);
 	void OnTransMsg(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size);
 
+	void Recover(IKernel * kernel, const s64 id);
+
 private:
     IKernel * _kernel;
 	IRoleMgr * _roleMgr;
 	IHarbor * _harbor;
 	IObjectMgr * _objectMgr;
 	IProtocolMgr * _protocolMgr;
+
+	s32 _recoverInverval;
 
 	Props _prop;
 	s32 _noError;

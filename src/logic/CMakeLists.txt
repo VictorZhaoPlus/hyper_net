@@ -21,13 +21,15 @@ SET(LOGIC_INTERFACE
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IObjectMgr.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IProtocolMgr.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/ILogin.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/interface/IObjectTimer.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/interface/IEventEngine.h"
 )
 
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/harbor)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/cluster)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/scriptengine)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/redis)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/luaserver)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/eventengine)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/agent)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/test)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/startnodestrategy)
@@ -37,4 +39,6 @@ ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/httpmgr)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/idmgr)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/objectmgr)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/protocolmgr)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/objecttimer)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/login)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/luaserver)

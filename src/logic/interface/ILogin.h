@@ -34,6 +34,7 @@ public:
 	virtual void Recover(IRole * role) = 0;
 
 	virtual bool LoadRole(const s64 actorId, IObject * object) = 0;
+	virtual void PrepareRecover(IObject * object) = 0;
 };
 
 class IGate : public IModule {

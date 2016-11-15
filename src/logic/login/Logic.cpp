@@ -4,6 +4,40 @@
 #include "UserNodeType.h"
 #include "IProtocolMgr.h"
 #include "OBuffer.h"
+#include "OPool.h"
+#include "IObjectMgr.h"
+
+namespace logic {
+	class RemoveObjectTimer : public ITimer {
+		friend class olib::Pool<RemoveObjectTimer>;
+	public:
+		virtual ~RemoveObjectTimer() {}
+
+		static RemoveObjectTimer * Create(IObject * object) {
+			return CREATE_FROM_POOL(s_pool, object);
+		}
+
+		virtual void OnStart(IKernel * kernel, s64 tick) {}
+		virtual void OnTimer(IKernel * kernel, s64 tick) {}
+		virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) {
+			if (nonviolent)
+				Logic::Instance()->Recover(kernel, _id);
+			s_pool.Recover(this);
+		}
+
+		virtual void OnPause(IKernel * kernel, s64 tick) {}
+		virtual void OnResume(IKernel * kernel, s64 tick) {}
+
+	private:
+		RemoveObjectTimer(IObject * object) : _id(object->GetID()) {}
+
+	private:
+		s64 _id;
+		static olib::Pool<RemoveObjectTimer> s_pool;
+	};
+
+	olib::Pool<RemoveObjectTimer> RemoveObjectTimer::s_pool;
+}
 
 bool Logic::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -23,6 +57,7 @@ bool Logic::Launched(IKernel * kernel) {
 		_prop.account = _objectMgr->CalcProp("account");
 		_prop.gate = _objectMgr->CalcProp("gate");
 		_prop.logic = _objectMgr->CalcProp("logic");
+		_prop.recoverTimer = _objectMgr->CalcProp("recoverTimer");
 
 		FIND_MODULE(_protocolMgr, ProtocolMgr);
 		_noError = _protocolMgr->GetId("error", "no_error");
@@ -72,6 +107,16 @@ void Logic::OnBindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs 
 		_harbor->Send(nodeType, nodeId, framework_proto::BIND_PLAYER_ACK, args.Out());
 
 		//drop reconnect event;
+
+		IArgs<1, 32> notify;
+		notify << actorId;
+		notify.Fix();
+		_harbor->Send(user_node_type::SCENEMGR, 1, framework_proto::ADD_PLAYER, notify.Out());
+
+		OASSERT(object->GetPropInt64(_prop.recoverTimer) != 0, "wtf");
+		logic::RemoveObjectTimer * timer = (logic::RemoveObjectTimer*)object->GetPropInt64(_prop.recoverTimer);
+		kernel->KillTimer(timer);
+		object->SetPropInt64(_prop.recoverTimer, 0);
 	}
 	else {
 		object = CREATE_OBJECT_BYID(_objectMgr, "Player", actorId);
@@ -92,6 +137,11 @@ void Logic::OnBindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs 
 
 			//drop online event;
 			//drop online complete event;
+
+			IArgs<1, 32> notify;
+			notify << actorId;
+			notify.Fix();
+			_harbor->Send(user_node_type::SCENEMGR, 1, framework_proto::ADD_PLAYER, notify.Out());
 		}
 		else {
 			_objectMgr->Recove(object);
@@ -116,6 +166,11 @@ void Logic::OnUnbindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArg
 		_gateActors[nodeId].erase(actorId);
 
 		//drop gate lost event;
+
+		OASSERT(object->GetPropInt64(_prop.recoverTimer) == 0, "wtf");
+		logic::RemoveObjectTimer * timer = logic::RemoveObjectTimer::Create(object);
+		object->SetPropInt64(_prop.recoverTimer, (s64)timer);
+		START_TIMER(timer, 0, 1, _recoverInverval);
 	}
 }
 
@@ -132,5 +187,23 @@ void Logic::OnTransMsg(IKernel * kernel, s32 nodeType, s32 nodeId, const void * 
 		OASSERT(object->GetPropInt32(_prop.gate) == nodeId, "wtf");
 	
 		_protos.Call(msgId, kernel, object, buf);
+	}
+}
+
+void Logic::Recover(IKernel * kernel, const s64 id) {
+	IObject * object = _objectMgr->FindObject(id);
+	OASSERT(object, "wtf");
+	if (object) {
+		object->SetPropInt64(_prop.recoverTimer, 0);
+
+		//drop recover event;
+
+		_roleMgr->PrepareRecover(object);
+		_objectMgr->Recove(object);
+
+		IArgs<1, 32> notify;
+		notify << id;
+		notify.Fix();
+		_harbor->Send(user_node_type::SCENEMGR, 1, framework_proto::REMOVE_PLAYER, notify.Out());
 	}
 }
