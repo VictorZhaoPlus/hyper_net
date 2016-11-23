@@ -41,7 +41,7 @@ bool ConfigMgr::Initialize(int argc, char ** argv) {
 	_netThreadCount = conf.Root()["extend"][0][name][0]["net"][0].GetAttributeInt32("thread");
 
 	SafeSprintf(_loggerPath, sizeof(_loggerPath), conf.Root()["logger"][0].GetAttributeString("path"));
-	_logToConsole = conf.Root()["logger"][0].GetAttributeInt32("console");
+	_logToConsole = conf.Root()["logger"][0].GetAttributeBoolean("console");
 
 	_asyncThreadCount = conf.Root()["extend"][0][name][0]["async"][0].GetAttributeInt32("thread");
 	_asyncTick = conf.Root()["extend"][0][name][0]["async"][0].GetAttributeInt32("tick");

@@ -38,7 +38,6 @@ typedef int64_t s64;
 #define REALLOC realloc
 #define NEW new
 #define DEL delete
-#define ALLOCATOR(T) std::allocator<T>
 
 #define SafeSprintf snprintf
 
@@ -51,7 +50,7 @@ extern "C" {
 #endif
 
 #define OASSERT(p, format, ...) { \
-    char debug[4096] = {0}; \
+    char debug[4096]; \
     SafeSprintf(debug, sizeof(debug), format, __VA_ARGS__); \
     ((p) ? (void)0 : (void)__OAssert(__FILE__, __LINE__, __FUNCTION__, debug)); \
 }
@@ -87,6 +86,10 @@ extern "C" {
 
 #define MAX_PATH 260
 
+#ifdef __cplusplus
+#define ALLOCATOR(T) std::allocator<T>
+
 #include <functional>
 #include <algorithm>
+#endif
 #endif //__util_h__

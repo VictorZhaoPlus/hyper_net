@@ -61,11 +61,23 @@ typedef IModule * (*GetModuleFun)(void);
     factroy##name factroy##name(g_logicModule);
 
 
+#ifdef WIN32
+#define GET_DLL_ENTRANCE \
+static IModule * g_logicModule = nullptr; \
+extern "C" __declspec(dllexport) IModule * __cdecl GET_LOGIC_FUN() { \
+	srand((s32)tools::GetTimeMillisecond()); \
+	return g_logicModule;\
+}\
+BOOL WINAPI DllMain(HINSTANCE instDll, DWORD reason, LPVOID reserved) {\
+	return TRUE;\
+}
+#else
 #define GET_DLL_ENTRANCE \
 static IModule * g_logicModule = nullptr; \
 extern "C" IModule * GET_LOGIC_FUN() {    \
     srand((s32)tools::GetTimeMillisecond()); \
     return g_logicModule; \
 }
+#endif
 
 #endif // __IMODULE_H__

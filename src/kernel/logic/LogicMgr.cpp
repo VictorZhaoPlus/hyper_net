@@ -31,7 +31,11 @@ bool LogicMgr::Initialize() {
         OASSERT(name, "module.xml form error, can't find module's name");
 
         char fullPath[512];
+#ifdef WIN32
+		SafeSprintf(fullPath, sizeof(fullPath), "%s/%s%s.dll", tools::GetAppPath(), path, name);
+#else
         SafeSprintf(fullPath, sizeof(fullPath), "%s/%slib%s.so", tools::GetAppPath(), path, name);
+#endif
         if (!LoadModule(fullPath)) {
             OASSERT(false, "load module failed");
             return false;
@@ -67,11 +71,16 @@ void LogicMgr::Destroy() {
 }
 
 bool LogicMgr::LoadModule(const char * path) {
+#ifdef WIN32
+	HINSTANCE inst = ::LoadLibrary(path);
+	GetModuleFun fun = (GetModuleFun)::GetProcAddress(inst, NAME_OF_GET_LOGIC_FUN);
+#else
     void * handle = dlopen(path, RTLD_LAZY);
     OASSERT(handle, "open %s error %s", path, dlerror());
 
     GetModuleFun fun = (GetModuleFun) dlsym(handle, NAME_OF_GET_LOGIC_FUN);
-    OASSERT(fun, "get function:GetLogicModule error");
+#endif
+	OASSERT(fun, "get function:GetLogicModule error");
 
     IModule * logic = fun();
     OASSERT(logic, "can't get module from %s", path);

@@ -6,6 +6,7 @@
 #include "OBuffer.h"
 #include "OPool.h"
 #include "IObjectMgr.h"
+#include "IEventEngine.h"
 
 namespace logic {
 	class RemoveObjectTimer : public ITimer {
@@ -62,6 +63,14 @@ bool Logic::Launched(IKernel * kernel) {
 		FIND_MODULE(_protocolMgr, ProtocolMgr);
 		_noError = _protocolMgr->GetId("error", "no_error");
 		_errorLoadPlayerFailed = _protocolMgr->GetId("error", "load_player_failed");
+
+		_eventOnline = _protocolMgr->GetId("event", "online");
+		_eventOnlineComplete = _protocolMgr->GetId("event", "online_complete");
+		_eventReconnect = _protocolMgr->GetId("event", "reconnect");
+		_eventGateLost = _protocolMgr->GetId("event", "gate_lost");
+		_eventRecover = _protocolMgr->GetId("event", "recover");
+
+		FIND_MODULE(_eventEngine, EventEngine);
 	}
 
     return true;
@@ -78,9 +87,16 @@ void Logic::OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) {
 			IObject * object = _objectMgr->FindObject(actorId);
 			OASSERT(object, "wtf");
 			if (object) {
-				object->SetPropInt32(_prop.gate, 0, false);
+				if (object->GetPropInt32(_prop.gate) > 0) {
+					object->SetPropInt32(_prop.gate, 0, false);
 
-				//drop reconnect event;
+					_eventEngine->Exec(_eventGateLost, &object, sizeof(object));
+
+					OASSERT(object->GetPropInt64(_prop.recoverTimer) == 0, "wtf");
+					logic::RemoveObjectTimer * timer = logic::RemoveObjectTimer::Create(object);
+					object->SetPropInt64(_prop.recoverTimer, (s64)timer);
+					START_TIMER(timer, 0, 1, _recoverInverval);
+				}
 			}
 		}
 		_gateActors[nodeId].clear();
@@ -106,7 +122,7 @@ void Logic::OnBindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs 
 
 		_harbor->Send(nodeType, nodeId, framework_proto::BIND_PLAYER_ACK, args.Out());
 
-		//drop reconnect event;
+		_eventEngine->Exec(_eventReconnect, &object, sizeof(object));
 
 		IArgs<1, 32> notify;
 		notify << actorId;
@@ -135,8 +151,8 @@ void Logic::OnBindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs 
 
 			_harbor->Send(nodeType, nodeId, framework_proto::BIND_PLAYER_ACK, args.Out());
 
-			//drop online event;
-			//drop online complete event;
+			_eventEngine->Exec(_eventOnline, &object, sizeof(object));
+			_eventEngine->Exec(_eventOnlineComplete, &object, sizeof(object));
 
 			IArgs<1, 32> notify;
 			notify << actorId;
@@ -165,7 +181,7 @@ void Logic::OnUnbindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArg
 		object->SetPropInt32(_prop.gate, 0, false);
 		_gateActors[nodeId].erase(actorId);
 
-		//drop gate lost event;
+		_eventEngine->Exec(_eventGateLost, &object, sizeof(object));
 
 		OASSERT(object->GetPropInt64(_prop.recoverTimer) == 0, "wtf");
 		logic::RemoveObjectTimer * timer = logic::RemoveObjectTimer::Create(object);
@@ -196,7 +212,7 @@ void Logic::Recover(IKernel * kernel, const s64 id) {
 	if (object) {
 		object->SetPropInt64(_prop.recoverTimer, 0);
 
-		//drop recover event;
+		_eventEngine->Exec(_eventRecover, &object, sizeof(object));
 
 		_roleMgr->PrepareRecover(object);
 		_objectMgr->Recove(object);

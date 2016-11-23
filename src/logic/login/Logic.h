@@ -10,6 +10,7 @@
 
 class IObjectMgr;
 class IProtocolMgr;
+class IEventEngine;
 class Logic : public ILogic, public INodeListener, public OHolder<Logic> {
 	struct Props {
 		s32 account;
@@ -43,12 +44,20 @@ private:
 	IHarbor * _harbor;
 	IObjectMgr * _objectMgr;
 	IProtocolMgr * _protocolMgr;
+	IEventEngine * _eventEngine;
 
 	s32 _recoverInverval;
 
 	Props _prop;
+	
 	s32 _noError;
 	s32 _errorLoadPlayerFailed;
+	
+	s32 _eventOnline;
+	s32 _eventOnlineComplete;
+	s32 _eventReconnect;
+	s32 _eventGateLost;
+	s32 _eventRecover;
 
 	std::unordered_map<s32, std::unordered_set<s64>> _gateActors;
 

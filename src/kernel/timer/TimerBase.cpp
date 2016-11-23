@@ -80,8 +80,8 @@ void TimerBase::Release() {
 }
 
 void TimerBase::AdjustExpire(u64 now) {
-	long long live = (long long)(_expire - now);
-	if (live < 0 && abs(live) > _interval) {
+	s64 live = (s64)(_expire - now);
+	if (live < 0 && abs(live) > (s64)_interval) {
 		_expire += (abs(live) / _interval) * _interval;
 	}
 }
