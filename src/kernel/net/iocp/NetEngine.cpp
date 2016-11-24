@@ -23,24 +23,27 @@ bool NetEngine::Ready() {
 }
 
 bool NetEngine::Initialize() {
+	WSADATA wsaData;
+	if (0 != WSAStartup(MAKEWORD(2, 2), &wsaData))
+		return false;
 	SetLastError(0);
 	if (nullptr == (g_accept = GetAcceptExFunc())) {
-		OASSERT(false, "GetAcceptExFun error %d", ::GetLastError());
+		OASSERT(false, "GetAcceptExFun error %d", (s32)::GetLastError());
 		return false;
 	}
 
 	if (nullptr == (g_connect = GetConnectExFunc())) {
-		OASSERT(false, "GetConnectExFun error %d", ::GetLastError());
+		OASSERT(false, "GetConnectExFun error %d", (s32)::GetLastError());
 		return false;
 	}
 
 	if (nullptr == (_completionPortAC = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0))) {
-		OASSERT(false, "CreateIoCompletionPort error %d", ::GetLastError());
+		OASSERT(false, "CreateIoCompletionPort error %d", (s32)::GetLastError());
 		return false;
 	}
 
 	if (nullptr == (_completionPortRS = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0))) {
-		OASSERT(false, "CreateIoCompletionPort error %d", ::GetLastError());
+		OASSERT(false, "CreateIoCompletionPort error %d", (s32)::GetLastError());
 		return false;
 	}
 
@@ -61,6 +64,9 @@ bool NetEngine::Initialize() {
 s32 NetEngine::Loop(s64 overtime) {
 	s64 tick = tools::GetTimeMillisecond();
 	ProcessAccept();
+	for (s32 i = 0; i < ConfigMgr::Instance()->GetNetThreadCount(); ++i) {
+		ProcessThreadEvent(&_threads[i].events, overtime / ConfigMgr::Instance()->GetNetThreadCount());
+	}
 	return (s32)(tools::GetTimeMillisecond() - tick);
 }
 
@@ -75,7 +81,7 @@ void NetEngine::Destroy() {
 		}
 		DEL[] _threads;
 	}
-
+	WSACleanup();
 	DEL this;
 }
 
@@ -114,6 +120,8 @@ bool NetEngine::Listen(const char * ip, const s32 port, const s32 sendSize, cons
 	acceptor->recvSize = recvSize;
 	acceptor->sendSize = sendSize;
 	acceptor->socket = socket;
+
+	SafeMemset(&acceptor->accept, sizeof(acceptor->accept), 0, sizeof(acceptor->accept));
 	acceptor->accept.opt = IOCP_OPT_ACCEPT;
 	acceptor->accept.code = 0;
 	acceptor->accept.context = acceptor;
@@ -154,7 +162,7 @@ bool NetEngine::Connect(const char * ip, const s32 port, const s32 sendSize, con
 	Connection * connection = Connection::Create(socket, sendSize, recvSize);
 	OASSERT(connection, "wtf");
 	if (!connection->DoConnect(ip, port)) {
-		OASSERT(false, "AddClient error %d", ::GetLastError());
+		OASSERT(false, "AddClient error %u", (s32)::GetLastError());
 
 		session->OnConnectFailed(Kernel::Instance());
 		closesocket(socket);
@@ -170,9 +178,10 @@ bool NetEngine::Connect(const char * ip, const s32 port, const s32 sendSize, con
 
 void NetEngine::ProcessAccept() {
 	IocpEvent * evt = GetQueueState(_completionPortAC);
-
-	OASSERT(evt->opt == IOCP_OPT_ACCEPT, "wtf");
-	Accept(evt);
+	if (evt) {
+		OASSERT(evt->opt == IOCP_OPT_ACCEPT, "wtf");
+		Accept(evt);
+	}
 }
 
 void NetEngine::ProcessThreadEvent(olib::CycleQueue<NetEvent> * events, s64 overtime) {
@@ -249,12 +258,13 @@ void NetEngine::Accept(IocpEvent * evt) {
 
 	sockaddr_in remote;
 	s32 size = sizeof(sockaddr_in);
-	if (res != 0 || SOCKET_ERROR != getpeername(evt->socket, (sockaddr*)&remote, &size)) {
+	if (res != 0 || 0 != getpeername(evt->socket, (sockaddr*)&remote, &size)) {
 		OASSERT(false, "complete accept error %d", GetLastError());
 		::closesocket(evt->socket);
 	}
 	else {
-		if (_completionPortRS != CreateIoCompletionPort((HANDLE)socket, _completionPortRS, evt->socket, 0))
+		HANDLE ret = CreateIoCompletionPort((HANDLE)evt->socket, _completionPortRS, evt->socket, 0);
+		if (_completionPortRS != ret)
 			closesocket(evt->socket);
 		else {
 			ISession * session = acceptor->factory->Create();
@@ -262,6 +272,9 @@ void NetEngine::Accept(IocpEvent * evt) {
 				::closesocket(evt->socket);
 			}
 			else {
+				const s8 nodelay = 1;
+				setsockopt(evt->socket, IPPROTO_TCP, TCP_NODELAY, &nodelay, sizeof(nodelay));
+
 				Connection * connection = Connection::Create(evt->socket, acceptor->sendSize, acceptor->recvSize);
 				OASSERT(connection, "wtf");
 
@@ -292,10 +305,10 @@ bool NetEngine::DoAccept(IocpEvent * evt) {
 	IocpAcceptor * acceptor = (IocpAcceptor *)evt->context;
 	s32 res = g_accept(acceptor->socket,
 		evt->socket,
-		nullptr,
+		acceptor->buf,
 		0,
-		sizeof(sockaddr_in),
-		sizeof(sockaddr_in),
+		sizeof(sockaddr_in) + 16,
+		sizeof(sockaddr_in) + 16,
 		&bytes,
 		(LPOVERLAPPED)evt
 	);

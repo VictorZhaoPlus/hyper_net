@@ -27,11 +27,13 @@ Connection::Connection(const SOCKET fd, const s32 sendSize, const s32 recvSize)
 
 	SafeMemset(&_addr, sizeof(_addr), 0, sizeof(_addr));
 
+	SafeMemset(&_connect, sizeof(_connect), 0, sizeof(_connect));
 	_connect.opt = IOCP_OPT_CONNECT;
 	_connect.socket = _fd;
 	_connect.bytes = 0;
 	_connect.context = this;
 
+	SafeMemset(&_recv, sizeof(_recv), 0, sizeof(_recv));
 	_recv.opt = IOCP_OPT_RECV;
 	_recv.socket = _fd;
 	_recv.bytes = 0;
@@ -39,10 +41,11 @@ Connection::Connection(const SOCKET fd, const s32 sendSize, const s32 recvSize)
 	_recv.buf.buf = (char*)MALLOC(SINGLE_RECV_SIZE);
 	_recv.buf.len = SINGLE_RECV_SIZE;
 
+	SafeMemset(&_send, sizeof(_send), 0, sizeof(_send));
 	_send.opt = IOCP_OPT_SEND;
-	_recv.socket = _fd;
-	_recv.bytes = 0;
-	_recv.context = this;
+	_send.socket = _fd;
+	_send.bytes = 0;
+	_send.context = this;
 }
 
 Connection::~Connection() {
@@ -145,14 +148,17 @@ void Connection::OnRecv() {
 	char * buf = RingBufferReadTemp(_recvBuf, (char*)temp, sizeof(temp), &size);
 	if (buf && size > 0) {
 		s32 used = 0;
+		s32 totalUsed = 0;
 		do {
-			used = _session->OnRecv(Kernel::Instance(), buf + used, size);
+			used = _session->OnRecv(Kernel::Instance(), buf + totalUsed, size - totalUsed);
 			if (used > 0) {
-				OASSERT(used <= (s32)size, "wtf");
-				RingBufferOut(_sendBuf, used);
-				size -= used;
+				OASSERT(totalUsed + used <= (s32)size, "wtf");
+				totalUsed += used;
 			}
-		} while (used > 0 && size > 0);
+		} while (used > 0 && totalUsed < size);
+
+		if (totalUsed > 0)
+			RingBufferOut(_recvBuf, totalUsed);
 
 		if (used < 0)
 			Close();

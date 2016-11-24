@@ -5,6 +5,7 @@ namespace node_type {
     enum {
         MASTER = -1,
         SLAVE = -2,
+		INVALID = -3,
 
         USER = 0,
     };

@@ -63,23 +63,25 @@ bool Slave::Launched(IKernel * kernel) {
 		for (s32 i = 0; i < defs.Count(); ++i)
 			defines[defs[i].GetAttributeString("name")] = defs[i].GetAttributeString("value");
 
-		const olib::IXmlObject& nodes = starter["node"];
-		for (s32 i = 0; i < nodes.Count(); ++i) {
-			Execute info;
-			info.type = nodes[i].GetAttributeInt32("nodeType");
-			SafeSprintf(info.name, sizeof(info.name), nodes[i].GetAttributeString("name"));
+		if (starter.IsExist("node")) {
+			const olib::IXmlObject& nodes = starter["node"];
+			for (s32 i = 0; i < nodes.Count(); ++i) {
+				Execute info;
+				info.type = nodes[i].GetAttributeInt32("nodeType");
+				SafeSprintf(info.name, sizeof(info.name), nodes[i].GetAttributeString("name"));
 
-			std::string cmd = nodes[i].GetAttributeString("cmd");
-			for (auto itr = defines.begin(); itr != defines.end(); ++itr) {
-				std::string::size_type pos = cmd.find(itr->first);
-				while (pos != std::string::npos) {
-					cmd.replace(pos, itr->first.size(), itr->second.c_str());
-					pos = cmd.find(itr->first);
+				std::string cmd = nodes[i].GetAttributeString("cmd");
+				for (auto itr = defines.begin(); itr != defines.end(); ++itr) {
+					std::string::size_type pos = cmd.find(itr->first);
+					while (pos != std::string::npos) {
+						cmd.replace(pos, itr->first.size(), itr->second.c_str());
+						pos = cmd.find(itr->first);
+					}
 				}
-			}
-			SafeSprintf(info.cmd, sizeof(info.cmd), cmd.c_str());
+				SafeSprintf(info.cmd, sizeof(info.cmd), cmd.c_str());
 
-			_executes[info.type] = info;
+				_executes[info.type] = info;
+			}
 		}
 
 		RGS_HABOR_ARGS_HANDLER(core_proto::START_NODE, Slave::OpenNewNode);

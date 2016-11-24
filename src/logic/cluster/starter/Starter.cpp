@@ -20,17 +20,19 @@ bool Starter::Initialize(IKernel * kernel) {
 	_checkInterval = starter.GetAttributeInt32("check");
 	_deadInterval = starter.GetAttributeInt32("dead");
 
-	const olib::IXmlObject& nodes = starter["node"];
-	for (s32 i = 0; i < nodes.Count(); ++i) {
-		Execute info;
-		info.type = nodes[i].GetAttributeInt32("nodeType");
-		info.min = nodes[i].GetAttributeInt32("min");
-		info.max = nodes[i].GetAttributeInt32("max");
-		info.score = nodes[i].GetAttributeInt32("score");
-		info.delay = nodes[i].GetAttributeInt32("delay");
-		info.timer = nullptr;
+	if (starter.IsExist("node")) {
+		const olib::IXmlObject& nodes = starter["node"];
+		for (s32 i = 0; i < nodes.Count(); ++i) {
+			Execute info;
+			info.type = nodes[i].GetAttributeInt32("nodeType");
+			info.min = nodes[i].GetAttributeInt32("min");
+			info.max = nodes[i].GetAttributeInt32("max");
+			info.score = nodes[i].GetAttributeInt32("score");
+			info.delay = nodes[i].GetAttributeInt32("delay");
+			info.timer = nullptr;
 
-		_executes[info.type] = info;
+			_executes[info.type] = info;
+		}
 	}
 
     return true;

@@ -30,6 +30,7 @@ struct IocpAcceptor {
 	s32 sendSize;
 	s32 recvSize;
 	core::ISessionFactory * factory;
+	char buf[256];
 };
 
 #endif //__IOCP_H__

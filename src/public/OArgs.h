@@ -40,7 +40,7 @@ public:
 			OASSERT(_size == sizeof(s8) + sizeof(s8) + sizeof(s16), "invalid args buffer");
 		}
 		else {
-			OASSERT(_size == sizeof(s8) + sizeof(ArgInfo) * (*_count) + sizeof(s8) + sizeof(s16), "invalid args buffer");
+			OASSERT(_size > sizeof(s8) + sizeof(ArgInfo) * (*_count) + sizeof(s8) + sizeof(s16), "invalid args buffer");
 		}
 
 		_args = (ArgInfo *)((const char*)_context + sizeof(s8));
@@ -128,7 +128,10 @@ private:
 template <s32 maxCount, s32 maxSize>
 class IArgs {
 public:
-	IArgs() : _fixed(false), _context(nullptr), _size(0){}
+	IArgs() : _fixed(false), _context(nullptr), _size(0){
+		_header.countArgs = 0;
+		_header.offset = 0;
+	}
 
 	IArgs& operator<< (const bool value) { return Write(TYPE_BOOL, &value, sizeof(bool)); }
 	IArgs& operator<< (const s8 value) { return Write(TYPE_INT8, &value, sizeof(s8)); }
@@ -166,7 +169,7 @@ public:
 
 	OArgs Out() {
 		OASSERT(_fixed, "must fix first");
-		if (_fixed)
+		if (!_fixed)
 			Fix();
 
 		return OArgs(_context, _size);

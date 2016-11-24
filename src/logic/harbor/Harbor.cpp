@@ -3,6 +3,7 @@
 #include "XmlReader.h"
 #include "tools.h"
 #include <algorithm>
+#include "NodeType.h"
 
 Harbor * Harbor::s_harbor = nullptr;
 IKernel * Harbor::s_kernel = nullptr;
@@ -37,6 +38,7 @@ private:
 bool Harbor::Initialize(IKernel * kernel) {
     s_harbor = this;
     s_kernel = kernel;
+	_nodeType = node_type::INVALID;
 
     const char * name = kernel->GetCmdArg("name");
     OASSERT(name, "invalid command args, there is no name");
@@ -66,7 +68,7 @@ bool Harbor::Initialize(IKernel * kernel) {
 		_nodeNames[type] = nodeName;
 	}
 
-    OASSERT(_nodeType > 0, "invalid node type");
+    OASSERT(_nodeType != node_type::INVALID, "invalid node type");
 
     _nodeId = tools::StringAsInt(kernel->GetCmdArg("node"));
     const char * port = kernel->GetCmdArg("port");
