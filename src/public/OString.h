@@ -33,6 +33,7 @@ namespace olib {
 		bool operator != (const OString & str) const { return strcmp(_buff, str._buff); }
 		bool operator < (const OString & str) const { return strcmp(_buff, str._buff) < 0; }
 
+		inline s32 Length() const { return (s32)strlen(_buff); }
 
 		s64 Hash() const {
 			s64 hash = 0;

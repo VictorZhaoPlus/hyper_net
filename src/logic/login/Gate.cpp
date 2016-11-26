@@ -5,6 +5,11 @@
 #include "IIdMgr.h"
 #include "XmlReader.h"
 #include "IProtocolMgr.h"
+#include "ICacheDB.h"
+#include "Md5.h"
+#include "base64.h"
+
+#define MAX_TOKEN_SIZE 256
 
 bool Gate::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -53,6 +58,8 @@ bool Gate::Launched(IKernel * kernel) {
 		_reselectRoleAckId = _protocolMgr->GetId("proto", "reselect_role_ack");
 
 		_noError = _protocolMgr->GetId("error", "no_error");
+		_errorInvalidToken = _protocolMgr->GetId("error", "invalid_token");
+		_errorReadAccountFailed= _protocolMgr->GetId("error", "read_account_failed");
 		_errorLoadRoleListFailed = _protocolMgr->GetId("error", "load_role_failed");
 		_errorDistributeLogicFailed = _protocolMgr->GetId("error", "distribute_role_failed");
 		_errorBindLogicFailed = _protocolMgr->GetId("error", "bind_logic_failed");
@@ -128,7 +135,48 @@ void Gate::OnRecvLoginReq(IKernel * kernel, const s64 id, const OBuffer& buf) {
 	Player& player = _players[id];
 
 	if (player.state == ST_NONE) {
-		
+		TokenData data;
+		if (strlen(token) > MAX_TOKEN_SIZE || !CheckToken(token, data, true)) {
+			olib::Buffer<128> buf;
+			buf << _errorInvalidToken;
+			SendToClient(kernel, player.agentId, _loginAckId, buf.Out());
+			return;
+		}
+
+		s64 lastActorId = 0;
+		s64 bantime = 0;
+		bool writeOk = true;
+		bool readOk = _cacheDB->Read("account", data.accountID, [&data, &lastActorId, &bantime, &writeOk, this](IKernel * kernel, ICacheDBReadResult * result) {
+			if (result->Count() > 0) {
+				lastActorId = result->GetDataInt64(0, 1);
+				bantime = result->GetDataInt64(0, 2);
+			}
+			else {
+				ICacheDBContext * writer = _cacheDB->PrepareWrite("account", data.accountID);
+				writer->WriteInt64("id", data.accountID);
+				writer->WriteInt64("platform", data.platform);
+				writer->WriteInt64("lastActor", 0);
+				writer->WriteInt64("bantime", 0);
+				writeOk = writer->Update();
+			}
+		}, "lastActor", "bantime");
+
+		if (readOk && writeOk) {
+			player.accountId = data.accountID;
+			player.lastActorId = lastActorId;
+			player.state = ST_AUTHENING;
+
+			IArgs<3, 128> args;
+			args << player.agentId << player.accountId << 0;
+			args.Fix();
+
+			_harbor->Send(user_node_type::ACCOUNT, 1, framework_proto::BIND_ACCOUNT_REQ, args.Out());
+		}
+		else {
+			olib::Buffer<128> buf;
+			buf << _errorReadAccountFailed;
+			SendToClient(kernel, player.agentId, _loginAckId, buf.Out());
+		}
 	}
 }
 
@@ -141,7 +189,41 @@ void Gate::OnRecvReconnectReq(IKernel * kernel, const s64 id, const OBuffer& buf
 	Player& player = _players[id];
 
 	if (player.state == ST_NONE) {
+		TokenData data;
+		if (strlen(token) > MAX_TOKEN_SIZE || !CheckToken(token, data, false) || data.count <= 0) {
+			olib::Buffer<128> buf;
+			buf << _errorInvalidToken;
+			SendToClient(kernel, player.agentId, _loginAckId, buf.Out());
+			return;
+		}
 
+		s64 lastActorId = 0;
+		s64 bantime = 0;
+		bool hasOne = false;
+		bool readOk = _cacheDB->Read("account", data.accountID, [&data, &lastActorId, &bantime, &hasOne, this](IKernel * kernel, ICacheDBReadResult * result) {
+			if (result->Count() > 0) {
+				lastActorId = result->GetDataInt64(0, 1);
+				bantime = result->GetDataInt64(0, 2);
+				hasOne = true;
+			}
+		}, "lastActor", "bantime");
+
+		if (readOk && hasOne) {
+			player.accountId = data.accountID;
+			player.lastActorId = lastActorId;
+			player.state = ST_AUTHENING;
+
+			IArgs<3, 128> args;
+			args << player.agentId << player.accountId << data.count;
+			args.Fix();
+
+			_harbor->Send(user_node_type::ACCOUNT, 1, framework_proto::BIND_ACCOUNT_REQ, args.Out());
+		}
+		else {
+			olib::Buffer<128> buf;
+			buf << _errorReadAccountFailed;
+			SendToClient(kernel, player.agentId, _loginAckId, buf.Out());
+		}
 	}
 }
 
@@ -149,6 +231,7 @@ void Gate::OnRecvBindAccountAck(IKernel * kernel, s32 nodeType, s32 nodeId, cons
 	s64 agentId = args.GetDataInt64(0);
 	s64 accountId = args.GetDataInt64(1);
 	s32 errorCode = args.GetDataInt32(2);
+	s32 tokenCount = args.GetDataInt32(3);
 
 	if (_players.find(agentId) != _players.end()) {
 		Player& player = _players[agentId];
@@ -162,8 +245,12 @@ void Gate::OnRecvBindAccountAck(IKernel * kernel, s32 nodeType, s32 nodeId, cons
 			});
 
 			if (ret) {
+				TokenData data = { player.accountId, 0, (s32)(tools::GetTimeMillisecond() / 1000), tokenCount };
+				char token[MAX_TOKEN_SIZE + 1];
+				BuildToken(token, sizeof(token) - 1, data);
+
 				olib::Buffer<4096> buf;
-				buf << _noError << (s32)player.roles.size();
+				buf << _noError << token << (s32)player.roles.size();
 				for (const auto& role : player.roles) {
 					buf << role.actorId;
 					role.role->Pack(buf);
@@ -275,7 +362,10 @@ void Gate::OnBindLogicAck(IKernel * kernel, s32 nodeType, s32 nodeId, const OArg
 			player.state = ST_ONLINE;
 			player.lastActorId = actorId;
 
-			//update last actor
+			ICacheDBContext * writer = _cacheDB->PrepareWrite("account", player.accountId);
+			writer->WriteInt64("id", player.accountId);
+			writer->WriteInt64("lastActor", actorId);
+			writer->Update();
 
 			const s32 tokenCount = args.GetDataInt32(3);
 		}
@@ -468,4 +558,44 @@ void Gate::SendToClient(IKernel * kernel, const s64 id, const s32 msgId, const O
 
 	_agent->Send(id, header, sizeof(header));
 	_agent->Send(id, buf.GetContext(), buf.GetSize());
+}
+
+bool Gate::CheckToken(const char * token, TokenData& data, bool login) {
+	u8 buf[1024];
+	u32 size = 1023;
+	if (BASE64_OK != Base64Decode(token, (u32)strlen(token), buf, &size))
+		return false;
+	buf[size] = 0;
+
+	data = *(TokenData*)buf;
+	const char * sign = (const char *)(buf + sizeof(TokenData));
+
+	char checkBuf[1024];
+	SafeMemcpy(checkBuf, sizeof(checkBuf), buf, sizeof(TokenData));
+	SafeSprintf(checkBuf + sizeof(TokenData), sizeof(checkBuf) - sizeof(TokenData), "%s", login ? _loginKey.GetString() : _tokenKey.GetString());
+	MD5 md5;
+	md5.update(checkBuf, sizeof(TokenData) + login ? _loginKey.Length() : _tokenKey.Length());
+	if (strcmp(md5.toString().c_str(), sign) != 0)
+		return false;
+
+	return true;
+}
+
+void Gate::BuildToken(char * token, s32 size, const TokenData& data) {
+	char checkBuf[1024];
+	SafeMemcpy(checkBuf, sizeof(checkBuf), &data, sizeof(TokenData));
+	SafeSprintf(checkBuf + sizeof(TokenData), sizeof(checkBuf) - sizeof(TokenData), "%s", _tokenKey.GetString());
+
+	MD5 md5;
+	md5.update(checkBuf, sizeof(TokenData) + _tokenKey.Length());
+	std::string sign = md5.toString();
+
+	char buf[1024];
+	SafeMemcpy(buf, sizeof(buf), &data, sizeof(TokenData));
+	SafeSprintf(buf + sizeof(TokenData), sizeof(buf) - sizeof(TokenData), "%s", sign.c_str());
+
+	u32 outSize = size;
+	s32 ret = Base64Encode((u8*)buf, (u32)(sizeof(TokenData) + sign.size()), token, &outSize);
+	OASSERT(ret == BASE64_OK, "wtf");
+	token[outSize] = 0;
 }

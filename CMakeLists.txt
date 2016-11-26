@@ -48,6 +48,10 @@ SET(PUBLIC
 	"${PROJECT_SOURCE_DIR}/src/public/OBuffer.h"
 	"${PROJECT_SOURCE_DIR}/src/public/ORingBuffer.h"
 	"${PROJECT_SOURCE_DIR}/src/public/ORingBuffer.c"
+	"${PROJECT_SOURCE_DIR}/src/public/base64.h"
+	"${PROJECT_SOURCE_DIR}/src/public/base64.c"
+	"${PROJECT_SOURCE_DIR}/src/public/Md5.h"
+	"${PROJECT_SOURCE_DIR}/src/public/Md5.cpp"
     )
 
 SET(PUBLIC_XML

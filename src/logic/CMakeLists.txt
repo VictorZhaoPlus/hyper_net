@@ -1,6 +1,5 @@
 SET(LIBRARY_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin")
 SET(LOGIC_INTERFACE
-    "${PROJECT_SOURCE_DIR}/src/logic/interface/IHarbor.h"
     "${PROJECT_SOURCE_DIR}/src/logic/interface/Define.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/NodeType.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/UserNodeType.h"
@@ -8,7 +7,7 @@ SET(LOGIC_INTERFACE
     "${PROJECT_SOURCE_DIR}/src/logic/interface/FrameworkProtocol.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/LogicProtocol.h"
    
-
+	"${PROJECT_SOURCE_DIR}/src/logic/interface/IHarbor.h"
     "${PROJECT_SOURCE_DIR}/src/logic/interface/ICluster.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IScriptEngine.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/ITest.h"
@@ -23,6 +22,7 @@ SET(LOGIC_INTERFACE
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/ILogin.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IObjectTimer.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IEventEngine.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/interface/ICacheDB.h"
 )
 
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/harbor)
@@ -42,3 +42,4 @@ ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/protocolmgr)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/objecttimer)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/login)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/luaserver)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/cachedb)

@@ -11,11 +11,13 @@
 #include "IHarbor.h"
 
 #define MAX_ROLE_NAME 64
+#define KEY_LEN 64
 
 class OBuffer;
 class OArgs;
 class IIdMgr;
 class IProtocolMgr;
+class ICacheDB;
 class Gate : public IGate, public IAgentListener, public INodeListener, public OHolder<Gate> {
 	enum {
 		ST_NONE = 0,
@@ -43,6 +45,15 @@ class Gate : public IGate, public IAgentListener, public INodeListener, public O
 	};
 
 	typedef void (Gate::*ProtoHandlerType)(IKernel * kernel, const s64 id, const OBuffer& buf);
+
+#pragma pack(push, 4)
+	struct TokenData {
+		s64 accountID;
+		s32 platform;
+		s32 timestamp;
+		s32 count;
+	};
+#pragma pack(pop)
 
 public:
     virtual bool Initialize(IKernel * kernel);
@@ -82,6 +93,9 @@ public:
 
 	void SendToClient(IKernel * kernel, const s64 id, const s32 msgId, const OBuffer& buf);
 
+	bool CheckToken(const char * token, TokenData& data, bool login);
+	void BuildToken(char * token, s32 size, const TokenData& data);
+
 private:
     IKernel * _kernel;
 	IHarbor * _harbor;
@@ -89,9 +103,12 @@ private:
 	IRoleMgr * _roleMgr;
 	IIdMgr * _idMgr;
 	IProtocolMgr * _protocolMgr;
+	ICacheDB * _cacheDB;
 
 	bool _singleLogic;
 	s32 _maxRole;
+	olib::OString<KEY_LEN> _loginKey;
+	olib::OString<KEY_LEN> _tokenKey;
 
 	s32 _loginAckId;
 	s32 _selectRoleAckId;
@@ -100,6 +117,8 @@ private:
 	s32 _reselectRoleAckId;
 
 	s32 _noError;
+	s32 _errorInvalidToken;
+	s32 _errorReadAccountFailed;
 	s32 _errorLoadRoleListFailed;
 	s32 _errorDistributeLogicFailed;
 	s32 _errorBindLogicFailed;

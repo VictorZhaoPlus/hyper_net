@@ -35,6 +35,7 @@ bool Starter::Initialize(IKernel * kernel) {
 		}
 	}
 
+	SetStrategy(this);
     return true;
 }
 
@@ -64,6 +65,12 @@ bool Starter::Destroy(IKernel * kernel) {
 
     DEL this;
     return true;
+}
+
+s32 Starter::ChooseNode(const s32 nodeType) {
+	if (_maxSlaveId > 0)
+		return rand() % _maxSlaveId + 1;
+	return 0;
 }
 
 void Starter::OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port) {

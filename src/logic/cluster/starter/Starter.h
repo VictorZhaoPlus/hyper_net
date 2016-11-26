@@ -3,12 +3,13 @@
 #include "util.h"
 #include "ICluster.h"
 #include <unordered_map>
+#include <vector>
 #include "IHarbor.h"
 #include "singleton.h"
 
 class ICapacitySubscriber;
 class StartNodeTimer;
-class Starter : public IStarter, public INodeListener, public OHolder<Starter> {
+class Starter : public IStarter, public IStartStrategy, public INodeListener, public OHolder<Starter> {
 	struct Execute {
 		s32 type;
 		s32 min;
@@ -37,6 +38,9 @@ public:
 
 	virtual void SetStrategy(IStartStrategy * strategy) { _strategy = strategy; }
 
+	virtual s32 ChooseNode(const s32 nodeType);
+	virtual void AddSlave(const s32 nodeId) { _maxSlaveId = (_maxSlaveId < nodeId ? nodeId : _maxSlaveId); }
+
 	virtual void OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port);
 	virtual void OnClose(IKernel * kernel, s32 nodeType, s32 nodeId);
 
@@ -57,6 +61,8 @@ private:
 
 	std::unordered_map<s32, Execute> _executes;
 	std::unordered_map<s32, NodeGroup> _nodes;
+	
+	s32 _maxSlaveId;
 };
 
 #endif //__STARTER_H__
