@@ -58,7 +58,7 @@ extern "C" {
 	};
 
 	s32 Base64Encode(const u8 * in, u32 inlen, char * out, u32 * size) {
-		if (BASE64_ENCODE_OUT_SIZE(inlen) >= size)
+		if (BASE64_ENCODE_OUT_SIZE(inlen) >= *size)
 			return BASE64_INVALID;
 
 		u32 i, j;
@@ -97,7 +97,7 @@ extern "C" {
 	}
 
 	s32 Base64Decode(const char * in, u32 inlen, u8 * out, u32 * size) {
-		if (BASE64_DECODE_OUT_SIZE(inlen) >= size)
+		if (BASE64_DECODE_OUT_SIZE(inlen) >= *size)
 			return BASE64_INVALID;
 
 		u32 i, j;

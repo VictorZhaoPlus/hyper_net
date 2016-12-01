@@ -19,6 +19,7 @@ bool Test::Initialize(IKernel * kernel) {
 }
 
 bool Test::Launched(IKernel * kernel) {
+	START_TIMER(this, 0, 100, 20000);
     return true;
 }
 
@@ -44,5 +45,9 @@ void Test::OnDisconnected(IKernel * kernel) {
 
 void Test::OnConnectFailed(IKernel * kernel) {
 
+}
+
+void Test::OnTimer(IKernel * kernel, s64 tick) {
+	char * p = (char*)MALLOC(10);
 }
 

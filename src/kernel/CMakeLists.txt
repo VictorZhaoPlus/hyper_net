@@ -12,6 +12,7 @@ INCLUDE_DIRECTORIES(
 	"${PROJECT_SOURCE_DIR}/src/kernel/logger/"
 	"${PROJECT_SOURCE_DIR}/src/kernel/timer/"
 	"${PROJECT_SOURCE_DIR}/src/kernel/async/"
+	"${PROJECT_SOURCE_DIR}/src/kernel/profile/"
     )
 ENDIF(UNIX)
 
@@ -29,6 +30,7 @@ INCLUDE_DIRECTORIES(
 	"${PROJECT_SOURCE_DIR}/src/kernel/logger/"
 	"${PROJECT_SOURCE_DIR}/src/kernel/timer/"
 	"${PROJECT_SOURCE_DIR}/src/kernel/async/"
+	"${PROJECT_SOURCE_DIR}/src/kernel/profile/"
     )
 ENDIF(WIN32)
 
@@ -53,7 +55,7 @@ SET(KERNEL_NET
     "${PROJECT_SOURCE_DIR}/src/kernel/net/epoll/Connection.h"
     "${PROJECT_SOURCE_DIR}/src/kernel/net/epoll/Connection.cpp"
 	"${PROJECT_SOURCE_DIR}/src/kernel/net/epoll/NetLoop.h"
-    "${PROJECT_SOURCE_DIR}/src/kernel/net/epoll/NetLoop.c"
+    "${PROJECT_SOURCE_DIR}/src/kernel/net/epoll/NetLoop.c" 
     )
 ENDIF(UNIX)
 
@@ -89,6 +91,11 @@ SET(KERNEL_LOGIC
     "${PROJECT_SOURCE_DIR}/src/kernel/logic/LogicMgr.cpp"
     )
 
+SET(KERNEL_PROFILE
+    "${PROJECT_SOURCE_DIR}/src/kernel/profile/Profile.h"
+    "${PROJECT_SOURCE_DIR}/src/kernel/profile/Profile.cpp"
+    )
+
 SET(KERNEL
     "${PROJECT_SOURCE_DIR}/src/kernel/kernel.h"
     "${PROJECT_SOURCE_DIR}/src/kernel/kernel.cpp"
@@ -101,6 +108,7 @@ SOURCE_GROUP(src\\logger FILES ${KERNEL_LOGGER})
 SOURCE_GROUP(src\\logic FILES ${KERNEL_LOGIC})
 SOURCE_GROUP(src\\timer FILES ${KERNEL_TIMER})
 SOURCE_GROUP(src\\async FILES ${KERNEL_ASYNC})
+source_group(src\\profile FILES ${KERNEL_PROFILE})
 SOURCE_GROUP(API FILES ${API})
 SOURCE_GROUP(public\\tinyxml FILES ${PUBLIC_XML})
 SOURCE_GROUP(public FILES ${PUBLIC})
@@ -114,6 +122,7 @@ ADD_EXECUTABLE(serverd
         ${KERNEL_LOGIC}
         ${KERNEL_LOGGER}
 		${KERNEL_ASYNC}
+		${KERNEL_PROFILE}
         ${PUBLIC}
         ${PUBLIC_XML}
         ${KERNEL}

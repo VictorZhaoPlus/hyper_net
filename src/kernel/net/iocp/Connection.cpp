@@ -155,7 +155,7 @@ void Connection::OnRecv() {
 				OASSERT(totalUsed + used <= (s32)size, "wtf");
 				totalUsed += used;
 			}
-		} while (used > 0 && totalUsed < size);
+		} while (used > 0 && totalUsed < (s32)size);
 
 		if (totalUsed > 0)
 			RingBufferOut(_recvBuf, totalUsed);

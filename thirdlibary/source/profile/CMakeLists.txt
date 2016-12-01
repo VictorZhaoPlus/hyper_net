@@ -1,0 +1,49 @@
+cmake_minimum_required(VERSION 2.8)
+PROJECT(profile)
+option(USE_32BITS "Compile for 32bits processors(linux only)" OFF)
+IF(UNIX)
+    SET(CMAKE_CXX_COMPILER "/usr/bin/g++")
+    SET(CMAKE_CXX_FLAGS "-Wall -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux -Wl,-rpath,./")
+    SET(CMAKE_CXX_FLAGS_DEBUG "-g -D_DEBUG -O0 -pg")
+    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O2")
+	SET(CMAKE_CXX_FLAGS_RELEASE "-O3")
+    MESSAGE(STATUS "Linux")
+ENDIF(UNIX)
+
+IF(WIN32)
+    SET(CMAKE_C_FLAGS_DEBUG_INIT "/D_DEBUG /D_WINSOCK_DEPRECATED_NO_WARNINGS /Zm8192000 /MTd /Zi /Ob0 /Od /RTC1") 
+    SET(CMAKE_C_FLAGS_MINSIZEREL_INIT "/D_WINSOCK_DEPRECATED_NO_WARNINGS /MT /Zm8192000 /O1 /Ob1 /D NDEBUG") 
+    SET(CMAKE_C_FLAGS_RELEASE_INIT "/D_WINSOCK_DEPRECATED_NO_WARNINGS /MT /Zm8192000 /O2 /Ob2 /D NDEBUG") 
+    SET(CMAKE_C_FLAGS_RELWITHDEBINFO_INIT "/D_WINSOCK_DEPRECATED_NO_WARNINGS /MT /Zm8192000 /Zi /O2 /Ob1 /D NDEBUG")
+    MESSAGE(STATUS "WINDOWS")
+    IF(CMAKE_CL_64)
+        MESSAGE(STATUS "x64")
+    ELSE()
+        MESSAGE(STATUS "x86")
+    ENDIF(CMAKE_CL_64)
+ENDIF(WIN32)
+
+INCLUDE_DIRECTORIES(
+    "${PROJECT_SOURCE_DIR}/../../include/profile/"
+	"${PROJECT_SOURCE_DIR}/src/"
+    )
+	
+SET(API
+    "${PROJECT_SOURCE_DIR}/../../include/profile/profile.h"
+	)
+
+SET(PROFILE
+    "${PROJECT_SOURCE_DIR}/src/oassert.h"
+    "${PROJECT_SOURCE_DIR}/src/oassert.c"
+    "${PROJECT_SOURCE_DIR}/src/HashMap.h"
+    "${PROJECT_SOURCE_DIR}/src/HashMap.c"
+    "${PROJECT_SOURCE_DIR}/src/MemoryProfile.c"
+    )
+
+SOURCE_GROUP(API FILES ${API})
+SOURCE_GROUP(\\ FILES ${PROFILE})
+
+ADD_LIBRARY(profile SHARED
+        ${PROFILE}
+        ${API}
+        )

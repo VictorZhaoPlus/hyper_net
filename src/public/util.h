@@ -33,21 +33,39 @@ typedef short s16;
 typedef int32_t s32;
 typedef int64_t s64;
 
-#define MALLOC malloc
-#define FREE free
-#define REALLOC realloc
-#define NEW new
-#define DEL delete
-
-#define SafeSprintf snprintf
-
 #ifdef __cplusplus
 extern "C" {
 #endif
-    void __OAssert(const char * file, int line, const char * funname, const char * debug);
+typedef void(*MallocTraceHook)(const void * p, const char * file, const s32 line, const char * function);
+typedef void(*ReallocTraceHook)(const void * p1, const void * p2);
+typedef void(*FreeTraceHook)(const void * p);
+
+void __OAssert(const char * file, s32 line, const char * funname, const char * debug);
+void * __Malloc(size_t size, const char * file, s32 line, const char * funname);
+void * __Realloc(void * p, size_t size, const char * file, s32 line, const char * funname);
+void __Free(void * p, const char * file, s32 line, const char * funname);
 #ifdef __cplusplus
 };
 #endif
+
+#define MALLOC(size) __Malloc(size, __FILE__, __LINE__, __FUNCTION__)
+#define FREE(p) __Free(p, __FILE__, __LINE__, __FUNCTION__)
+#define REALLOC(p, size) __Realloc(p, size, __FILE__, __LINE__, __FUNCTION__)
+
+#ifdef __cplusplus
+void * operator new(size_t size);
+void * operator new[](size_t size);
+void operator delete(void * p);
+void operator delete[](void * p);
+
+void * operator new(size_t size, const char * file, s32 line, const char * funname);
+void * operator new[](size_t size, const char * file, s32 line, const char * funname);
+
+#define NEW new(__FILE__, __LINE__, __FUNCTION__)
+#define DEL delete
+#endif
+
+#define SafeSprintf snprintf
 
 #define OASSERT(p, format, ...) { \
     char debug[4096]; \

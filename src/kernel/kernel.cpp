@@ -6,6 +6,7 @@
 #include "Logger.h"
 #include "TimerMgr.h"
 #include "AsyncMgr.h"
+#include "Profile.h"
 
 bool Kernel::Ready() {
     if (ConfigMgr::Instance() == nullptr)
@@ -17,6 +18,8 @@ bool Kernel::Ready() {
 	if (TimerMgr::Instance() == nullptr)
 		return false;
 	if (AsyncMgr::Instance() == nullptr)
+		return false;
+	if (Profile::Instance() == nullptr)
 		return false;
     if (LogicMgr::Instance() == nullptr)
         return false;
@@ -53,6 +56,11 @@ bool Kernel::Initialize(int argc, char ** argv) {
         OASSERT(false, "initialize net failed");
         return false;
     }
+
+	if (!Profile::Instance()->Initialize()) {
+		OASSERT(false, "initialize async failed");
+		return false;
+	}
     return true;
 }
 
@@ -64,7 +72,7 @@ void Kernel::Loop() {
         LogicMgr::Instance()->Loop();
 		TimerMgr::Instance()->Loop();
 		AsyncMgr::Instance()->Loop(ConfigMgr::Instance()->GetAsyncTick());
-		
+		Profile::Instance()->Loop();
 
         s64 use = tools::GetTimeMillisecond() - tick;
         if (use > ConfigMgr::Instance()->GetFrameDuration()) {
@@ -79,6 +87,7 @@ void Kernel::Destroy() {
 	TimerMgr::Instance()->Destroy();
     NetEngine::Instance()->Destroy();
 	Logger::Instance()->Destroy();
+	Profile::Instance()->Destroy();
     ConfigMgr::Instance()->Destroy();
     DEL this;
 }
@@ -126,3 +135,4 @@ const char * Kernel::GetCmdArg(const char * key) {
 void Kernel::Log(const char * msg, bool sync) {
 	return Logger::Instance()->Log(msg, sync);
 }
+

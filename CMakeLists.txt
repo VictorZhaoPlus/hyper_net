@@ -7,9 +7,10 @@ PROJECT(serverd)
 option(USE_32BITS "Compile for 32bits processors(linux only)" OFF)
 IF(UNIX)
     SET(CMAKE_CXX_COMPILER "/usr/bin/g++")
-    SET(CMAKE_CXX_FLAGS "-g -Wall -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux -D_DEBUG")
-    SET(CMAKE_CXX_FLAGS_DEBUG "-g -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux -D_DEBUG")
-    SET(CMAKE_CXX_FLAGS_RELEASE "-g -o2 -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux")
+    SET(CMAKE_CXX_FLAGS "-Wall -std=c++0x -lpthread -lcurl -rdynamic -ldl -Dlinux -Wl,-rpath,./")
+    SET(CMAKE_CXX_FLAGS_DEBUG "-g -D_DEBUG -O0 -pg")
+    SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O2")
+	SET(CMAKE_CXX_FLAGS_RELEASE "-O3")
     MESSAGE(STATUS "Linux")
 ENDIF(UNIX)
 
@@ -24,11 +25,15 @@ IF(WIN32)
     ELSE()
         MESSAGE(STATUS "x86")
     ENDIF(CMAKE_CL_64)
+	SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS On)
+	LINK_DIRECTORIES("${PROJECT_SOURCE_DIR}/thirdlibary/bin")
+	INCLUDE_DIRECTORIES("${PROJECT_SOURCE_DIR}/thirdlibary/include")
 ENDIF(WIN32)
 
-SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS On)
-
-SET(JIT OFF)
+SET(API
+    "${PROJECT_SOURCE_DIR}/src/API/IKernel.h"
+    "${PROJECT_SOURCE_DIR}/src/API/IModule.h"
+    )
 
 SET(PUBLIC
     "${PROJECT_SOURCE_DIR}/src/public/util.h"
@@ -63,10 +68,7 @@ SET(PUBLIC_XML
     "${PROJECT_SOURCE_DIR}/src/public/tinyxml/tinyxmlparser.cpp"
     )
 
-SET(API
-    "${PROJECT_SOURCE_DIR}/src/API/IKernel.h"
-    "${PROJECT_SOURCE_DIR}/src/API/IModule.h"
-    )
-
+SET(JIT OFF)
+	
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/kernel)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic)

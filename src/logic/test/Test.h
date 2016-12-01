@@ -3,7 +3,7 @@
 #include "util.h"
 #include "ITest.h"
 
-class Test : public ITest, public ISession {
+class Test : public ITest, public ISession, public ITimer {
 public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);
@@ -16,6 +16,13 @@ public:
 	virtual void OnError(IKernel * kernel, const s32 error);
 	virtual void OnDisconnected(IKernel * kernel);
 	virtual void OnConnectFailed(IKernel * kernel);
+
+	virtual void OnStart(IKernel * kernel, s64 tick) {}
+	virtual void OnTimer(IKernel * kernel, s64 tick);
+	virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) {}
+
+	virtual void OnPause(IKernel * kernel, s64 tick) {}
+	virtual void OnResume(IKernel * kernel, s64 tick) {}
 
 private:
 	static Test * s_self;

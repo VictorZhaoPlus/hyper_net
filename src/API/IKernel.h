@@ -130,8 +130,6 @@ namespace core {
         virtual IModule * FindModule(const char * name) = 0;
 
         virtual const char * GetCmdArg(const char * key) = 0;
-
-		virtual void Log(const char * msg, bool sync = false) = 0;
     };
 }
 
