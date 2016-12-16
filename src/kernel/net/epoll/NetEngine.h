@@ -11,31 +11,9 @@ namespace core {
     class ISession;
 }
 
+class Connection;
 class NetEngine : public OSingleton<NetEngine> {
     friend class OSingleton<NetEngine>;
-
-	struct NetEvent {
-		NetBase * base;
-		s32 event;
-	};
-
-	struct ThreadEvent {
-		NetBase * base;
-		s32 event;
-	};
-
-	struct Thread {
-		NetLooper * looper;
-		std::thread handler;
-		s32 count;
-		bool terminated;
-
-		olib::CycleQueue<ThreadEvent> threadEvents;
-		olib::CycleQueue<NetEvent> events;
-
-		Thread() : threadEvents(8192), events(8192) {}
-	};
-
 public:
     bool Ready();
     bool Initialize();
@@ -44,32 +22,27 @@ public:
 
     bool Listen(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::ISessionFactory * factory);
     bool Connect(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::ISession * session);
-
-	void ProcessingOneThread(Thread * thread, s64 overtime);
+	
+	void Flush();
 
 	static s32 OnAccept(NetBase * accepter, struct NetBase * base);
 	static s32 OnConnect(NetBase * connecter, const int code);
 
 	static s32 OnRecv(NetBase * base, const s32 code, const char * buff, const s32 size);
-
-	static s32 DoSend(NetBase * base);
 	static s32 OnSend(NetBase * base);
-	static s32 StartSend(NetBase * base);
+	
+	void InsertIntoChain(Connection * connection);
+	void RemoveFromChain(Connection * connection);
 
-	static void ThreadLoop(Thread * t);
-
-	static void AddEvent(s32 threadId, const NetEvent & evt);
-	static void AddSendEvent(s32 threadId, NetBase * base);
-
-	static s32 SelectThread();
-	static void DecThreadConnectionCount(s32 threadId);
-
+	bool IsDirectSend() const { return _directSend; }
+	
 private:
     NetEngine();
     virtual ~NetEngine();
 
 	NetLooper * _looper;
-	static Thread * s_threads;
+	Connection * _head;
+	bool _directSend;
 };
 
 #endif // __NETENGINE_H__

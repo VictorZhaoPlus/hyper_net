@@ -1,5 +1,6 @@
 #include "NetLoop.h"
 #include <sys/resource.h>
+#include "ORingBuffer.h"
 
 #define BNEV_CONNECT 0x1
 #define BNEV_ACCEPT 0x2
@@ -130,7 +131,7 @@ extern "C" {
 			return NULL;
 		}
 
-		if (0 != SetNonBlocking(fd) || 0 != SetReuse(fd)) {
+		if (0 != SetNonBlocking(fd) || 0 != SetReuse(fd) || 0 != SetNonNegal(fd)) {
 			close(fd);
 			return NULL;
 		}
@@ -272,28 +273,35 @@ extern "C" {
 				if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
 					UnbindLooper(base);
 					(*looper->fnRecv)(base, -1, NULL, 0);
+					FreeBase(base);
 					break;
 				}
 
 				if (events[i].events & EPOLLIN) {
-					s32 size = 0;
 					s32 res = 0;
 					while (1) {
-						char buf[1024] = { 0 };
-						s32 len = recv(base->fd, buf, sizeof(buf), 0);
-						if (len < 0 && errno == EAGAIN) {
-							break;
+						u32 size = 0;
+						s32 len = 0;
+						char * buf = RingBufferWrite(base->recvBuff, &size);
+						if (buf && size > 0) {
+							len = recv(base->fd, buf, size, 0);
+							if (len < 0 && errno == EAGAIN)
+								break;
 						}
+						else
+							len = -1;
 
 						if (len <= 0) {
 							UnbindLooper(base);
 							(*looper->fnRecv)(base, -1, NULL, 0);
+							FreeBase(base);
 							res = -1;
 							break;
 						}
 
 						if (-1 == (*looper->fnRecv)(base, 0, buf, len)) {
 							UnbindLooper(base);
+							FreeBase(base);
 							res = -1;
 							break;
 						}
@@ -304,8 +312,10 @@ extern "C" {
 				}
 
 				if (events[i].events & EPOLLOUT) {
-					if (0 != (*looper->fnSend)(base))
+					if (0 != (*looper->fnSend)(base)) {
 						UnbindLooper(base);
+						FreeBase(base);
+					}
 				}
 
 				break;

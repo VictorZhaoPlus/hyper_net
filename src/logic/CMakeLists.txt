@@ -23,6 +23,7 @@ SET(LOGIC_INTERFACE
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IObjectTimer.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IEventEngine.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/ICacheDB.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/interface/IFSM.h"
 )
 
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/harbor)
@@ -43,3 +44,4 @@ ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/objecttimer)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/login)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/luaserver)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/cachedb)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/fsm)

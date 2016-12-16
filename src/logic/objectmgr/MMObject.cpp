@@ -1,135 +1,71 @@
 #include "MMObject.h"
+#include "Memory.h"
+#include "ObjectFactory.h"
 #include "ObjectMgr.h"
 
-olib::Pool<MMObject> MMObject::s_objectPool;
+MMObject::MMObject(const char * type, const MemoryLayout * layout, ObjectFactory * factory)
+	: _type(type)
+	, _objectId(0)
+	, _isShadow(false)
+	, _layout(layout)
+	, _factory(factory){
+	_memory = NEW Memory(_layout->CalcMemorySize());
+
+	for (auto ext : _factory->GetExts()) {
+		void  * data = _memory->Get(ext.info);
+		ext.creator(ObjectMgr::Instance()->GetKernel(), this, data, ext.info->size);
+	}
+}
+
+MMObject::~MMObject() {
+	_propCBPool.Clear();
+
+	for (auto ext : _factory->GetExts()) {
+		void  * data = _memory->Get(ext.info);
+		ext.recover(ObjectMgr::Instance()->GetKernel(), this, data, ext.info->size);
+	}
+
+	DEL _memory;
+
+	for (auto itr = _tableMap.begin(); itr != _tableMap.end(); ++itr)
+		itr->second->Release();
+	_tableMap.clear();
+}
 
 void MMObject::PropCall(const s32 prop, const PropInfo * info, const bool sync) {
-    _propCBPool.Call(prop, ObjectMgr::Instance()->GetKernel(), this, _name.GetString(), prop, info, sync);
-	_propCBPool.Call(ANY_CALL, ObjectMgr::Instance()->GetKernel(), this, _name.GetString(), prop, info, sync);
+    _propCBPool.Call(prop, ObjectMgr::Instance()->GetKernel(), this, _type.GetString(), prop, info, sync);
+	_propCBPool.Call(ANY_CALL, ObjectMgr::Instance()->GetKernel(), this, _type.GetString(), prop, info, sync);
 }
 
-bool MMObject::SetPropInt8(const s32 prop, const s8 value, const bool sync) {
-    const PropInfo * pInfo = _objectProps->SetValue(prop, DTYPE_INT8, &value, sizeof(value));
-    if (!pInfo) {
-        return false;
-    }
-
-    //OASSERT(!(!pInfo->setting.visable && sync), "wtf");
-    PropCall(prop, pInfo, sync);
-    return true;
+const PROP_INDEX & MMObject::GetPropsInfo(bool noParent) const {
+	return _layout->GetPropsInfo(noParent);
 }
 
-bool MMObject::SetPropInt16(const s32 prop, const s16 value, const bool sync) {
-    const PropInfo * pInfo = _objectProps->SetValue(prop, DTYPE_INT16, &value, sizeof(value));
-    if (!pInfo) {
-        return false;
-    }
+bool MMObject::Set(const s32 prop, const s32 type, const void * data, const s32 size, const bool sync) {
+	const PropInfo * info = _layout->Query(prop, type, size);
+	if (!info)
+		return false;
 
-    //OASSERT(!(!pInfo->setting.visable && sync), "wtf");
-    PropCall(prop, pInfo, sync);
-    return true;
+	_memory->Set(info, data, size);
+	PropCall(prop, info, sync);
+	return true;
 }
 
-bool MMObject::SetPropInt32(const s32 prop, const s32 value, const bool sync) {
-    const PropInfo * pInfo = _objectProps->SetValue(prop, DTYPE_INT32, &value, sizeof(value));
-    if (!pInfo) {
-        return false;
-    }
+const void *  MMObject::Get(const s32 prop, const s32 type, s32& size) const {
+	const PropInfo * info = _layout->Query(prop, type, size);
+	if (!info)
+		return false;
 
-    //OASSERT(!(!pInfo->setting.visable && sync), "wtf");
-    PropCall(prop, pInfo, sync);
-    return true;
+	size = info->size;
+	return _memory->Get(info);
 }
 
-bool MMObject::SetPropInt64(const s32 prop, const s64 value, const bool sync) {
-    const PropInfo * pInfo = _objectProps->SetValue(prop, DTYPE_INT64, &value, sizeof(value));
-    if (!pInfo) {
-        return false;
-    }
+void * MMObject::GetExtData(const s32 ext, const s32 size) {
+	const PropInfo * info = _layout->QueryExt(ext, size);
+	if (!info)
+		return false;
 
-    PropCall(prop, pInfo, sync);
-    return true;
-}
-
-bool MMObject::SetPropFloat(const s32 prop, const float value, const bool sync) {
-    const PropInfo * pInfo = _objectProps->SetValue(prop, DTYPE_FLOAT, &value, sizeof(value));
-    if (!pInfo) {
-        return false;
-    }
-
-    PropCall(prop, pInfo, sync);
-    return true;
-}
-
-bool MMObject::SetPropString(const s32 prop, const char * value, const bool sync) {
-    const PropInfo * pInfo = _objectProps->SetValue(prop, DTYPE_STRING, value, strlen(value) + 1);
-    if (!pInfo) {
-        return false;
-    }
-
-    //OASSERT(!(!pInfo->setting.visable && sync), "wtf");
-    PropCall(prop, pInfo, sync);
-    return true;
-}
-
-bool MMObject::SetPropStruct(const s32 prop, const void * value, const s32 len, const bool sync) {
-    const PropInfo * pInfo = _objectProps->SetValue(prop, DTYPE_STRUCT, value, len);
-    if (!pInfo) {
-        return false;
-    }
-
-    //OASSERT(!(!pInfo->setting.visable && sync), "wtf");
-    PropCall(prop, pInfo, sync);
-    return true;
-}
-
-s8 MMObject::GetPropInt8(const s32 prop) const {
-    s32 size = 0;
-    s8 value = *(s8 *)_objectProps->GetValue(prop, DTYPE_INT8, size);
-    OASSERT(size == sizeof(value), "fuck");
-    return value;
-}
-
-s16 MMObject::GetPropInt16(const s32 prop) const {
-    s32 size = 0;
-    s16 value = *(s16 *)_objectProps->GetValue(prop, DTYPE_INT16, size);
-    OASSERT(size == sizeof(value), "fuck");
-    return value;
-}
-
-s32 MMObject::GetPropInt32(const s32 prop) const {
-    s32 size = 0;
-    s32 value = *(s32 *)_objectProps->GetValue(prop, DTYPE_INT32, size);
-    OASSERT(size == sizeof(value), "fuck");
-    return value;
-}
-
-s64 MMObject::GetPropInt64(const s32 prop) const {
-    s32 size = 0;
-    s64 value = *(s64 *)_objectProps->GetValue(prop, DTYPE_INT64, size);
-    OASSERT(size == sizeof(value), "fuck");
-    return value;
-}
-
-float MMObject::GetPropFloat(const s32 prop) const {
-    s32 size = 0;
-    float value = *(float *)_objectProps->GetValue(prop, DTYPE_FLOAT, size);
-    OASSERT(size == sizeof(value), "fuck");
-    return value;
-}
-
-const char * MMObject::GetPropString(const s32 prop) const {
-    s32 size = 0;
-    return (const char *)_objectProps->GetValue(prop, DTYPE_STRING, size);
-}
-
-const void * MMObject::GetPropStruct(const s32 prop, s32& len) const {
-	const void * pValue = _objectProps->GetValue(prop, DTYPE_STRUCT, len);
-    return pValue;
-}
-
-void MMObject::RgsPropChangeCB(const s32 name, const PropCallback& cb, const char * debug_info) {
-	_propCBPool.Register(name, cb, debug_info);
+	return _memory->Get(info);
 }
 
 ITableControl * MMObject::CreateTable(const s32 name, const char * file, const s32 line) {
@@ -163,38 +99,19 @@ bool MMObject::RemoveTable(const s32 name) {
     return true;
 }
 
+void MMObject::Clear() {
+	for (auto ext : _factory->GetExts()) {
+		void  * data = _memory->Get(ext.info);
+		ext.resetor(ObjectMgr::Instance()->GetKernel(), this, data, ext.info->size);
+	}
 
-void MMObject::RgsEntryCB(const s32 status, const StatusCallback& cb, const char * debuginfo) {
-    _statusEntryCBPool.Register(status, cb, debuginfo);
+	_memory->Clear();
+	_propCBPool.Clear();
+
+	for (auto itr = _tableMap.begin(); itr != _tableMap.end(); ++itr)
+		itr->second->Reset();
 }
 
-void MMObject::RgsLeaveCB(const s32 status, const StatusCallback& cb, const char * debuginfo) {
-	_statusLeaveCBPool.Register(status, cb, debuginfo);
-}
-
-void MMObject::RgsEntryJudegCB(const s32 status, const StatusJudgeCallback& cb, const char * debuginfo) {
-	_statusEntryJudegCBPool.Register(status, cb, debuginfo);
-}
-
-void MMObject::RgsLeaveJudegCB(const s32 status, const StatusJudgeCallback& cb, const char * debuginfo) {
-	_statusLeaveJudegCBPool.Register(status, cb, debuginfo);
-}
-
-bool MMObject::EntryStatus(const s32 status, const bool b) {
-    if (_status != status) {
-		if (!_statusLeaveJudegCBPool.Call(_status, b, ObjectMgr::Instance()->GetKernel(), this)
-			|| !_statusEntryJudegCBPool.Call(status, b, ObjectMgr::Instance()->GetKernel(), this)) {
-            return false;
-        }
-		_statusLeaveCBPool.Call(_status, ObjectMgr::Instance()->GetKernel(), this);
-		_status = status;
-		_statusEntryCBPool.Call(_status, ObjectMgr::Instance()->GetKernel(), this);
-    } else {
-        if (!_statusEntryJudegCBPool.Call(status, b, ObjectMgr::Instance()->GetKernel(), this)) {
-            return false;
-        }
-		_statusEntryCBPool.Call(_status, ObjectMgr::Instance()->GetKernel(), this);
-    }
-
-    return true;
+void MMObject::Release() {
+	_factory->Recover(this);
 }

@@ -12,15 +12,15 @@ INCLUDE_DIRECTORIES(
 SET(MAIN
     "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/ObjectMgr.h"
     "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/ObjectMgr.cpp"
+	"${PROJECT_SOURCE_DIR}/src/logic/objectmgr/Memory.h"
     "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/MMObject.h"
     "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/MMObject.cpp"
-	"${PROJECT_SOURCE_DIR}/src/logic/objectmgr/ObjectStruct.h"
-    "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/TableStruct.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/objectmgr/ObjectFactory.h"
+    "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/ObjectFactory.cpp"
     "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/TableControl.h"
-    "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/TableControlInit.cpp"
-    "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/TableControlDC.cpp"
-    "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/TableRowPool.h"
-    "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/TableRowPool.cpp"
+    "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/TableControl.cpp"
+    "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/TableRow.h"
+    "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/TableRow.cpp"
     "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/main.cpp"
 	)
     

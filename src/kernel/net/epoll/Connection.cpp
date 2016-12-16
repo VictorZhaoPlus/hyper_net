@@ -1,79 +1,130 @@
 #include "Connection.h"
 #include "NetEngine.h"
-#include "ConfigMgr.h"
 #include "kernel.h"
 #include "tools.h"
-#include <mutex>
+#include "ORingBuffer.h"
 
 #define ERROR_PARSE_FAILED -1
+#define SINGLE_RECV_SIZE 32768
 
 Connection::Connection(NetBase * base, const s32 fd, const s32 sendSize, const s32 recvSize)
     : _base(base)
 	, _fd(fd)
-	, _threadId(-1)
     , _session(nullptr)
     , _remotePort(0) 
-	, _recvBuff(recvSize)
-	, _sendBuff(sendSize)
-	, _totalRecvSize(0)
-	, _totalSendSize(0)
 	, _closeing(false) 
-	, _pushing(false)
-	, _broken(false)
-	, _pipeBroked(false)
-	, _sending(false) {
+	, _prev(false)
+	, _next(false)
+	, _needSend(false) {
+	_base->sendBuff = RingBufferAlloc(sendSize);
+	_base->recvBuff = RingBufferAlloc(recvSize);
 }
 
 Connection::~Connection() {
-
+	RingBufferDestroy(_base->sendBuff);
+	RingBufferDestroy(_base->recvBuff);
 }
 
 void Connection::Send(const void * context, const s32 size) {
 	if (_closeing)
 		return;
 
-	if (!_sendBuff.Write(context, size)) {
+	bool pending = (RingBufferLength(_base->sendBuff) > 0);
+	if (!RingBufferWriteBlock(_base->sendBuff, context, size)) {
 		Close();
 		return;
 	}
-
-	if (!_pushing) {
-		_pushing = true;
-		NetEngine::AddSendEvent(_threadId, _base);
+	
+	if (pending) {
+		if (NetEngine::Instance()->IsDirectSend()) {
+			if (SendBack() == ERROR)
+				InnerClose();
+		}
+		else 
+			NetEngine::Instance()->InsertIntoChain(this);
 	}
 }
 
 void Connection::Close() {
-	OASSERT(!_closeing, "wtf");
 	if (!_closeing) {
-		if (!_pushing)
+		if (RingBufferLength(_base->sendBuff) == 0)
 			shutdown(_fd, SHUT_RDWR);
 		_closeing = true;
 	}
 }
 
-bool Connection::Recv(const void * buff, const s32 size) {
-	if (_recvBuff.Write(buff, size)) {
-		_totalRecvSize += size;
-		return true;
+void Connection::InnerClose() {
+	if (!_closeing) {
+		shutdown(_fd, SHUT_RDWR);
+		_closeing = true;
 	}
-	else
-		return false;
+}
+
+void Connection::OnRecv(const s32 size) {
+	if (!_closeing) {
+		RingBufferIn(_base->recvBuff, size);
+		Recv();
+	}
+}
+
+void Connection::Recv(const void * buff, const s32 size) {
+	char temp[SINGLE_RECV_SIZE];
+	while (true) {
+		if (_closeing)
+			break;
+		
+		u32 dataLen = 0;
+		char * data = RingBufferReadTemp(_base->recvBuff, (char*)temp, sizeof(temp), &dataLen);
+		if (data == nullptr || dataLen == 0)
+			break;
+		
+		s32 used = 0;
+		s32 totalUsed = 0;
+		do {
+			used = _session->OnRecv(Kernel::Instance(), data + totalUsed, (s32)dataLen - totalUsed);
+			if (used > 0) {
+				OASSERT(totalUsed + used < (s32)dataLen, "wtf");
+				totalUsed += used;
+			}
+
+		} while (used > 0 && totalUsed < dataLen);
+		
+		if (used >= 0) {
+			if (totalUsed > 0)
+				RingBufferOut(_base->recvBuff, totalUsed);
+			else
+				break;
+		}
+		else
+			Close();
+	}
+}
+
+void Connection::OnSendBack() {
+	if (RingBufferLength(_base->sendBuff) > 0) {
+		s32 ret = SendBack();
+		if (_closeing) {
+			if (ret != PENDING) {
+				shutdown(_fd, SHUT_RDWR);
+				return;
+			}
+		}
+		
+		if (ret == ERROR)
+			InnerClose();
+	}
 }
 
 s32 Connection::SendBack() {
-	OASSERT(!_pipeBroked, "wtf");
-	char temp[_sendBuff.MaxSize()];
-	while (_sendBuff.GetLength() > 0) {
+	while (RingBufferLength(_base->sendBuff) > 0) {
 		s32 dataLen;
-		const void * data = _sendBuff.Read(temp, dataLen);
+		const void * data = RingBufferRead(_base->sendBuff, &dataLen);
 		if (data == NULL)
 			break;
 
 		int ret = send(_fd, data, dataLen, 0);
 		if (ret > 0) {
-			_sendBuff.Out(ret);
-			_totalSendSize += ret;
+			RingBufferOut(_base->sendBuff, ret);
 		}
 		else if (ret == -1 && EAGAIN == errno) 
 			return PENDING;
@@ -83,52 +134,3 @@ s32 Connection::SendBack() {
 	return EMPTY;
 }
 
-void Connection::OnRecv() {
-	if (_closeing)
-		return;
-
-	char temp[_recvBuff.MaxSize()];
-	while (true) {
-		if (_closeing)
-			break;
-
-		s32 dataLen;
-		const void * data = _recvBuff.Read(temp, dataLen);
-		if (data == nullptr || dataLen == 0)
-			break;
-
-		s32 used = _session->OnRecv(Kernel::Instance(), data, dataLen);
-		if (used >= 0) {
-			if (used > 0)
-				_recvBuff.Out(used);
-			else
-				break;
-		}
-		else
-			Close();
-	}
-}
-
-bool Connection::OnSendBack() {
-	OASSERT(_pushing, "wtf");
-	if (_broken)
-		return false;
-
-	if(_sendBuff.GetLength() != 0)
-		NetEngine::AddSendEvent(_threadId, _base);
-	else {
-		if (_closeing)
-			shutdown(_fd, SHUT_RDWR);
-		_pushing = false;
-	}
-
-	return true;
-}
-
-bool Connection::CheckPipeBroke() {
-	OASSERT(!_broken, "wtf");
-	_broken = true;
-	if (!_closeing)
-		_closeing = true;
-	return _pushing;
-}

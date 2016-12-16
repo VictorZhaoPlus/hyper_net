@@ -18,6 +18,7 @@ extern "C" {
 
 	struct NetLooper;
 
+	struct RingBuffer;
 	struct NetBase {
 		char type;
 		s32 fd;
@@ -25,6 +26,8 @@ extern "C" {
 		void * context;
 		s32 maxSendSize;
 		s32 maxRecvSize;
+		struct RingBuffer * sendBuffer;
+		struct RingBuffer * recvBuffer;
 	};
 
 	typedef int(*FnRecv)(struct NetBase * base, const s32 code, const char * buff, const s32 size);

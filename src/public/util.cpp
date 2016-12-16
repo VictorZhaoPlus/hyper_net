@@ -42,20 +42,20 @@ void __Free(void * p, const char * file, s32 line, const char * funname) {
 }
 #endif
 
-void * operator new(size_t size) {
+void * operator new(size_t size) noexcept {
 	return je_malloc(size);
 }
 
-void * operator new[](size_t size) {
+void * operator new[](size_t size) noexcept {
 	return je_malloc(size);
 }
 
-void operator delete(void * p) {
+void operator delete(void * p) noexcept {
 	je_free(p);
 	MPMarkFree(p);
 }
 
-void operator delete[](void * p) {
+void operator delete[](void * p) noexcept {
 	je_free(p);
 	MPMarkFree(p);
 }

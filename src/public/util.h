@@ -53,10 +53,10 @@ void __Free(void * p, const char * file, s32 line, const char * funname);
 #define REALLOC(p, size) __Realloc(p, size, __FILE__, __LINE__, __FUNCTION__)
 
 #ifdef __cplusplus
-void * operator new(size_t size);
-void * operator new[](size_t size);
-void operator delete(void * p);
-void operator delete[](void * p);
+void * operator new(size_t size) noexcept;
+void * operator new[](size_t size) noexcept;
+void operator delete(void * p) noexcept;
+void operator delete[](void * p) noexcept;
 
 void * operator new(size_t size, const char * file, s32 line, const char * funname);
 void * operator new[](size_t size, const char * file, s32 line, const char * funname);
@@ -102,7 +102,9 @@ extern "C" {
 #define SafeMemcpy __OMemcpy
 #define SafeMemset __OMemset
 
+#ifndef MAX_PATH
 #define MAX_PATH 260
+#endif //MAX_PATH
 
 #ifdef __cplusplus
 #define ALLOCATOR(T) std::allocator<T>
