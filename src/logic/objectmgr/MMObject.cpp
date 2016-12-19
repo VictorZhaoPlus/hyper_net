@@ -1,117 +1,75 @@
 #include "MMObject.h"
 #include "Memory.h"
-#include "ObjectFactory.h"
+#include "ObjectDescriptor.h"
 #include "ObjectMgr.h"
+#include "ObjectProp.h"
+#include "TableControl.h"
 
-MMObject::MMObject(const char * type, const MemoryLayout * layout, ObjectFactory * factory)
+MMObject::MMObject(const char * type, ObjectDescriptor * descriptor)
 	: _type(type)
 	, _objectId(0)
 	, _isShadow(false)
-	, _layout(layout)
-	, _factory(factory){
-	_memory = NEW Memory(_layout->CalcMemorySize());
+	, _descriptor(descriptor){
+	_memory = NEW Memory(_descriptor->CalcMemorySize());
 
-	for (auto ext : _factory->GetExts()) {
-		void  * data = _memory->Get(ext.info);
-		ext.creator(ObjectMgr::Instance()->GetKernel(), this, data, ext.info->size);
-	}
+	descriptor->QueryTableModel([this](const s32 name, const TableDescriptor * model) {
+		TableControl * table = NEW TableControl(name, model);
+		_tables[name] = table;
+	});
 }
 
 MMObject::~MMObject() {
 	_propCBPool.Clear();
 
-	for (auto ext : _factory->GetExts()) {
-		void  * data = _memory->Get(ext.info);
-		ext.recover(ObjectMgr::Instance()->GetKernel(), this, data, ext.info->size);
-	}
-
 	DEL _memory;
 
-	for (auto itr = _tableMap.begin(); itr != _tableMap.end(); ++itr)
-		itr->second->Release();
-	_tableMap.clear();
+	for (auto itr = _tables.begin(); itr != _tables.end(); ++itr) {
+		DEL itr->second;
+	}
+	_tables.clear();
 }
 
-void MMObject::PropCall(const s32 prop, const PropInfo * info, const bool sync) {
-    _propCBPool.Call(prop, ObjectMgr::Instance()->GetKernel(), this, _type.GetString(), prop, info, sync);
-	_propCBPool.Call(ANY_CALL, ObjectMgr::Instance()->GetKernel(), this, _type.GetString(), prop, info, sync);
+const std::vector<const IProp*>& MMObject::GetPropsInfo(bool noParent) const {
+	return _descriptor->GetPropsInfo(noParent);
 }
 
-const PROP_INDEX & MMObject::GetPropsInfo(bool noParent) const {
-	return _layout->GetPropsInfo(noParent);
+bool MMObject::Set(const IProp * prop, const s8 type, const void * data, const s32 size, const bool sync) {
+	const ObjectLayout * layout = ((ObjectProp*)prop)->GetLayout(_descriptor->GetTypeId());
+	OASSERT(layout, "wtf");
+	if (layout != nullptr) {
+		OASSERT(layout->type == type && layout->size >= size, "wtf");
+
+		if (layout->type == type && layout->size >= size) {
+			_memory->Set(layout, data, size);
+			return true;
+		}
+		PropCall(prop, sync);
+	}
+	return false;
 }
 
-bool MMObject::Set(const s32 prop, const s32 type, const void * data, const s32 size, const bool sync) {
-	const PropInfo * info = _layout->Query(prop, type, size);
-	if (!info)
-		return false;
+const void *  MMObject::Get(const IProp * prop, const s8 type, s32& size) const {
+	const ObjectLayout * layout = ((ObjectProp*)prop)->GetLayout(_descriptor->GetTypeId());
+	OASSERT(layout, "wtf");
+	if (layout != nullptr) {
+		OASSERT(layout->type == type && layout->size >= size, "wtf");
 
-	_memory->Set(info, data, size);
-	PropCall(prop, info, sync);
-	return true;
-}
-
-const void *  MMObject::Get(const s32 prop, const s32 type, s32& size) const {
-	const PropInfo * info = _layout->Query(prop, type, size);
-	if (!info)
-		return false;
-
-	size = info->size;
-	return _memory->Get(info);
-}
-
-void * MMObject::GetExtData(const s32 ext, const s32 size) {
-	const PropInfo * info = _layout->QueryExt(ext, size);
-	if (!info)
-		return false;
-
-	return _memory->Get(info);
-}
-
-ITableControl * MMObject::CreateTable(const s32 name, const char * file, const s32 line) {
-    TABLE_MAP::iterator itor = _tableMap.find(name);
-    if (itor != _tableMap.end()) {
-        OASSERT(false, "table already exists");
-        return nullptr;
-    }
-
-    TableControl * table = TableControl::Create(name, this, file, line);
-    _tableMap.insert(std::make_pair(name, table));
-    return table;
+		if (layout->type == type && layout->size >= size) {
+			size = layout->size;
+			return _memory->Get(layout);
+		}
+	}
+	return nullptr;
 }
 
 ITableControl * MMObject::FindTable(const s32 name) const {
-    TABLE_MAP::const_iterator itor = _tableMap.find(name);
-    if (itor == _tableMap.end())
+    TABLE_MAP::const_iterator itor = _tables.find(name);
+    if (itor == _tables.end())
         return nullptr;
     return itor->second;
 }
 
-bool MMObject::RemoveTable(const s32 name) {
-    TABLE_MAP::iterator itor = _tableMap.find(name);
-    if (itor == _tableMap.end()) {
-        OASSERT(false, "table is not exists");
-        return false;
-    }
-
-    ((TableControl *)itor->second)->Release();
-    _tableMap.erase(itor);
-    return true;
-}
-
-void MMObject::Clear() {
-	for (auto ext : _factory->GetExts()) {
-		void  * data = _memory->Get(ext.info);
-		ext.resetor(ObjectMgr::Instance()->GetKernel(), this, data, ext.info->size);
-	}
-
-	_memory->Clear();
-	_propCBPool.Clear();
-
-	for (auto itr = _tableMap.begin(); itr != _tableMap.end(); ++itr)
-		itr->second->Reset();
-}
-
-void MMObject::Release() {
-	_factory->Recover(this);
+void MMObject::PropCall(const IProp * prop, const bool sync) {
+	_propCBPool.Call(prop, ObjectMgr::Instance()->GetKernel(), this, _type.GetString(), prop, sync);
+	_propCBPool.Call(nullptr, ObjectMgr::Instance()->GetKernel(), this, _type.GetString(), prop, sync);
 }

@@ -39,7 +39,7 @@ typedef std::function<void (IKernel * kernel, ITableControl * table, IRow * src,
 
 class IRow {
 public:
-	virtual ~IRow() = 0;
+	virtual ~IRow() {}
 
 	virtual s32 GetRowIndex() const = 0;
 
@@ -104,7 +104,7 @@ public:
 
 class IProp {
 public:
-	virtual ~IProp() = 0;
+	virtual ~IProp() {}
 
 	virtual const s8 GetType(IObject * object) const = 0;
 	virtual const s32 GetSetting(IObject * object) const = 0;
@@ -121,6 +121,7 @@ public:
     virtual const bool IsShadow() const = 0;
 
     virtual const std::vector<const IProp*>& GetPropsInfo(bool noFather = false) const = 0;
+
     virtual bool SetPropInt8(const IProp * prop, const s8 value, const bool sync = true) = 0;
     virtual bool SetPropInt16(const IProp * prop, const s16 value, const bool sync = true) = 0;
     virtual bool SetPropInt32(const IProp * prop, const s32 value, const bool sync = true) = 0;
@@ -128,6 +129,7 @@ public:
     virtual bool SetPropFloat(const IProp * prop, const float value, const bool sync = true) = 0;
     virtual bool SetPropString(const IProp * prop, const char * value, const bool sync = true) = 0;
     virtual bool SetPropStruct(const IProp * prop, const void * value, const s32 len, const bool sync = true) = 0;
+	virtual bool SetPropBlob(const IProp * prop, const void * value, const s32 len, const bool sync = true) = 0;
 
     virtual s8 GetPropInt8(const IProp * prop) const = 0;
     virtual s16 GetPropInt16(const IProp * prop) const = 0;
@@ -135,12 +137,12 @@ public:
     virtual s64 GetPropInt64(const IProp * prop) const = 0;
     virtual float GetPropFloat(const IProp * prop) const = 0;
     virtual const char * GetPropString(const IProp * prop) const = 0;
-    virtual const void * GetPropStruct(const IProp * prop, s32& len) const = 0;
+    virtual const void * GetPropStruct(const IProp * prop, const s32 len) const = 0;
+	virtual const void * GetPropBlob(const IProp * prop, s32& len) const = 0;
 
     virtual void RgsPropChangeCB(const IProp * prop, const PropCallback& cb, const char * debug_info) = 0;
 
     virtual ITableControl * FindTable(const s32 name) const = 0;
-    virtual bool RemoveTable(const s32 name) = 0;
 };
 
 #define CREATE_OBJECT(mgr, ...)  mgr->Create(__FILE__, __LINE__, __VA_ARGS__)
@@ -157,7 +159,7 @@ public:
     virtual void Recove(IObject * pObject) = 0;
 
 	virtual const IProp * CalcProp(const char * name) = 0;
-	virtual s32 CalcTableName(const char * name) = 0;
+	virtual s32 CalcPropSetting(const char * setting) = 0;
 
     virtual const std::vector<const IProp*>* GetPropsInfo(const char * type, bool noFather = false) const = 0;
 

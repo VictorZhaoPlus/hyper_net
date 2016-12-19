@@ -71,7 +71,7 @@ bool Redis::Exec(const s64 id, const char* command, const OArgs& args, const std
 	buf.size = 0;
 
 	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "*%d\r\n$%d\r\n%s\r\n", args.Count() + 1, strlen(command), command);
-	buf.size += strlen(buf.data + buf.size);
+	buf.size += (s32)strlen(buf.data + buf.size);
 
 	Append(buf, args);
 
@@ -111,9 +111,9 @@ bool Redis::Call(const s64 id, const char* proc, const s32 keyCount, const OArgs
 	buf.size = 0;
 
 	const char * scriptId = s_contexts[id % s_contexts.size()].scriptIds[proc].GetString();
-	s32 len = strlen(scriptId);
+	s32 len = (s32)strlen(scriptId);
 	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "*%d\r\n$7\r\nEVALSHA\r\n$%d\r\n%s\r\n", args.Count() + 2, len, scriptId);
-	buf.size += strlen(buf.data + buf.size);
+	buf.size += (s32)strlen(buf.data + buf.size);
 
 	Append(buf, args);
 
@@ -201,53 +201,53 @@ void Redis::Append(CommandBuff& buf, s8 val) {
 	char temp[32] = { 0 };
 	SafeSprintf(temp, sizeof(temp), "%d", val);
 
-	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "$%d\r\n%s\r\n", strlen(temp), temp);
-	buf.size += strlen(buf.data + buf.size);
+	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "$%d\r\n%s\r\n", (s32)strlen(temp), temp);
+	buf.size += (s32)strlen(buf.data + buf.size);
 }
 
 void Redis::Append(CommandBuff& buf, s16 val) {
 	char temp[32] = { 0 };
 	SafeSprintf(temp, sizeof(temp), "%d", val);
 
-	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "$%d\r\n%s\r\n", strlen(temp), temp);
-	buf.size += strlen(buf.data + buf.size);
+	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "$%d\r\n%s\r\n", (s32)strlen(temp), temp);
+	buf.size += (s32)strlen(buf.data + buf.size);
 }
 
 void Redis::Append(CommandBuff& buf, s32 val) {
 	char temp[32] = { 0 };
 	SafeSprintf(temp, sizeof(temp), "%d", val);
 
-	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "$%d\r\n%s\r\n", strlen(temp), temp);
-	buf.size += strlen(buf.data + buf.size);
+	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "$%d\r\n%s\r\n", (s32)strlen(temp), temp);
+	buf.size += (s32)strlen(buf.data + buf.size);
 }
 
 void Redis::Append(CommandBuff& buf, s64 val) {
 	char temp[32] = { 0 };
 	SafeSprintf(temp, sizeof(temp), "%lld", val);
 
-	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "$%d\r\n%s\r\n", strlen(temp), temp);
-	buf.size += strlen(buf.data + buf.size);
+	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "$%d\r\n%s\r\n", (s32)strlen(temp), temp);
+	buf.size += (s32)strlen(buf.data + buf.size);
 }
 
 void Redis::Append(CommandBuff& buf, float val) {
 	char temp[32] = { 0 };
 	SafeSprintf(temp, sizeof(temp), "%.2f", val);
 
-	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "$%d\r\n%s\r\n", strlen(temp), temp);
-	buf.size += strlen(buf.data + buf.size);
+	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "$%d\r\n%s\r\n", (s32)strlen(temp), temp);
+	buf.size += (s32)strlen(buf.data + buf.size);
 }
 
 void Redis::Append(CommandBuff& buf, const char * val) {
-	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "$%d\r\n%s\r\n", strlen(val), val);
-	buf.size += strlen(buf.data + buf.size);
+	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "$%d\r\n%s\r\n", (s32)strlen(val), val);
+	buf.size += (s32)strlen(buf.data + buf.size);
 }
 
 void Redis::Append(CommandBuff& buf, const void * val, const s32 size) {
 	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "$%d\r\n", size);
-	buf.size += strlen(buf.data + buf.size);
+	buf.size += (s32)strlen(buf.data + buf.size);
 
 	SafeMemcpy(buf.data + buf.size, sizeof(buf.data) - buf.size, val, size);
 	buf.size += size;
 	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "\r\n");
-	buf.size += strlen(buf.data + buf.size);
+	buf.size += (s32)strlen(buf.data + buf.size);
 }

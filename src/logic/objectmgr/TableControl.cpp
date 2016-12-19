@@ -2,8 +2,9 @@
 #include "TableRow.h"
 #include "ObjectMgr.h"
 
-TableControl::TableControl(TableDescriptor * descriptor, IObject * host)
-	: _descriptor(descriptor)
+TableControl::TableControl(s32 name, const TableDescriptor * descriptor, IObject * host)
+	: _name(name)
+	, _descriptor(descriptor)
 	, _host(host)
 {
 }
@@ -89,9 +90,9 @@ IRow * TableControl::AddRowKeyString(const char * key) {
 	if (_descriptor->GetKeyType() == DTYPE_STRING) {
 		TableRow * row = NEW TableRow(this, _descriptor);
 		_stringKeyMap.insert(std::make_pair(key, (s32)_rows.size()));
-		row->Set(_descriptor->GetKeyCol(), DTYPE_STRING, key, strlen(key), false);
+		row->Set(_descriptor->GetKeyCol(), DTYPE_STRING, key, (s32)strlen(key), false);
 		_rows.push_back(row);
-		AddCallBack(ObjectMgr::Instance()->GetKernel(), row, key, strlen(key) + 1, DTYPE_STRING);
+		AddCallBack(ObjectMgr::Instance()->GetKernel(), row, key, (s32)strlen(key) + 1, DTYPE_STRING);
 		return row;
 	}
 
@@ -146,6 +147,7 @@ bool TableControl::DelRow(const s32 index) {
 	DEL row;
 
 	OrderProcIndex(index);
+	return true;
 }
 
 bool TableControl::SwapRowIndex(const s32 src, const s32 dst) {
@@ -208,6 +210,19 @@ bool TableControl::SwapRowIndex(const s32 src, const s32 dst) {
 	rowSrc->SetRowIndex(dst);
 	rowDst->SetRowIndex(src);
 	SwapCallBack(ObjectMgr::Instance()->GetKernel(), rowSrc, rowDst);
+	return true;
+}
+
+void TableControl::ChangeKey(const s64 oldKey, const s64 newKey, const s8 type) {
+	OASSERT(type == _descriptor->GetKeyType(), "wtf");
+	_intKeyMap[newKey] = _intKeyMap[oldKey];
+	_intKeyMap.erase(oldKey);
+}
+
+void TableControl::ChangeKey(const char * oldKey, const char * newKey, const s8 type) {
+	OASSERT(type == _descriptor->GetKeyType(), "wtf");
+	_stringKeyMap[newKey] = _stringKeyMap[oldKey];
+	_stringKeyMap.erase(oldKey);
 }
 
 void TableControl::OrderProcIndex(const s32 index) {

@@ -26,7 +26,7 @@ class TableControl : public ITableControl{
     typedef std::list<TableSwapCallback> SWP_CB_POOL;
 
 public:
-	TableControl(TableDescriptor * descriptor, IObject * host = nullptr);
+	TableControl(s32 name, const TableDescriptor * descriptor, IObject * host = nullptr);
 	~TableControl();
 
 	virtual void RgsUpdate(TableUpdateCallback cb, const char * debug) { _updateCallPool.push_back(cb); }
@@ -35,6 +35,7 @@ public:
 	virtual void RgsChange(TableSwapCallback cb, const char * debug) { _swapCallPool.push_back(cb); }
 
 	virtual IObject * GetHost() { return _host; }
+	s32 GetName() const { return _name; }
 
 	virtual s32 RowCount() const { return (s32)_rows.size(); }
 	virtual void ClearRows();
@@ -74,19 +75,20 @@ public:
 			cb(pKernel, this, src, dst);
 	}
 
-    bool ChangeKey(const s64 oldKey, const s64 newKey, const s8 type);
-    bool ChangeKey(const char * oldKey, const char * newKey, const s8 type);
+	void ChangeKey(const s64 oldKey, const s64 newKey, const s8 type);
+	void ChangeKey(const char * oldKey, const char * newKey, const s8 type);
     void OrderProcIndex(const s32 index);
 
 private:
     IObject * _host;
+	s32 _name;
 
     UPDATE_CB_POOL _updateCallPool;
     ADD_CB_POOL _addCallPool;
     DELETE_CB_POOL _delCallPool;
     SWP_CB_POOL _swapCallPool;
 
-	TableDescriptor * _descriptor;
+	const TableDescriptor * _descriptor;
 
     KEY_INT_MAP _intKeyMap;
     KEY_STRING_MAP _stringKeyMap;

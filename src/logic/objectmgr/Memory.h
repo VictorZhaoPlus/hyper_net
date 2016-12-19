@@ -7,10 +7,6 @@
 #ifndef __MEMORY_H__
 #define __MEMORY_H__
 #include "util.h"
-#include <list>
-#include <unordered_map>
-#include "singleton.h"
-#include "IObjectMgr.h"
 
 struct Layout {
 	s32 offset;
@@ -32,14 +28,14 @@ public:
 		DEL[] _buff;
 	}
 
-    void Set(const Layout * info, const void * data, const s32 size) {
+    inline void Set(const Layout * info, const void * data, const s32 size) {
         OASSERT(info->offset + info->size <= _size, "wtf");
 		OASSERT(size <= info->size, "wtf");
 
         SafeMemcpy(_buff + info->offset, info->size, data, size);
     }
 
-    void * Get(const Layout * info) {
+	inline void * Get(const Layout * info) {
 		OASSERT(info->offset + info->size <= _size, "wtf");
         return _buff + info->offset;
     }

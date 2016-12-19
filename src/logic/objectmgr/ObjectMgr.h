@@ -13,17 +13,14 @@
 
 class MMObject;
 class IIdMgr;
-class ObjectFactory;
+struct ObjectLayout;
+class ObjectProp;
+class ObjectDescriptor;
+class TableDescriptor;
 class ObjectMgr : public IObjectMgr, public OHolder<ObjectMgr> {
-    struct TableInfo {
-        const s32 name;
-        const TableColumnInfo * columnInfo;
-    };
-    typedef std::vector<const TableInfo *> TABLE_MODEL_LIST;
-
-    typedef std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, ObjectFactory *,  olib::OStringHash<MAX_MODEL_NAME_LEN>> OBJECT_MODEL_MAP;
+    typedef std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, ObjectDescriptor *,  olib::OStringHash<MAX_MODEL_NAME_LEN>> OBJECT_MODEL_MAP;
     typedef std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, olib::OString<MAX_PATH>, olib::OStringHash<MAX_MODEL_NAME_LEN>> NAME_PATH_MAP;
-	typedef std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, IProp *, olib::OStringHash<MAX_MODEL_NAME_LEN>> PROP_MAP;
+	typedef std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, ObjectProp *, olib::OStringHash<MAX_MODEL_NAME_LEN>> PROP_MAP;
 
     struct ObjectCreateInfo {
         MMObject * object;
@@ -31,9 +28,11 @@ class ObjectMgr : public IObjectMgr, public OHolder<ObjectMgr> {
         const s32 line;
     };
 
-    typedef std::unordered_map<s64, ObjectCreateInfo> OBJCET_MAP;
-	typedef std::unordered_map<s32, ITableControl *> TABLE_MAP;
-	typedef std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, s32, olib::OStringHash<MAX_MODEL_NAME_LEN>> PROP_DEFINES;
+	struct TableCreateInfo {
+		ITableControl * object;
+		const olib::OString<128> file;
+		const s32 line;
+	};
 
 public:
     ObjectMgr() {}
@@ -49,27 +48,32 @@ public:
     virtual void Recove(IObject * object);
 
 	virtual const IProp * CalcProp(const char * name);
-	virtual s32 CalcTableName(const char * name);
+	virtual s32 CalcPropSetting(const char * setting);
 
 	virtual const std::vector<const IProp*>* GetPropsInfo(const char * type, bool noFather = false) const;
 
     //创建对象类型静态表(同类型对象共有)
-    virtual ITableControl * CreateStaticTable(const char* name, const char * model, const char * file, const s32 line);
+    virtual ITableControl * CreateStaticTable(const char * name, const char * model, const char * file, const s32 line);
 	virtual void RecoverStaticTable(ITableControl * table);
+
+	const IProp* SetObjectProp(const char* name, const s32 typeId, ObjectLayout * layout);
 
 	IKernel * GetKernel() const { return _kernel; }
 
 private:
-	ObjectFactory * QueryTemplate(IKernel * pKernel, const char * name);
-	ObjectFactory * CreateTemplate(IKernel * pKernel, const char * name);
+	ObjectDescriptor * QueryTemplate(IKernel * pKernel, const char * name);
+	ObjectDescriptor * CreateTemplate(IKernel * pKernel, const char * name);
 
 private:
     NAME_PATH_MAP _namePathMap;
-    OBJECT_MODEL_MAP _propMap;
-    OBJCET_MAP _objects;
-    TABLE_MAP _tableMap;
-	PROP_DEFINES _defines;
+    OBJECT_MODEL_MAP _models;
+	std::unordered_map<s32, TableDescriptor *> _tableModels;
+	std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, s32, olib::OStringHash<MAX_MODEL_NAME_LEN>> _defines;
+	s32 _nextTypeId;
+
 	PROP_MAP _props;
+	std::unordered_map<s64, ObjectCreateInfo> _objects;
+	std::unordered_map<s32, TableCreateInfo> _tableMap;
 
 	IKernel * _kernel;
 	IIdMgr * _idMgr;

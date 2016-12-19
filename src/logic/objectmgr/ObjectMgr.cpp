@@ -5,10 +5,13 @@
 #include "TableControl.h"
 #include "XmlReader.h"
 #include "IIdMgr.h"
-#include "ObjectFactory.h"
+#include "ObjectDescriptor.h"
+#include "ObjectProp.h"
+#include "TableRow.h"
 
 bool ObjectMgr::Initialize(IKernel * kernel) {
 	_kernel = kernel;
+	_nextTypeId = 1;
 
 	char path[512] = { 0 };
 	SafeSprintf(path, sizeof(path), "%s/config/object.xml", tools::GetAppPath());
@@ -22,6 +25,18 @@ bool ObjectMgr::Initialize(IKernel * kernel) {
 		const olib::IXmlObject& props = conf.Root()["prop"];
 		for (s32 i = 0; i < props.Count(); ++i)
 			_defines[props[i].GetAttributeString("name")] = (1 << i);
+	}
+
+	if (conf.Root().IsExist("table")) {
+		const olib::IXmlObject& tables = conf.Root()["table"];
+		for (s32 i = 0; i < tables.Count(); ++i) {
+			TableDescriptor * tableModel = NEW TableDescriptor();
+			const char * name = tables[i].GetAttributeString("name");
+			if (!tableModel->LoadFrom(tables[i]))
+				return false;
+
+			_tableModels[tools::CalcStringUniqueId(name)] = tableModel;
+		}
 	}
     
     SafeSprintf(path, sizeof(path), "%s/config/dccenter/", tools::GetAppPath());
@@ -51,26 +66,23 @@ bool ObjectMgr::Destroy(IKernel * kernel) {
         }
     }
 
-    TableControl::EchoMemoryLeak(kernel);
-    TableRowPool::GetInterface()->Release();
-
     {
-		for (auto itr = _propMap.begin(); itr != _propMap.end(); ++itr) {
+		for (auto itr = _models.begin(); itr != _models.end(); ++itr) {
 			//DEL itr->second.;
 		}
     }
 	return false;
 }
 
-ObjectFactory * ObjectMgr::QueryTemplate(IKernel * kernel, const char * name) {
-    auto itr = _propMap.find(name);
-    if (itr != _propMap.end())
+ObjectDescriptor * ObjectMgr::QueryTemplate(IKernel * kernel, const char * name) {
+    auto itr = _models.find(name);
+    if (itr != _models.end())
         return itr->second;
 
     return CreateTemplate(kernel, name);
 }
 
-ObjectFactory * ObjectMgr::CreateTemplate(IKernel * kernel, const char * name) {
+ObjectDescriptor * ObjectMgr::CreateTemplate(IKernel * kernel, const char * name) {
     auto itr = _namePathMap.find(name);
     if (itr == _namePathMap.cend()) {
         OASSERT(false, "wtf");
@@ -83,25 +95,25 @@ ObjectFactory * ObjectMgr::CreateTemplate(IKernel * kernel, const char * name) {
         return nullptr;
     }
 
-	ObjectFactory * factory = nullptr;
+	ObjectDescriptor * descriptor = nullptr;
 	if (conf.Root().HasAttribute("parent")) {
-		ObjectFactory * parent = QueryTemplate(kernel, conf.Root().GetAttributeString("parent"));
+		ObjectDescriptor * parent = QueryTemplate(kernel, conf.Root().GetAttributeString("parent"));
         OASSERT(parent, "where is parent %s xml", conf.Root().GetAttributeString("parent"));
         if (nullptr == parent)
             return nullptr;
     
-		factory = NEW ObjectFactory(name, parent);
+		descriptor = NEW ObjectDescriptor(_nextTypeId++, name, parent);
     } else {
-		factory = NEW ObjectFactory(name, nullptr);
+		descriptor = NEW ObjectDescriptor(_nextTypeId++, name, nullptr);
     }
 
-	if (!factory->LoadFrom(conf.Root(), _defines)) {
-		DEL factory;
+	if (!descriptor->LoadFrom(conf.Root(), _defines)) {
+		DEL descriptor;
 		return nullptr;
 	}
 
-	_propMap[name] = factory;
-    return _propMap[name];
+	_models[name] = descriptor;
+    return _models[name];
 }
 
 IObject * ObjectMgr::FindObject(const s64 id) {
@@ -122,17 +134,13 @@ IObject * ObjectMgr::CreateObjectByID(const char * file, const s32 line, const c
 		return nullptr;
 	}
 	
-	auto itr = _propMap.find(name);
-	if (itr == _propMap.end()) {
+	auto itr = _models.find(name);
+	if (itr == _models.end()) {
 		OASSERT(false, "what's this, %s", name);
 		return nullptr;
 	}
 
-	MMObject * object = itr->second->Create(id, shadow);
-	OASSERT(object, "create object error");
-	if (nullptr == object)
-		return nullptr;
-
+	MMObject * object = NEW MMObject(name, itr->second);
 	_objects.insert(std::make_pair(id, ObjectCreateInfo({ object, file, line })));
 	return object;
 }
@@ -149,67 +157,66 @@ void ObjectMgr::Recove(IObject * object) {
     }
 	OASSERT(itr->second.object == object, "wtf");
 
-	((MMObject*)object)->Release();
+	DEL object;
     _objects.erase(itr);
 }
 
-s32 ObjectMgr::CalcProp(const char * name) {
-	return tools::CalcStringUniqueId(name);
+const IProp * ObjectMgr::CalcProp(const char * name) {
+	auto itr = _props.find(name);
+	OASSERT(itr != _props.end(), "wtf");
+	if (itr != _props.end())
+		return itr->second;
+	return nullptr;
 }
 
-const PROP_INDEX * ObjectMgr::GetPropsInfo(const char * type, bool noFather) const {
-	auto itr = _propMap.find(type);
-    if (itr != _propMap.end())
-        return itr->second->GetPropsInfo(noFather);
+s32 ObjectMgr::CalcPropSetting(const char * setting) {
+	auto itr = _defines.find(setting);
+	if (itr != _defines.end())
+		return itr->second;
+	return 0;
+}
+
+const std::vector<const IProp*>* ObjectMgr::GetPropsInfo(const char * type, bool noFather) const {
+	auto itr = _models.find(type);
+    if (itr != _models.end())
+        return &(itr->second->GetPropsInfo(noFather));
 
     return nullptr;
 }
 
-ITableControl * ObjectMgr::FindStaticTable(const s32 name) {
-    TABLE_MAP::iterator itor = _tableMap.find(name);
-    if (itor == _tableMap.end()) {
-        OASSERT(false, "table is not exists");
-        return nullptr;
-    }
+ITableControl * ObjectMgr::CreateStaticTable(const char * name, const char * model, const char * file, const s32 line) {
+	if (_tableMap.find(tools::CalcStringUniqueId(name)) != _tableMap.end()) {
+		OASSERT(false, "already hsa table %s", name);
+		return nullptr;
+	}
 
-    return itor->second;
-}
+	auto itr = _tableModels.find(tools::CalcStringUniqueId(model));
+	OASSERT(itr != _tableModels.end(), "wtf");
+	if (itr == _tableModels.end())
+		return nullptr;
 
-void ObjectMgr::RecoverStaticTable(ITableControl * pTable) {
-    ((TableControl*)pTable)->Release();
-}
-
-ITableControl * ObjectMgr::CreateStaticTable(const s32 name, const char * file, const s32 line) {
-    TABLE_MAP::iterator itor = _tableMap.find(name);
-    if (itor != _tableMap.end()) {
-        OASSERT(false, "table already exists");
-        return nullptr;
-    }
-
-    TableControl * table = TableControl::Create(name, nullptr, file, line);
-    _tableMap.insert(std::make_pair(name, table));
+	TableControl * table = NEW TableControl(tools::CalcStringUniqueId(name), itr->second);
+	TableCreateInfo info({ table, file, line });
+	_tableMap.insert(std::make_pair(tools::CalcStringUniqueId(name), info));
     return table;
 }
 
-void ObjectMgr::RgsExt(const s32 ext, const s32 size) {
-	_exts[ext] = { ext, size, nullptr, nullptr, nullptr };
+void ObjectMgr::RecoverStaticTable(ITableControl * table) {
+	OASSERT(!table->GetHost(), "wtf");
+	_tableMap.erase(((TableControl*)table)->GetName());
+	DEL table;
 }
 
-void ObjectMgr::RgsExtCreator(const s32 ext, const CreateOrReocverCB& creator, const char * debug) {
-	_exts[ext].creator = creator;
-}
+const IProp* ObjectMgr::SetObjectProp(const char* name, const s32 typeId, ObjectLayout * layout) {
+	ObjectProp * prop = nullptr;
+	auto itr = _props.find(name);
+	if (itr != _props.end())
+		prop = itr->second;
+	else {
+		prop = NEW ObjectProp((s32)_namePathMap.size());
+		_props[name] = prop;
+	}
 
-void ObjectMgr::RgsExtResetor(const s32 ext, const CreateOrReocverCB& resetor, const char * debug) {
-	_exts[ext].resetor = resetor;
-}
-
-void ObjectMgr::RgsExtRecover(const s32 ext, const CreateOrReocverCB& recover, const char * debug) {
-	_exts[ext].recover = recover;
-}
-
-const ObjectMgr::Ext * ObjectMgr::FindExt(const s32 ext) const {
-	auto itr = _exts.find(ext);
-	if (itr != _exts.end())
-		return &(itr->second);
-	return nullptr;
+	prop->SetLayout(typeId, layout);
+	return prop;
 }

@@ -8,6 +8,7 @@
 #define __TABLEROW_H__
 #include "IObjectMgr.h"
 #include "Memory.h"
+#include "XmlReader.h"
 
 struct TableLayout : public Layout {
 	s8 type;
@@ -20,9 +21,24 @@ public:
 	~TableDescriptor() {}
 
 	inline s32 CalMemorySize() const { return _size; }
-	inline s8 GetKeyType() { return _key; }
-	inline s32 GetKeyCol() { return _keyCol; }
+	inline s8 GetKeyType() const { return _key; }
+	inline s32 GetKeyCol() const { return _keyCol; }
 
+	bool LoadFrom(const olib::IXmlObject& root);
+
+	const TableLayout * Query(s32 col, s32 type, s32 size) const {
+		OASSERT(col >= 0 && col < (s32)_layouts.size(), "wtf");
+		if (col < 0 || col > (s32)_layouts.size())
+			return nullptr;
+
+		const TableLayout& layout = _layouts[col];
+		OASSERT(layout.type == type && layout.size >= size, "wtf");
+		if (layout.type == type && layout.size >= size)
+			return &layout;
+		return nullptr;
+	}
+
+private:
 	void AddLayout(s8 type, s32 offset, s32 size, bool key) {
 		TableLayout layout;
 		layout.type = type;
@@ -40,18 +56,6 @@ public:
 		_size += size;
 	}
 
-	TableLayout * Query(s32 col, s32 type, s32 size) {
-		OASSERT(col >= 0 && col < (s32)_layouts.size(), "wtf");
-		if (col < 0 || col > (s32)_layouts.size())
-			return nullptr;
-
-		TableLayout& layout = _layouts[col];
-		OASSERT(layout.type == type && layout.size >= size, "wtf");
-		if (layout.type == type && layout.size >= size)
-			return &layout;
-		return nullptr;
-	}
-
 private:
 	std::vector<TableLayout> _layouts;
 	s8 _key;
@@ -63,7 +67,7 @@ class Memory;
 class TableControl;
 class TableRow : public IRow {
 public:
-	TableRow(TableControl * table, TableDescriptor * descriptor);
+	TableRow(TableControl * table, const TableDescriptor * descriptor);
 	virtual ~TableRow();
 
 	virtual s32 GetRowIndex() const { return _index; }
@@ -85,13 +89,13 @@ public:
 	virtual void SetDataInt32(const s32 col, const s32 value) { Set(col, DTYPE_INT32, &value, sizeof(s32)); }
 	virtual void SetDataInt64(const s32 col, const s64 value) { Set(col, DTYPE_INT64, &value, sizeof(s64)); }
 	virtual void SetDataFloat(const s32 col, const float value) { Set(col, DTYPE_FLOAT, &value, sizeof(float)); }
-	virtual void SetDataString(const s32 col, const char * value) { Set(col, DTYPE_STRING, value, strlen(value) + 1); }
+	virtual void SetDataString(const s32 col, const char * value) { Set(col, DTYPE_STRING, value, (s32)strlen(value) + 1); }
 	virtual void SetDataStruct(const s32 col, const void * value, const s32 size) { Set(col, DTYPE_STRUCT, value, size); }
 	virtual void SetDataBlob(const s32 col, const void * value, const s32 size) { Set(col, DTYPE_BLOB, value, size); }
 
 private:
 	TableControl * _table;
-	TableDescriptor * _descriptor;
+	const TableDescriptor * _descriptor;
 	s32 _index;
 
 	Memory * _memory;

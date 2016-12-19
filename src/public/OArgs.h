@@ -141,7 +141,7 @@ public:
 	IArgs& operator<< (const float value) { return Write(TYPE_FLOAT, &value, sizeof(float)); }
 
 	IArgs& operator<< (const char* value) {
-		s32 size = strlen(value);
+		s32 size = (s32)strlen(value);
 		OASSERT(!_fixed && _header.countArgs < maxCount && _header.offset + size + 1 <= maxSize, "args over flow");
 		if (_fixed || _header.countArgs >= maxCount || _header.offset + size + 1 > maxSize)
 			return *this;

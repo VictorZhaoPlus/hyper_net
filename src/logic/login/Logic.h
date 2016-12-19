@@ -9,14 +9,15 @@
 #include "OCallback.h"
 
 class IObjectMgr;
+class IProp;
 class IProtocolMgr;
 class IEventEngine;
 class Logic : public ILogic, public INodeListener, public OHolder<Logic> {
 	struct Props {
-		s32 account;
-		s32 gate;
-		s32 logic;
-		s32 recoverTimer;
+		const IProp * account;
+		const IProp * gate;
+		const IProp * logic;
+		const IProp * recoverTimer;
 	};
 
 	typedef olib::CallbackType<s32, ProtocolCB>::type ProtocolPool;
