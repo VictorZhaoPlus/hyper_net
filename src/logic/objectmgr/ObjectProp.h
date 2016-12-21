@@ -11,7 +11,7 @@
 struct ObjectLayout;
 class ObjectProp : public IProp {
 public:
-	ObjectProp(s32 size) : _size(0) {
+	ObjectProp(s32 name, s32 size) : _name(name), _size(0) {
 		_layouts = (ObjectLayout**)MALLOC(size * sizeof(ObjectLayout*));
 		SafeMemset(_layouts, size * sizeof(ObjectLayout*), 0, size * sizeof(ObjectLayout*));
 	}
@@ -20,6 +20,7 @@ public:
 		FREE(_layouts);
 	}
 
+	virtual const s32 GetName() const { return _name; }
 	virtual const s8 GetType(IObject * object) const;
 	virtual const s32 GetSetting(IObject * object) const;
 
@@ -38,6 +39,7 @@ public:
 	}
 
 private:
+	s32 _name;
 	ObjectLayout ** _layouts;
 	s32 _size;
 };
