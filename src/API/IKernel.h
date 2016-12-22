@@ -46,8 +46,8 @@ namespace core {
 		virtual void OnTimer(IKernel * kernel, s64 tick) = 0;
 		virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) = 0;
 
-		virtual void OnPause(IKernel * kernel, s64 tick) = 0;
-		virtual void OnResume(IKernel * kernel, s64 tick) = 0;
+		virtual void OnPause(IKernel * kernel, s64 tick) {}
+		virtual void OnResume(IKernel * kernel, s64 tick) {}
 
 	private:
 		ITimerBase * _base;

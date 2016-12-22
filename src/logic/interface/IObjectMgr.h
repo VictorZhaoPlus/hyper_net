@@ -106,6 +106,7 @@ class IProp {
 public:
 	virtual ~IProp() {}
 
+	virtual const s32 GetName() const = 0;
 	virtual const s8 GetType(IObject * object) const = 0;
 	virtual const s32 GetSetting(IObject * object) const = 0;
 };
