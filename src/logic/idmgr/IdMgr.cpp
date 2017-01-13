@@ -2,6 +2,8 @@
 #include "IHarbor.h"
 #include "OArgs.h"
 #include "XmlReader.h"
+#include "IProtocolMgr.h"
+#include "IEventEngine.h"
 
 #define SEQUENCE_BITS 5
 #define SEQUENCE_MASK 0x001F
@@ -27,8 +29,6 @@ bool IdMgr::Initialize(IKernel * kernel) {
 	_multiProcess = id.GetAttributeBoolean("multi");
 	if (_multiProcess) {
 		_nodeType = id.GetAttributeInt32("server");
-		_AskProtocolId = id.GetAttributeInt32("ask_proto");
-		_GiveProtocolId = id.GetAttributeInt32("give_proto");
 		_areaId = reader.Root()["app"][0].GetAttributeInt32("area");
 		_poolSize = id.GetAttributeInt32("pool_size");
 	}
@@ -38,12 +38,28 @@ bool IdMgr::Initialize(IKernel * kernel) {
 
 bool IdMgr::Launched(IKernel * kernel) {
 	if (_multiProcess) {
+		_loadFirst = false;
 		FIND_MODULE(_harbor, Harbor);
-		RGS_HABOR_ARGS_HANDLER(_AskProtocolId, IdMgr::AskId);
-		RGS_HABOR_ARGS_HANDLER(_GiveProtocolId, IdMgr::GiveId);
+		FIND_MODULE(_eventEngine, EventEngine);
+		FIND_MODULE(_protocolMgr, ProtocolMgr);
 
-		START_TIMER(this, 0, TIMER_BEAT_FOREVER, TIMER_INTERVAL);
+		_askProtocolId = _protocolMgr->GetId("node_proto", "ask_id");
+		_giveProtocolId = _protocolMgr->GetId("node_proto", "give_id");
+		_eventIdLoaded = _protocolMgr->GetId("event", "id_loaded");
+
+		if (_harbor->GetNodeType() == _nodeType) {
+			RGS_HABOR_ARGS_HANDLER(_askProtocolId, IdMgr::AskId);
+
+			START_TIMER(this, 0, 1, TIMER_INTERVAL);
+		}
+		else {
+			RGS_HABOR_ARGS_HANDLER(_giveProtocolId, IdMgr::GiveId);
+
+			START_TIMER(this, 0, TIMER_BEAT_FOREVER, TIMER_INTERVAL);
+		}
 	}
+	else
+		_loadFirst = true;
     return true;
 }
 
@@ -65,10 +81,22 @@ s64 IdMgr::AllocId() {
 }
 
 void IdMgr::OnTimer(IKernel * kernel, s64 tick) {
+	
 	if ((s32)_ids.size() < _poolSize) {
-		IArgs<1, 32> args;
-		args << 0;
-		_harbor->Send(_nodeType, 1, _AskProtocolId, args.Out());
+		if (_harbor->GetNodeType() == _nodeType) {
+			for (s32 i = 0; i < SINGLE_PATCH; ++i)
+				_ids.push_back(GenerateId());
+
+			if (_loadFirst) {
+				_eventEngine->Exec(_eventIdLoaded, nullptr, 0);
+				_loadFirst = false;
+			}
+		}
+		else {
+			IArgs<1, 32> args;
+			args << 0;
+			_harbor->Send(_nodeType, 1, _askProtocolId, args.Out());
+		}
 	}
 }
 
@@ -95,10 +123,15 @@ void IdMgr::AskId(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args
 	IArgs<SINGLE_PATCH, SINGLE_PATCH_SIZE> ret;
 	for (s32 i = 0; i < SINGLE_PATCH; ++i)
 		ret << GenerateId();
-	_harbor->Send(nodeType, nodeId, _GiveProtocolId, ret.Out());
+	_harbor->Send(nodeType, nodeId, _giveProtocolId, ret.Out());
 }
 
 void IdMgr::GiveId(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {
 	for (s32 i = 0; i < args.Count(); ++i)
 		_ids.push_back(args.GetDataInt64(i));
+
+	if (_loadFirst) {
+		_eventEngine->Exec(_eventIdLoaded, nullptr, 0);
+		_loadFirst = false;
+	}
 }

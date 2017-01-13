@@ -7,6 +7,8 @@
 
 class OArgs;
 class IHarbor;
+class IEventEngine;
+class IProtocolMgr;
 class IdMgr : public IIdMgr, public OHolder<IdMgr>, public ITimer {
 public:
     virtual bool Initialize(IKernel * kernel);
@@ -30,13 +32,17 @@ public:
 private:
     IKernel * _kernel;
 	IHarbor * _harbor;
+	IEventEngine * _eventEngine;
+	IProtocolMgr * _protocolMgr;
 
 	bool _multiProcess;
 	s32 _nodeType;
-	s32 _AskProtocolId;
-	s32 _GiveProtocolId;
+	s32 _askProtocolId;
+	s32 _giveProtocolId;
+	s32 _eventIdLoaded;
 	u32 _areaId;
 	s32 _poolSize;
+	bool _loadFirst;
 
 	std::vector<s64> _ids;
 };

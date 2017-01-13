@@ -41,9 +41,9 @@ bool MMObject::Set(const IProp * prop, const s8 type, const void * data, const s
 
 		if (layout->type == type && layout->size >= size) {
 			_memory->Set(layout, data, size);
+			PropCall(prop, sync);
 			return true;
 		}
-		PropCall(prop, sync);
 	}
 	return false;
 }

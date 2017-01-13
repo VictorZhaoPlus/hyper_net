@@ -65,7 +65,6 @@ bool Logic::Launched(IKernel * kernel) {
 		_errorLoadPlayerFailed = _protocolMgr->GetId("error", "load_player_failed");
 
 		_eventOnline = _protocolMgr->GetId("event", "online");
-		_eventOnlineComplete = _protocolMgr->GetId("event", "online_complete");
 		_eventReconnect = _protocolMgr->GetId("event", "reconnect");
 		_eventGateLost = _protocolMgr->GetId("event", "gate_lost");
 		_eventRecover = _protocolMgr->GetId("event", "recover");
@@ -152,7 +151,6 @@ void Logic::OnBindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs 
 			_harbor->Send(nodeType, nodeId, framework_proto::BIND_PLAYER_ACK, args.Out());
 
 			_eventEngine->Exec(_eventOnline, &object, sizeof(object));
-			_eventEngine->Exec(_eventOnlineComplete, &object, sizeof(object));
 
 			IArgs<1, 32> notify;
 			notify << actorId;

@@ -24,6 +24,9 @@ SET(LOGIC_INTERFACE
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IEventEngine.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/ICacheDB.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IFSM.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/interface/IScene.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/interface/IOCommand.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/interface/IShadowMgr.h"
 )
 
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/harbor)
@@ -45,3 +48,6 @@ ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/login)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/luaserver)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/cachedb)
 ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/fsm)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/scene)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/ocommand)
+ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/shadowmgr)

@@ -81,6 +81,7 @@ public:
 namespace olib {
 	template<s32 maxSize>
 	class Buffer : public IBuffer {
+		template <typename T> struct Trait {};
 	public:
 		Buffer() {}
 		virtual ~Buffer() {}
@@ -113,13 +114,24 @@ namespace olib {
 		}
 
 		virtual IBuffer& WriteBuffer(const void * context, const s32 size) {
-			OASSERT(size + sizeof(s32) <= maxSize, "wtf");
+			OASSERT(_offset + size + sizeof(s32) <= maxSize, "wtf");
 			if (_offset + size + sizeof(s32) <= maxSize) {
 				*this << size;
 				SafeMemcpy(_buf + _offset, maxSize - _offset, context, size);
 				_offset += size;
 			}
 			return *this;
+		}
+
+		template <typename T>
+		T * Reserve() {
+			OASSERT(_offset + sizeof(T) <= maxSize, "wtf");
+			if (_offset + sizeof(T) <= maxSize) {
+				void * ret = _buf + _offset;
+				_offset += sizeof(T);
+				return (T*)ret;
+			}
+			return nullptr;
 		}
 
 		OBuffer Out() {

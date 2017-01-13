@@ -55,7 +55,6 @@ private:
 	s32 _errorLoadPlayerFailed;
 	
 	s32 _eventOnline;
-	s32 _eventOnlineComplete;
 	s32 _eventReconnect;
 	s32 _eventGateLost;
 	s32 _eventRecover;

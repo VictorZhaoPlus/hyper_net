@@ -93,11 +93,11 @@ public:
 };
 
 #define DEL_TABLE_ROW(table, row) {\
-	OASSERT(table && row != INVALID_ROW_INDEX, "table or row index is invalid");\
-	if (table && row != INVALID_ROW_INDEX) {\
-		RowIndex lastRow = table->RowCount() - 1; \
-		if (lastRow != row) \
-			table->SwapRowIndex(row, lastRow); \
+	OASSERT(table && row, "table or row index is invalid");\
+	if (table && row) {\
+		s32 lastRow = table->RowCount() - 1; \
+		if (lastRow != row->GetRowIndex()) \
+			table->SwapRowIndex(row->GetRowIndex(), lastRow); \
 		table->DelRow(lastRow);\
 	}\
 }
@@ -161,6 +161,7 @@ public:
 
 	virtual const IProp * CalcProp(const char * name) = 0;
 	virtual s32 CalcPropSetting(const char * setting) = 0;
+	virtual s32 CalcTableName(const char * table) = 0;
 
     virtual const std::vector<const IProp*>* GetPropsInfo(const char * type, bool noFather = false) const = 0;
 
