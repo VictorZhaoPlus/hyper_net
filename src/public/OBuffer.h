@@ -47,6 +47,8 @@ public:
 	inline const void * GetContext() const { return _buffer; }
 	inline const s32 GetSize() const { return _size; }
 
+	OBuffer Left() const { return OBuffer(_buffer + _offset, _size - _offset); }
+
 private:
 	const void * GetData(const s32 size) const {
 		OASSERT(_offset + size <= _size, "buffer over flow");

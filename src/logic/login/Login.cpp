@@ -93,7 +93,7 @@ void Login::OnRecvBindAccount(IKernel * kernel, s32 nodeType, s32 nodeId, const 
 		_accounts[accountId] = { accountId, ST_OFFLINE, 0, 0, 0, 0, 0 };
 
 	Account& account = _accounts[accountId];
-	if (tokenCount > 0 && (account.state != ST_OFFLINE || account.tokenCount != tokenCount)) {
+	if (tokenCount > 0 && account.tokenCount != tokenCount) {
 		IArgs<3, 128> args;
 		args << agentId << accountId << _errorTokenCheckFailed;
 		args.Fix();
@@ -151,13 +151,14 @@ void Login::OnRecvUnbindAccount(IKernel * kernel, s32 nodeType, s32 nodeId, cons
 		_accounts[accountId] = { accountId, ST_OFFLINE, 0, 0, 0, 0, 0 };
 
 	Account& account = _accounts[accountId];
-	OASSERT(account.state != ST_OFFLINE && account.gateId == nodeId && account.agentId == agentId, "wtf");
 	switch (account.state) {
 	case ST_ONLINE: {
-			account.state = ST_OFFLINE;
-			account.agentId = 0;
-			account.gateId = 0;
-			_gateAccounts[nodeId].erase(accountId);
+			if (account.gateId == nodeId && account.agentId == agentId) {
+				account.state = ST_OFFLINE;
+				account.agentId = 0;
+				account.gateId = 0;
+				_gateAccounts[nodeId].erase(accountId);
+			}
 		}
 		break;
 	case ST_SWITCH: {

@@ -20,8 +20,8 @@ public:
 private:
     IKernel * _kernel;
 
-	std::unordered_map<olib::OString<MAX_PROTOCOL_NAME_LEN>, std::unordered_map<olib::OString<MAX_PROTOCOL_NAME_LEN>, s32, olib::OStringHash<MAX_PROTOCOL_NAME_LEN>>, olib::OStringHash<MAX_PROTOCOL_NAME_LEN>> _protos;
-	std::unordered_map<olib::OString<MAX_PROTOCOL_NAME_LEN>, std::unordered_map<s32, olib::OString<MAX_PROTOCOL_DESC_LEN>>, olib::OStringHash<MAX_PROTOCOL_NAME_LEN>> _descs;
+	std::unordered_map<std::string, std::unordered_map<std::string, s32>> _protos;
+	std::unordered_map<std::string, std::unordered_map<s32, std::string>> _descs;
 };
 
 #endif //__PROTOCOLMGR_H__

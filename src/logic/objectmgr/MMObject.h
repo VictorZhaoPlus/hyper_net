@@ -8,7 +8,6 @@
 #ifndef __MMObject_h__
 #define __MMObject_h__
 #include "TableControl.h"
-#include "OString.h"
 #include "IObjectMgr.h"
 #include <unordered_map>
 #include "OCallback.h"
@@ -25,7 +24,7 @@ public:
 	virtual const s64 GetID() const { return _objectId; }
 	void SetID(s64 id) { _objectId = id; }
 
-	virtual const char * GetTypeName() const { return _type.GetString(); }
+	virtual const char * GetTypeName() const { return _type.c_str(); }
 	inline ObjectDescriptor * GetDescriptor() const { return _descriptor; }
 
 	virtual const bool IsShadow() const { return _isShadow; }
@@ -61,7 +60,7 @@ private:
     void PropCall(const IProp * prop, const bool sync);
 
 private:
-    const olib::OString<MAX_MODEL_NAME_LEN> _type;
+    const std::string _type;
     s64 _objectId;
 	bool _isShadow;
 

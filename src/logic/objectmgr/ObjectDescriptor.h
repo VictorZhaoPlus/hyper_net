@@ -10,7 +10,6 @@
 #include "util.h"
 #include "IObjectMgr.h"
 #include "Memory.h"
-#include "OString.h"
 #include "XmlReader.h"
 #include <vector>
 #include <unordered_map>
@@ -18,7 +17,7 @@
 struct ObjectLayout : public Layout {
 	s8 type;
 	s32 setting;
-	olib::OString<MAX_MODEL_NAME_LEN> name;
+	std::string name;
 };
 
 class TableDescriptor;
@@ -37,7 +36,7 @@ public:
 	inline s32 CalcMemorySize() const { return _size; }
 	inline s32 GetTypeId() const { return _typeId; }
 
-	bool LoadFrom(const olib::IXmlObject& root, const std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, s32, olib::OStringHash<MAX_MODEL_NAME_LEN>>& defines);
+	bool LoadFrom(const olib::IXmlObject& root, const std::unordered_map<std::string, s32>& defines);
 	
 	inline void QueryTableModel(const std::function<void(const s32 name, const TableDescriptor * model)>& f) {
 		for (const auto& info : _tables)
@@ -45,12 +44,12 @@ public:
 	}
 
 private:
-	bool LoadProps(const olib::IXmlObject& props, const std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, s32, olib::OStringHash<MAX_MODEL_NAME_LEN>>& defines);
+	bool LoadProps(const olib::IXmlObject& props, const std::unordered_map<std::string, s32>& defines);
 	bool LoadTables(const olib::IXmlObject& tables);
 
 private:
 	s32 _typeId;
-	olib::OString<MAX_MODEL_NAME_LEN> _type;
+	std::string _type;
 	std::vector<ObjectLayout> _layouts;
 	std::vector<const IProp*> _props;
 	std::vector<const IProp*> _selfProps;

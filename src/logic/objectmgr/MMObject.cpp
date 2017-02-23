@@ -70,6 +70,6 @@ ITableControl * MMObject::FindTable(const s32 name) const {
 }
 
 void MMObject::PropCall(const IProp * prop, const bool sync) {
-	_propCBPool.Call(prop, ObjectMgr::Instance()->GetKernel(), this, _type.GetString(), prop, sync);
-	_propCBPool.Call(nullptr, ObjectMgr::Instance()->GetKernel(), this, _type.GetString(), prop, sync);
+	_propCBPool.Call(prop, ObjectMgr::Instance()->GetKernel(), this, _type.c_str(), prop, sync);
+	_propCBPool.Call(nullptr, ObjectMgr::Instance()->GetKernel(), this, _type.c_str(), prop, sync);
 }

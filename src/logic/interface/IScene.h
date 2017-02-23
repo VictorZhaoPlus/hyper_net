@@ -45,6 +45,20 @@ enum {
 	WSCR_REPLACE,
 };
 
+class ICellVisibleChecker {
+public:
+	virtual ~ICellVisibleChecker() {}
+
+	virtual bool IsVisiable(IObject * object, IObject * test) = 0;
+};
+
+class ICell : public IModule {
+public:
+	virtual ~ICell() {}
+
+	virtual void SetVisibleChecker(ICellVisibleChecker * checker) = 0;
+};
+
 class IWatcherSelector {
 public:
 	virtual ~IWatcherSelector() {}

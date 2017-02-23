@@ -5,6 +5,7 @@
 #include <unordered_set>
 
 class IHarbor;
+class OBuffer;
 class Cluster : public IModule {
 public:
     virtual bool Initialize(IKernel * kernel);
@@ -12,7 +13,7 @@ public:
     virtual bool Destroy(IKernel * kernel);
 
 private:
-    void NewNodeComming(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size);
+    void NewNodeComming(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& size);
 
 private:
     IKernel * _kernel;

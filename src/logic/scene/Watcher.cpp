@@ -11,14 +11,14 @@
 #include "OBuffer.h"
 
 enum InterestTable {
-	COL_ID = 0,
-	COL_WATCH,
+	IT_COL_ID = 0,
+	IT_COL_WATCH,
 };
 
 enum WatcherTable {
-	COL_ID = 0,
-	COL_GATE,
-	COL_LOGIC,
+	WT_COL_ID = 0,
+	WT_COL_GATE,
+	WT_COL_LOGIC,
 };
 
 bool Watcher::Initialize(IKernel * kernel) {
@@ -43,10 +43,6 @@ bool Watcher::Launched(IKernel * kernel) {
 
 		FIND_MODULE(_protocolMgr, ProtocolMgr);
 
-		_commandAddInterest = _protocolMgr->GetId("command", "add_interest");
-		_commandRemoveInterest = _protocolMgr->GetId("command", "remove_interest");
-		_commandAddWatcher = _protocolMgr->GetId("command", "add_watcher");
-		_commandRemoveWatcher = _protocolMgr->GetId("command", "remove_watcher");
 
 		_eventSceneObjectDestroy = _protocolMgr->GetId("event", "scene_object_destroy");
 
@@ -92,8 +88,8 @@ void Watcher::Brocast(IObject * object, const s32 msgId, const OBuffer& buf, boo
 		IRow * row = watcher->GetRow(i);
 		OASSERT(row, "wtf");
 		
-		s64 id = row->GetDataInt64(WatcherTable::COL_ID);
-		s32 gate = row->GetDataInt32(WatcherTable::COL_GATE);
+		s64 id = row->GetDataInt64(WatcherTable::WT_COL_ID);
+		s32 gate = row->GetDataInt32(WatcherTable::WT_COL_GATE);
 		if (gate != 0)
 			actors[gate].push_back(id);
 	}
@@ -109,8 +105,8 @@ void Watcher::QueryNeighbor(IObject * object, const std::function<void(IKernel*,
 		IRow * row = interest->GetRow(i);
 		OASSERT(row, "wtf");
 
-		if (row->GetDataInt8(InterestTable::COL_WATCH)) {
-			s64 id = row->GetDataInt64(InterestTable::COL_ID);
+		if (row->GetDataInt8(InterestTable::IT_COL_WATCH)) {
+			s64 id = row->GetDataInt64(InterestTable::IT_COL_ID);
 			IObject * neighbor = _objectMgr->FindObject(id);
 			if (neighbor)
 				f(_kernel, neighbor);
@@ -126,7 +122,7 @@ bool Watcher::IsNeighbor(IObject * object, s64 id) {
 	if (!row)
 		return false;
 
-	return row->GetDataInt8(InterestTable::COL_WATCH) != 0;
+	return row->GetDataInt8(InterestTable::IT_COL_WATCH) != 0;
 }
 
 s32 Watcher::Check(IObject * object, s64 id, s32 type, s64& eliminateId) {
@@ -162,14 +158,14 @@ void Watcher::AddInterest(IKernel * kernel, const s64 sender, IObject * reciever
 
 			IRow * replace = interest->FindRow(eliminateId);
 			OASSERT(replace, "wtf");
-			replace->SetDataInt8(InterestTable::COL_WATCH, 0);
+			replace->SetDataInt8(InterestTable::IT_COL_WATCH, 0);
 		} // purpos no break
 	case WSCR_ADD: {
 			IArgs<2, 64> cmd;
 			cmd << reciever->GetPropInt32(_gate) << reciever->GetPropInt32(_logic);
 			cmd.Fix();
 			_command->Command(_commandAddWatcher, reciever, id, cmd.Out());
-			row->SetDataInt8(InterestTable::COL_WATCH, 1);
+			row->SetDataInt8(InterestTable::IT_COL_WATCH, 1);
 		}
 		break;
 	default: break;
@@ -187,7 +183,7 @@ void Watcher::RemoveInterest(IKernel * kernel, const s64 sender, IObject * recie
 	if (!row)
 		return;
 
-	if (row->GetDataInt8(InterestTable::COL_WATCH)) {
+	if (row->GetDataInt8(InterestTable::IT_COL_WATCH)) {
 		IArgs<1, 64> cmd;
 		cmd << reciever->GetPropInt32(_gate);
 		cmd.Fix();
@@ -204,7 +200,7 @@ void Watcher::RemoveInterest(IKernel * kernel, const s64 sender, IObject * recie
 
 		IRow * add = interest->FindRow(addId);
 		OASSERT(add, "wtf");
-		add->SetDataInt8(InterestTable::COL_WATCH, 1);
+		add->SetDataInt8(InterestTable::IT_COL_WATCH, 1);
 	}
 }
 
@@ -221,8 +217,8 @@ void Watcher::AddWatcher(IKernel * kernel, const s64 sender, IObject * reciever,
 		return;
 
 	row = watcher->AddRowKeyInt64(sender);
-	row->SetDataInt32(WatcherTable::COL_GATE, gate);
-	row->SetDataInt32(WatcherTable::COL_LOGIC, logic);
+	row->SetDataInt32(WatcherTable::WT_COL_GATE, gate);
+	row->SetDataInt32(WatcherTable::WT_COL_LOGIC, logic);
 
 	_shadowMgr->Project(reciever, logic);
 
@@ -263,8 +259,8 @@ void Watcher::RemoveWatcher(IKernel * kernel, const s64 sender, IObject * reciev
 	if (!row)
 		return;
 
-	s32 gate = row->GetDataInt32(WatcherTable::COL_GATE);
-	s32 logic = row->GetDataInt32(WatcherTable::COL_LOGIC);
+	s32 gate = row->GetDataInt32(WatcherTable::WT_COL_GATE);
+	s32 logic = row->GetDataInt32(WatcherTable::WT_COL_LOGIC);
 
 	DEL_TABLE_ROW(watcher, row);
 
@@ -297,8 +293,8 @@ void Watcher::RemoveAllInterestWhenDestroy(IKernel * kernel, const void * contex
 		IRow * row = interest->GetRow(i);
 		OASSERT(row, "wtf");
 
-		if (row->GetDataInt8(InterestTable::COL_WATCH)) {
-			s64 id = row->GetDataInt64(InterestTable::COL_ID);
+		if (row->GetDataInt8(InterestTable::IT_COL_WATCH)) {
+			s64 id = row->GetDataInt64(InterestTable::IT_COL_ID);
 
 			IArgs<1, 64> cmd;
 			cmd << object->GetPropInt32(_gate);

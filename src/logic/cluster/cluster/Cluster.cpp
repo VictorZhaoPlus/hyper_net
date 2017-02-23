@@ -3,6 +3,7 @@
 #include "tinyxml.h"
 #include "CoreProtocol.h"
 #include "NodeType.h"
+#include "OBuffer.h"
 
 bool Cluster::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -39,9 +40,9 @@ bool Cluster::Destroy(IKernel * kernel) {
     return true;
 }
 
-void Cluster::NewNodeComming(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size) {
-    OASSERT(size == sizeof(core_proto::NewNode), "invalid node size");
-	core_proto::NewNode& info = *((core_proto::NewNode*)context);
+void Cluster::NewNodeComming(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& buff) {
+    OASSERT(buff.GetSize() == sizeof(core_proto::NewNode), "invalid node size");
+	core_proto::NewNode& info = *((core_proto::NewNode*)buff.GetContext());
     OASSERT(info.port > 0, "where is harbor port");
 
 	s64 check = ((s64)info.nodeType << 32) | ((s64)info.nodeId);

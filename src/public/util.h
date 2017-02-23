@@ -111,5 +111,6 @@ extern "C" {
 
 #include <functional>
 #include <algorithm>
+#include <string>
 #endif
 #endif //__util_h__

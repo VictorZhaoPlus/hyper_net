@@ -12,6 +12,7 @@ class IObjectMgr;
 class IProp;
 class IProtocolMgr;
 class IEventEngine;
+class OBuffer;
 class Logic : public ILogic, public INodeListener, public OHolder<Logic> {
 	struct Props {
 		const IProp * account;
@@ -35,7 +36,7 @@ public:
 	
 	void OnBindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args);
 	void OnUnbindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args);
-	void OnTransMsg(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size);
+	void OnTransMsg(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& stream);
 
 	void Recover(IKernel * kernel, const s64 id);
 

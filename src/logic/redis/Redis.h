@@ -6,15 +6,14 @@
 #include <list>
 #include <unordered_map>
 #include "hiredis.h"
-#include "OString.h"
 #include "sds.h"
 
 class Redis : public IRedis {
 	struct Context {
-		olib::OString<32> ip;
+		std::string ip;
 		s32 port;
 		redisContext* ctx;
-		std::unordered_map<olib::OString<32>, olib::OString<32>, olib::OStringHash<32>> scriptIds;
+		std::unordered_map<std::string, std::string> scriptIds;
 
 		Context() : ctx(nullptr) {}
 	};
@@ -51,7 +50,7 @@ private:
     static IKernel * s_kernel;
 
 	static std::vector<Context> s_contexts;
-	static std::unordered_map<olib::OString<32>, olib::OString<512>, olib::OStringHash<32>> s_scripts;
+	static std::unordered_map<std::string, std::string> s_scripts;
 };
 
 #endif //__REDIS_H__

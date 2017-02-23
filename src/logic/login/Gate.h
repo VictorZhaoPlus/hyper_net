@@ -6,12 +6,8 @@
 #include "IAgent.h"
 #include <unordered_map>
 #include <unordered_set>
-#include "OString.h"
 #include "ILogin.h"
 #include "IHarbor.h"
-
-#define MAX_ROLE_NAME 64
-#define KEY_LEN 64
 
 class OBuffer;
 class OArgs;
@@ -89,7 +85,11 @@ public:
 	void Reset(IKernel * kernel, s64 id, s8 state, s32 from);
 
 	void TransMsgToLogic(IKernel * kernel, const s64 id, const void * context, const s32 size);
-	void OnTransMsgToActor(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size);
+	void OnTransMsgToActor(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& buf);
+	void OnBrocastMsgToActor(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& buf);
+
+	void Brocast(const void * context, const s32 size);
+	void Send(s64 actorId, const void * context, const s32 size);
 
 	void SendToClient(IKernel * kernel, const s64 id, const s32 msgId, const OBuffer& buf);
 
@@ -107,8 +107,8 @@ private:
 
 	bool _singleLogic;
 	s32 _maxRole;
-	olib::OString<KEY_LEN> _loginKey;
-	olib::OString<KEY_LEN> _tokenKey;
+	std::string _loginKey;
+	std::string _tokenKey;
 
 	s32 _loginAckId;
 	s32 _selectRoleAckId;

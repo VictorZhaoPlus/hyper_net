@@ -4,40 +4,30 @@
 #include "UserNodeType.h"
 #include "IProtocolMgr.h"
 #include "OBuffer.h"
-#include "OPool.h"
 #include "IObjectMgr.h"
 #include "IEventEngine.h"
+#include "OArgs.h"
 
 namespace logic {
 	class RemoveObjectTimer : public ITimer {
-		friend class olib::Pool<RemoveObjectTimer>;
 	public:
+		RemoveObjectTimer(IObject * object) : _id(object->GetID()) {}
 		virtual ~RemoveObjectTimer() {}
-
-		static RemoveObjectTimer * Create(IObject * object) {
-			return CREATE_FROM_POOL(s_pool, object);
-		}
 
 		virtual void OnStart(IKernel * kernel, s64 tick) {}
 		virtual void OnTimer(IKernel * kernel, s64 tick) {}
 		virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) {
 			if (nonviolent)
 				Logic::Instance()->Recover(kernel, _id);
-			s_pool.Recover(this);
+			DEL this;
 		}
 
 		virtual void OnPause(IKernel * kernel, s64 tick) {}
 		virtual void OnResume(IKernel * kernel, s64 tick) {}
 
 	private:
-		RemoveObjectTimer(IObject * object) : _id(object->GetID()) {}
-
-	private:
 		s64 _id;
-		static olib::Pool<RemoveObjectTimer> s_pool;
 	};
-
-	olib::Pool<RemoveObjectTimer> RemoveObjectTimer::s_pool;
 }
 
 bool Logic::Initialize(IKernel * kernel) {
@@ -92,7 +82,7 @@ void Logic::OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) {
 					_eventEngine->Exec(_eventGateLost, &object, sizeof(object));
 
 					OASSERT(object->GetPropInt64(_prop.recoverTimer) == 0, "wtf");
-					logic::RemoveObjectTimer * timer = logic::RemoveObjectTimer::Create(object);
+					logic::RemoveObjectTimer * timer = NEW logic::RemoveObjectTimer(object);
 					object->SetPropInt64(_prop.recoverTimer, (s64)timer);
 					START_TIMER(timer, 0, 1, _recoverInverval);
 				}
@@ -182,25 +172,29 @@ void Logic::OnUnbindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArg
 		_eventEngine->Exec(_eventGateLost, &object, sizeof(object));
 
 		OASSERT(object->GetPropInt64(_prop.recoverTimer) == 0, "wtf");
-		logic::RemoveObjectTimer * timer = logic::RemoveObjectTimer::Create(object);
+		logic::RemoveObjectTimer * timer = NEW logic::RemoveObjectTimer(object);
 		object->SetPropInt64(_prop.recoverTimer, (s64)timer);
 		START_TIMER(timer, 0, 1, _recoverInverval);
 	}
 }
 
-void Logic::OnTransMsg(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size) {
-	OASSERT(size >= sizeof(s64) + sizeof(s32) * 2, "wtf");
+void Logic::OnTransMsg(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& stream) {
+	OASSERT(stream.GetSize() >= sizeof(s64) + sizeof(s32) * 2, "wtf");
 
-	s64 actorId = *(s64*)context;
-	s32 msgId = *(s32*)((const char*)context + sizeof(s64));
-	OBuffer buf((const char*)context + sizeof(s64) + sizeof(s32) * 2, size - sizeof(s64) + sizeof(s32) * 2);
+	s64 actorId = 0;
+	if (!stream.Read(actorId))
+		return;
+
+	s32 msgId = 0;
+	if (!stream.Read(msgId))
+		return;
 
 	IObject * object = _objectMgr->FindObject(actorId);
 	OASSERT(object, "wtf");
 	if (object) {
 		OASSERT(object->GetPropInt32(_prop.gate) == nodeId, "wtf");
 	
-		_protos.Call(msgId, kernel, object, buf);
+		_protos.Call(msgId, kernel, object, stream.Left());
 	}
 }
 

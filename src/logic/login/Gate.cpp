@@ -8,8 +8,36 @@
 #include "ICacheDB.h"
 #include "Md5.h"
 #include "base64.h"
+#include "OArgs.h"
 
 #define MAX_TOKEN_SIZE 256
+#define DELAY_SEND_MEASUREMENT 100
+
+class DelaySendTimer : public ITimer {
+public:
+	DelaySendTimer(const void * context, const s32 size) { _packet.assign((const char *)context, size); }
+	virtual ~DelaySendTimer() {}
+
+	virtual void OnStart(IKernel * kernel, s64 tick) {};
+	virtual void OnTimer(IKernel * kernel, s64 tick) {
+		if (_actors.empty())
+			Gate::Instance()->Brocast(_packet.c_str(), (s32)_packet.size());
+		else {
+			for (auto actorId : _actors)
+				Gate::Instance()->Send(actorId, _packet.c_str(), (s32)_packet.size());
+		}
+	}
+	virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) { DEL this; }
+
+	virtual void OnPause(IKernel * kernel, s64 tick) {}
+	virtual void OnResume(IKernel * kernel, s64 tick) {}
+
+	void AddActor(s64 actorId) { _actors.insert(actorId); }
+
+private:
+	std::string _packet;
+	std::unordered_set<s64> _actors;
+};
 
 bool Gate::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -43,6 +71,7 @@ bool Gate::Launched(IKernel * kernel) {
 		RGS_HABOR_ARGS_HANDLER(framework_proto::KICK_FROM_ACCOUNT, Gate::OnRecvKickFromAccount);
 		RGS_HABOR_ARGS_HANDLER(framework_proto::KICK_FROM_LOGIC, Gate::OnRecvKickFromLogic);
 		RGS_HABOR_HANDLER(framework_proto::TRANSMIT_TO_ACTOR, Gate::OnTransMsgToActor);
+		RGS_HABOR_HANDLER(framework_proto::BROCAST_TO_ACTOR, Gate::OnBrocastMsgToActor);
 
 		_protos[_protocolMgr->GetId("proto", "login_req")] = &Gate::OnRecvLoginReq;
 		_protos[_protocolMgr->GetId("proto", "reconect_req")] = &Gate::OnRecvReconnectReq;
@@ -532,22 +561,72 @@ void Gate::TransMsgToLogic(IKernel * kernel, const s64 id, const void * context,
 	_harbor->Send(user_node_type::LOGIC, player.logic, context, size);
 }
 
-void Gate::OnTransMsgToActor(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size) {
-	OASSERT(size >= sizeof(s32) * 2 + sizeof(s64), "wtf");
-	s32 * header = (s32 *)context;
+void Gate::OnTransMsgToActor(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& buf) {
+	const void * context = buf.GetContext();
+	s32 size = buf.GetSize();
+
+	OASSERT(size >= sizeof(s32) * 2 + sizeof(s64) + sizeof(s8), "wtf");
+	
+	s8 delay = *(s8*)context;
+	s32 * header = (s32 *)((const char *)context + sizeof(s8));
 	s32 len = header[1];
 
-	const s64 * actors = (s64*)(((const char*)context) + len);
-	s32 count = (size - len) / sizeof(64);
-	for (s32 i = 0; i < count; ++i) {
-		s64 actorId = actors[i];
-		if (_actors.find(actorId) != _actors.end()) {
-			OASSERT(_players.find(_actors[actorId]) != _players.end(), "wtf");
+	const s64 * actors = (s64*)(((const char*)context) + len + sizeof(s8));
+	s32 count = (size - len - sizeof(s8)) / sizeof(64);
+	if (delay > 0) {
+		DelaySendTimer * timer = NEW DelaySendTimer((const char *)context + sizeof(s8), len);
+		for (s32 i = 0; i < count; ++i)
+			timer->AddActor(actors[i]);
+		START_TIMER(timer, 0, 1, delay * DELAY_SEND_MEASUREMENT);
+	}
+	else {
+		for (s32 i = 0; i < count; ++i) {
+			s64 actorId = actors[i];
+			if (_actors.find(actorId) != _actors.end()) {
+				OASSERT(_players.find(_actors[actorId]) != _players.end(), "wtf");
 
-			Player& player = _players[_actors[actorId]];
-			if (player.state == ST_ONLINE)
-				_agent->Send(player.agentId, context, len);
+				Player& player = _players[_actors[actorId]];
+				if (player.state == ST_ONLINE)
+					_agent->Send(player.agentId, (const char *)context + sizeof(s8), len);
+			}
 		}
+	}
+}
+
+void Gate::OnBrocastMsgToActor(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& buf) {
+	const void * context = buf.GetContext();
+	s32 size = buf.GetSize();
+	OASSERT(size >= sizeof(s32) * 2 + sizeof(s8), "wtf");
+
+	s8 delay = *(s8*)context;
+	s32 * header = (s32 *)((const char *)context + sizeof(s8));
+	s32 len = header[1];
+	if (delay > 0) {
+		DelaySendTimer * timer = NEW DelaySendTimer((const char *)context + sizeof(s8), len);
+		START_TIMER(timer, 0, 1, delay * DELAY_SEND_MEASUREMENT);
+	}
+	else {
+		for (auto itr = _players.begin(); itr != _players.end(); ++itr) {
+			if (itr->second.state == ST_ONLINE)
+				_agent->Send(itr->second.agentId, (const char *)context + sizeof(s8), len);
+		}
+	}
+}
+
+void Gate::Brocast(const void * context, const s32 size) {
+	for (auto itr = _players.begin(); itr != _players.end(); ++itr) {
+		if (itr->second.state == ST_ONLINE)
+			_agent->Send(itr->second.agentId, context, size);
+	}
+}
+
+void Gate::Send(s64 actorId, const void * context, const s32 size) {
+	if (_actors.find(actorId) != _actors.end()) {
+		OASSERT(_players.find(_actors[actorId]) != _players.end(), "wtf");
+
+		Player& player = _players[_actors[actorId]];
+		if (player.state == ST_ONLINE)
+			_agent->Send(player.agentId, context, size);
 	}
 }
 
@@ -572,9 +651,9 @@ bool Gate::CheckToken(const char * token, TokenData& data, bool login) {
 
 	char checkBuf[1024];
 	SafeMemcpy(checkBuf, sizeof(checkBuf), buf, sizeof(TokenData));
-	SafeSprintf(checkBuf + sizeof(TokenData), sizeof(checkBuf) - sizeof(TokenData), "%s", login ? _loginKey.GetString() : _tokenKey.GetString());
+	SafeSprintf(checkBuf + sizeof(TokenData), sizeof(checkBuf) - sizeof(TokenData), "%s", login ? _loginKey.c_str() : _tokenKey.c_str());
 	MD5 md5;
-	md5.update(checkBuf, sizeof(TokenData) + login ? _loginKey.Length() : _tokenKey.Length());
+	md5.update(checkBuf, sizeof(TokenData) + login ? _loginKey.size() : _tokenKey.size());
 	if (strcmp(md5.toString().c_str(), sign) != 0)
 		return false;
 
@@ -584,10 +663,10 @@ bool Gate::CheckToken(const char * token, TokenData& data, bool login) {
 void Gate::BuildToken(char * token, s32 size, const TokenData& data) {
 	char checkBuf[1024];
 	SafeMemcpy(checkBuf, sizeof(checkBuf), &data, sizeof(TokenData));
-	SafeSprintf(checkBuf + sizeof(TokenData), sizeof(checkBuf) - sizeof(TokenData), "%s", _tokenKey.GetString());
+	SafeSprintf(checkBuf + sizeof(TokenData), sizeof(checkBuf) - sizeof(TokenData), "%s", _tokenKey.c_str());
 
 	MD5 md5;
-	md5.update(checkBuf, sizeof(TokenData) + _tokenKey.Length());
+	md5.update(checkBuf, sizeof(TokenData) + _tokenKey.size());
 	std::string sign = md5.toString();
 
 	char buf[1024];

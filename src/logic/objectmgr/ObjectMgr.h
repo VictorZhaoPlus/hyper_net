@@ -7,7 +7,6 @@
 #ifndef __ObjectMgr_h__
 #define __ObjectMgr_h__
 #include <unordered_map>
-#include "OString.h"
 #include "singleton.h"
 #include "IObjectMgr.h"
 
@@ -18,19 +17,19 @@ class ObjectProp;
 class ObjectDescriptor;
 class TableDescriptor;
 class ObjectMgr : public IObjectMgr, public OHolder<ObjectMgr> {
-    typedef std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, ObjectDescriptor *,  olib::OStringHash<MAX_MODEL_NAME_LEN>> OBJECT_MODEL_MAP;
-    typedef std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, olib::OString<MAX_PATH>, olib::OStringHash<MAX_MODEL_NAME_LEN>> NAME_PATH_MAP;
-	typedef std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, ObjectProp *, olib::OStringHash<MAX_MODEL_NAME_LEN>> PROP_MAP;
+    typedef std::unordered_map<std::string, ObjectDescriptor *> OBJECT_MODEL_MAP;
+    typedef std::unordered_map<std::string, std::string> NAME_PATH_MAP;
+	typedef std::unordered_map<std::string, ObjectProp *> PROP_MAP;
 
     struct ObjectCreateInfo {
         MMObject * object;
-        const olib::OString<128> file;
+        const std::string file;
         const s32 line;
     };
 
 	struct TableCreateInfo {
 		ITableControl * object;
-		const olib::OString<128> file;
+		const std::string file;
 		const s32 line;
 	};
 
@@ -55,6 +54,7 @@ public:
     //创建对象类型静态表(同类型对象共有)
     virtual ITableControl * CreateStaticTable(const char * name, const char * model, const char * file, const s32 line);
 	virtual void RecoverStaticTable(ITableControl * table);
+	virtual s32 CalcTableName(const char * table);
 
 	const IProp* SetObjectProp(const char* name, const s32 typeId, ObjectLayout * layout);
 
@@ -68,7 +68,7 @@ private:
     NAME_PATH_MAP _namePathMap;
     OBJECT_MODEL_MAP _models;
 	std::unordered_map<s32, TableDescriptor *> _tableModels;
-	std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, s32, olib::OStringHash<MAX_MODEL_NAME_LEN>> _defines;
+	std::unordered_map<std::string, s32> _defines;
 	s32 _nextTypeId;
 
 	PROP_MAP _props;

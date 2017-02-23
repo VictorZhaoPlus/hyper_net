@@ -41,6 +41,6 @@ const char * ProtocolMgr::GetDesc(const char * group, const s32 id) {
 	auto itr = _descs[group].find(id);
 	OASSERT(itr != _descs[group].end(), "wtf");
 	if (itr != _descs[group].end())
-		return itr->second.GetString();
+		return itr->second.c_str();
 	return "";
 }

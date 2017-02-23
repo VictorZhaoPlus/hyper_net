@@ -49,7 +49,7 @@ bool ObjectMgr::Initialize(IKernel * kernel) {
 	});
 
 	for (auto itr = _namePathMap.begin(); itr != _namePathMap.end(); ++itr)
-		CreateTemplate(kernel, itr->first.GetString());
+		CreateTemplate(kernel, itr->first.c_str());
 
     return true;
 }
@@ -90,8 +90,8 @@ ObjectDescriptor * ObjectMgr::CreateTemplate(IKernel * kernel, const char * name
     }
 
 	olib::XmlReader conf;
-    if (!conf.LoadXml(itr->second.GetString())) {
-        OASSERT(false, "prop xml file %s load file", itr->second.GetString());
+    if (!conf.LoadXml(itr->second.c_str())) {
+        OASSERT(false, "prop xml file %s load file", itr->second.c_str());
         return nullptr;
     }
 
@@ -205,6 +205,10 @@ void ObjectMgr::RecoverStaticTable(ITableControl * table) {
 	OASSERT(!table->GetHost(), "wtf");
 	_tableMap.erase(((TableControl*)table)->GetName());
 	DEL table;
+}
+
+s32 ObjectMgr::CalcTableName(const char * table) {
+	return tools::CalcStringUniqueId(table);
 }
 
 const IProp* ObjectMgr::SetObjectProp(const char* name, const s32 typeId, ObjectLayout * layout) {

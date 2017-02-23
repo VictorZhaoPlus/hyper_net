@@ -7,7 +7,7 @@
 class SerializeStream
 {
 public:
-	SerializeStream(char * buffer, size_t len) : _buffer(buffer), _len(len), _offset(0) {}
+	SerializeStream(char * buffer, size_t len) : _buffer(buffer), _len((s32)len), _offset(0) {}
 	SerializeStream() : _len(BUFF_SIZE), _offset(0) { _buffer = (char*)MALLOC(BUFF_SIZE); }
 	
 	void release() { if (_buffer) FREE(_buffer); }
@@ -124,7 +124,7 @@ void pack_number(lua_State * L, SerializeStream& s, s32 index) {
 }
 
 void pack_boolean(lua_State * L, SerializeStream& s, s32 index) {
-	bool b = lua_toboolean(L, index);
+	bool b = lua_toboolean(L, index) != 1;
 	if (!s.write(lseri::BOOLEAN)) {
 		s.release();
 		luaL_error(L, "serialize buffer full");
@@ -143,7 +143,7 @@ void pack_string(lua_State * L, SerializeStream& s, s32 index) {
 		s.release();
 		luaL_error(L, "serialize buffer full");
 	}
-	if (!s.writeString(str, sz)) {
+	if (!s.writeString(str, (s32)sz)) {
 		s.release();
 		luaL_error(L, "serialize buffer full");
 	}	

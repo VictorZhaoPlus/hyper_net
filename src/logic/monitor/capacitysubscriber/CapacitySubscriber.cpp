@@ -1,6 +1,7 @@
 #include "CapacitySubscriber.h"
 #include "CoreProtocol.h"
 #include "Define.h"
+#include "OArgs.h"
 
 bool CapacitySubscriber::Initialize(IKernel * kernel) {
     _kernel = kernel;

@@ -9,11 +9,6 @@
 #define MAX_LUA_RESULT 8
 #define MAX_CODE_SIZE 256
 
-ScriptEngine * ScriptEngine::s_self = nullptr;
-IKernel * ScriptEngine::s_kernel = nullptr;
-
-lua_State * ScriptEngine::s_state = nullptr;
-
 class LuaReader : public IScriptArgumentReader {
 public:
 	LuaReader(lua_State * state) : _state(state) {}
@@ -37,8 +32,8 @@ public:
 			case 'd': { s16 * val = va_arg(ap, s16*); *val = (s16)lua_tointeger(_state, index++); } break;
 			case 'i': { s32 * val = va_arg(ap, s32*); *val = (s32)lua_tointeger(_state, index++); } break;
 			case 'l': { s64 * val = va_arg(ap, s64*); *val = lua_tointeger(_state, index++); } break;
-			case 'f': { float * val = va_arg(ap, float*); *val = lua_tonumber(_state, index++); } break;
-			case 'b': { bool * val = va_arg(ap, bool*); *val = lua_toboolean(_state, index++); } break;
+			case 'f': { float * val = va_arg(ap, float*); *val = (float)lua_tonumber(_state, index++); } break;
+			case 'b': { bool * val = va_arg(ap, bool*); *val = lua_toboolean(_state, index++) != 0; } break;
 			case 'P': { void ** val = va_arg(ap, void**); *val = lua_touserdata(_state, index++); } break;
 			case 's': { const char ** val = va_arg(ap, const char **); *val = lua_tostring(_state, index++); } break;
 			case 'S': {
@@ -46,7 +41,7 @@ public:
 					s32* len = va_arg(ap, s32*);
 					size_t size;
 					*val = lua_tolstring(_state, index++, &size);
-					*len = size;
+					*len = (s32)size;
 				}
 				break;
 			}
@@ -75,8 +70,8 @@ public:
 			case 'd': { s16 val = va_arg(ap, s32); lua_pushinteger(_state, val); ++_count; } break;
 			case 'i': { s32 val = va_arg(ap, s32); lua_pushinteger(_state, val); ++_count; } break;
 			case 'l': { s64 val = va_arg(ap, s64); lua_pushinteger(_state, val); ++_count; } break;
-			case 'f': { float val = va_arg(ap, double); lua_pushnumber(_state, val); ++_count; } break;
-			case 'b': { bool val = va_arg(ap, s32); lua_pushboolean(_state, val); ++_count; } break;
+			case 'f': { float val = va_arg(ap, float); lua_pushnumber(_state, val); ++_count; } break;
+			case 'b': { bool val = va_arg(ap, bool); lua_pushboolean(_state, val ? 1 : 0); ++_count; } break;
 			case 'P': { void * val = va_arg(ap, void*); lua_pushlightuserdata(_state, val); ++_count; } break;
 			case 's': { const char * val = va_arg(ap, const char *); lua_pushstring(_state, val); ++_count; } break;
 			case 'S': { 
@@ -121,15 +116,15 @@ public:
 			case 'd': { s16 * val = va_arg(ap, s16*); *val = (s16)lua_tointeger(_state, -MAX_LUA_RESULT + (index++)); } break;
 			case 'i': { s32 * val = va_arg(ap, s32*); *val = (s32)lua_tointeger(_state, -MAX_LUA_RESULT + (index++)); } break;
 			case 'l': { s64 * val = va_arg(ap, s64*); *val = lua_tointeger(_state, -MAX_LUA_RESULT + (index++)); } break;
-			case 'f': { float * val = va_arg(ap, float*); *val = lua_tonumber(_state, -MAX_LUA_RESULT + (index++)); } break;
-			case 'b': { bool * val = va_arg(ap, bool*); *val = lua_toboolean(_state, -MAX_LUA_RESULT + (index++)); } break;
+			case 'f': { float * val = va_arg(ap, float*); *val = (float)lua_tonumber(_state, -MAX_LUA_RESULT + (index++)); } break;
+			case 'b': { bool * val = va_arg(ap, bool*); *val = lua_toboolean(_state, -MAX_LUA_RESULT + (index++)) != 0; } break;
 			case 's': { const char ** val = va_arg(ap, const char **); *val = lua_tostring(_state, -MAX_LUA_RESULT + (index++)); } break;
 			case 'S': {
 					const char ** val = va_arg(ap, const char **);
 					s32* len = va_arg(ap, s32*);
 					size_t size;
 					*val = lua_tolstring(_state, -MAX_LUA_RESULT + (index++), &size);
-					*len = size;
+					*len = (s32)size;
 				}
 				break;
 			}
@@ -158,8 +153,7 @@ private:
 };
 
 bool ScriptEngine::Initialize(IKernel * kernel) {
-    s_self = this;
-    s_kernel = kernel;
+    _kernel = kernel;
 
     TiXmlDocument doc;
     std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
@@ -195,13 +189,13 @@ IScriptModule * ScriptEngine::CreateModule(const char * name) {
 	char module[256];
 	SafeSprintf(module, sizeof(module), "serverd.%s", name);
 
-	lua_getglobal(s_state, "package");
-	lua_getfield(s_state, -1, "loaded");
-	lua_pushstring(s_state, module);
-	lua_newtable(s_state);
-	lua_rawset(s_state, -3);
+	lua_getglobal(_state, "package");
+	lua_getfield(_state, -1, "loaded");
+	lua_pushstring(_state, module);
+	lua_newtable(_state);
+	lua_rawset(_state, -3);
 
-	lua_pop(s_state, 2);
+	lua_pop(_state, 2);
 
 	return NEW ScriptModule(name);
 }
@@ -210,19 +204,19 @@ bool ScriptEngine::AddModuleFunction(const IScriptModule * m, const char * func,
 	char module[256];
 	SafeSprintf(module, sizeof(module), "serverd.%s", ((const ScriptModule*)m)->CStyle());
 
-	lua_getglobal(s_state, "package");
-	lua_getfield(s_state, -1, "loaded");
-	lua_pushstring(s_state, module);
-	lua_rawget(s_state, -2);
+	lua_getglobal(_state, "package");
+	lua_getfield(_state, -1, "loaded");
+	lua_pushstring(_state, module);
+	lua_rawget(_state, -2);
 
-	OASSERT(lua_istable(s_state, -1), "where is module %s", ((const ScriptModule*)m)->CStyle());
+	OASSERT(lua_istable(_state, -1), "where is module %s", ((const ScriptModule*)m)->CStyle());
 
-	lua_pushstring(s_state, func);
-	new(lua_newuserdata(s_state, sizeof(ScriptFuncType))) ScriptFuncType(f);
-	lua_pushcclosure(s_state, ScriptEngine::Callback, 1);
-	lua_rawset(s_state, -3);
+	lua_pushstring(_state, func);
+	new(lua_newuserdata(_state, sizeof(ScriptFuncType))) ScriptFuncType(f);
+	lua_pushcclosure(_state, ScriptEngine::Callback, 1);
+	lua_rawset(_state, -3);
 
-	lua_pop(s_state, 3);
+	lua_pop(_state, 3);
 	return true;
 }
 
@@ -236,18 +230,18 @@ bool ScriptEngine::Call(const IScriptModule * module, const char * func, const S
 	va_start(ap, format);
 	while (*c != '\0') {
 		switch (*c) {
-		case 'c': { s8 val = va_arg(ap, s32); lua_pushinteger(s_state, val); ++count; } break;
-		case 'd': { s16 val = va_arg(ap, s32); lua_pushinteger(s_state, val); ++count; } break;
-		case 'i': { s32 val = va_arg(ap, s32); lua_pushinteger(s_state, val); ++count; } break;
-		case 'l': { s64 val = va_arg(ap, s64); lua_pushinteger(s_state, val); ++count; } break;
-		case 'f': { float val = va_arg(ap, double); lua_pushnumber(s_state, val); ++count; } break;
-		case 'b': { bool val = va_arg(ap, s32); lua_pushboolean(s_state, val); ++count; } break;
-		case 'P': { void * val = va_arg(ap, void*); lua_pushlightuserdata(s_state, val); ++count; } break;
-		case 's': { const char * val = va_arg(ap, const char *); lua_pushstring(s_state, val); ++count; } break;
+		case 'c': { s8 val = va_arg(ap, s32); lua_pushinteger(_state, val); ++count; } break;
+		case 'd': { s16 val = va_arg(ap, s32); lua_pushinteger(_state, val); ++count; } break;
+		case 'i': { s32 val = va_arg(ap, s32); lua_pushinteger(_state, val); ++count; } break;
+		case 'l': { s64 val = va_arg(ap, s64); lua_pushinteger(_state, val); ++count; } break;
+		case 'f': { float val = va_arg(ap, float); lua_pushnumber(_state, val); ++count; } break;
+		case 'b': { bool val = va_arg(ap, bool); lua_pushboolean(_state, val ? 1 : 0); ++count; } break;
+		case 'P': { void * val = va_arg(ap, void*); lua_pushlightuserdata(_state, val); ++count; } break;
+		case 's': { const char * val = va_arg(ap, const char *); lua_pushstring(_state, val); ++count; } break;
 		case 'S': {
 				const char * val = va_arg(ap, const char *);
 				s32 len = va_arg(ap, s32);
-				lua_pushlstring(s_state, val, len);
+				lua_pushlstring(_state, val, len);
 				++count;
 			}
 			break;
@@ -256,7 +250,7 @@ bool ScriptEngine::Call(const IScriptModule * module, const char * func, const S
 	}
 	va_end(ap);
 
-	bool ret = ExecuteFunction(s_kernel, count, [&f](IKernel * kernel, lua_State * state){
+	bool ret = ExecuteFunction(_kernel, count, [&f](IKernel * kernel, lua_State * state){
 		if (f) {
 			s32 count = 0;
 			for (s32 i = 0; i < MAX_LUA_RESULT; ++i) {
@@ -270,18 +264,18 @@ bool ScriptEngine::Call(const IScriptModule * module, const char * func, const S
 		}
 	});
 
-	lua_pop(s_state, 3);
+	lua_pop(_state, 3);
 	return ret;
 }
 
 bool ScriptEngine::LoadLua(const char * path, const char * logic) {
-	s_state = luaL_newstate();
-	OASSERT(s_state != nullptr, "init lua state failed");
+	_state = luaL_newstate();
+	OASSERT(_state != nullptr, "init lua state failed");
 
-	luaL_openlibs(s_state);
-	luaopen_seri(s_state);
-	luaopen_tick(s_state);
-	luaopen_buffer(s_state);
+	luaL_openlibs(_state);
+	luaopen_seri(_state);
+	luaopen_tick(_state);
+	luaopen_buffer(_state);
 
 	char logicPath[MAX_PATH];
 	SafeSprintf(logicPath, sizeof(logicPath), "%s/hyper_net", path);
@@ -294,12 +288,12 @@ bool ScriptEngine::LoadLua(const char * path, const char * logic) {
 }
 
 void ScriptEngine::AddSearchPath(const char* path) {
-    lua_getglobal(s_state, "package");                                  /* L: package */
-    lua_getfield(s_state, -1, "path");                /* get package.path, L: package path */
-    const char* cur_path =  lua_tostring(s_state, -1);
-    lua_pushfstring(s_state, "%s;%s/?.lua", cur_path, path);            /* L: package path newpath */
-    lua_setfield(s_state, -3, "path");          /* package.path = newpath, L: package path */
-    lua_pop(s_state, 2);                                                /* L: - */
+    lua_getglobal(_state, "package");                                  /* L: package */
+    lua_getfield(_state, -1, "path");                /* get package.path, L: package path */
+    const char* cur_path =  lua_tostring(_state, -1);
+    lua_pushfstring(_state, "%s;%s/?.lua", cur_path, path);            /* L: package path newpath */
+    lua_setfield(_state, -3, "path");          /* package.path = newpath, L: package path */
+    lua_pop(_state, 2);                                                /* L: - */
 }
 
 s32 ScriptEngine::Callback(lua_State * state) {
@@ -309,7 +303,7 @@ s32 ScriptEngine::Callback(lua_State * state) {
 	LuaReader reader(state);
 	LuaWriter writer(state);
 
-	func(s_kernel, &reader, &writer);
+	func(ScriptEngine::Instance()->GetKernel(), &reader, &writer);
 
 	return writer.Count();
 }
@@ -318,17 +312,17 @@ bool ScriptEngine::PrepareCall(const IScriptModule * m, const char * func) {
 	char module[256];
 	SafeSprintf(module, sizeof(module), "serverd.%s", ((const ScriptModule*)m)->CStyle());
 
-	lua_getglobal(s_state, "package");
-	lua_getfield(s_state, -1, "loaded");
-	lua_pushstring(s_state, module);
-	lua_rawget(s_state, -2);
-	OASSERT(lua_istable(s_state, -1), "where is module %s", ((const ScriptModule*)m)->CStyle());
+	lua_getglobal(_state, "package");
+	lua_getfield(_state, -1, "loaded");
+	lua_pushstring(_state, module);
+	lua_rawget(_state, -2);
+	OASSERT(lua_istable(_state, -1), "where is module %s", ((const ScriptModule*)m)->CStyle());
 
-	lua_pushstring(s_state, func);
-	lua_rawget(s_state, -2);
-	if (!lua_isfunction(s_state, -1)) {
-		OASSERT(lua_isfunction(s_state, -1), "is not a function");
-		lua_pop(s_state, 4);
+	lua_pushstring(_state, func);
+	lua_rawget(_state, -2);
+	if (!lua_isfunction(_state, -1)) {
+		OASSERT(lua_isfunction(_state, -1), "is not a function");
+		lua_pop(_state, 4);
 		return false;
 	}
 
@@ -337,54 +331,54 @@ bool ScriptEngine::PrepareCall(const IScriptModule * m, const char * func) {
 
 bool ScriptEngine::ExecuteFunction(IKernel * kernel, int argc, const ResultReader& reader) {
     int functionIndex = -(argc + 1);
-    if (!lua_isfunction(s_state, functionIndex)) {
+    if (!lua_isfunction(_state, functionIndex)) {
         OASSERT(false, "execute lua func but is not a func");
         return false;
     }
 
     int traceback = 0;
-    lua_getglobal(s_state, "__G__TRACKBACK__");                         /* L: ... func arg1 arg2 ... G */
-    if (!lua_isfunction(s_state, -1))
-        lua_pop(s_state, 1);                                            /* L: ... func arg1 arg2 ... */
+    lua_getglobal(_state, "__G__TRACKBACK__");                         /* L: ... func arg1 arg2 ... G */
+    if (!lua_isfunction(_state, -1))
+        lua_pop(_state, 1);                                            /* L: ... func arg1 arg2 ... */
     else {
-        lua_insert(s_state, functionIndex - 1);                         /* L: ... G func arg1 arg2 ... */
+        lua_insert(_state, functionIndex - 1);                         /* L: ... G func arg1 arg2 ... */
         traceback = functionIndex - 1;
     }
 
     int error = 0;
-    error = lua_pcall(s_state, argc, MAX_LUA_RESULT, traceback);                  /* L: ... [G] ret */
+    error = lua_pcall(_state, argc, MAX_LUA_RESULT, traceback);                  /* L: ... [G] ret */
     if (error) {
 		if (traceback == 0) {
-			printf("%s\n", lua_tostring(s_state , - 1));
-			lua_pop(s_state, 1); // remove error message from stack
+			printf("%s\n", lua_tostring(_state , - 1));
+			lua_pop(_state, 1); // remove error message from stack
 		}
         else                                                            /* L: ... G error */
-            lua_pop(s_state, 2); // remove __G__TRACKBACK__ and error message from stack
+            lua_pop(_state, 2); // remove __G__TRACKBACK__ and error message from stack
         return false;
     }
 
     if (reader)
-        reader(kernel, s_state);
-	lua_pop(s_state, MAX_LUA_RESULT);                                                /* L: ... [G] */
+        reader(kernel, _state);
+	lua_pop(_state, MAX_LUA_RESULT);                                                /* L: ... [G] */
 
     if (traceback)
-        lua_pop(s_state, 1); // remove __G__TRACKBACK__ from stack      /* L: ... */
+        lua_pop(_state, 1); // remove __G__TRACKBACK__ from stack      /* L: ... */
 
     return true;
 }
 
 bool ScriptEngine::ExecuteGlobalFunction(IKernel * kernel, const char * functionName, const ResultReader& reader)  {
-    lua_getglobal(s_state, functionName);       /* query function by name, stack: function */
-    if (!lua_isfunction(s_state, -1)) {
+    lua_getglobal(_state, functionName);       /* query function by name, stack: function */
+    if (!lua_isfunction(_state, -1)) {
         OASSERT(false, "execute global func but is not a function");
-        lua_pop(s_state, 1);
+        lua_pop(_state, 1);
         return 0;
     }
     return ExecuteFunction(kernel, 0, reader);
 }
 
 bool ScriptEngine::ExecuteString(IKernel * kernel, const char *codes, const ResultReader& reader) {
-    luaL_loadstring(s_state, codes);
+    luaL_loadstring(_state, codes);
     return ExecuteFunction(kernel, 0, reader);
 }
 

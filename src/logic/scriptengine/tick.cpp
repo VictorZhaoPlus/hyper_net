@@ -17,10 +17,9 @@ static s32 l_log(lua_State * L) {
 		msg = lua_tostring(L, -1);
 	else {
 		msg = lua_tostring(L, -2);
-		sync = lua_toboolean(L, -1);
+		sync = lua_toboolean(L, -1) != 0;
 	}
-
-	ScriptEngine::GetKernel()->Log(msg, sync);
+	printf(msg);
 	return 0;
 }
 

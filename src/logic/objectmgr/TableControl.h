@@ -10,7 +10,6 @@
 #include <vector>
 #include <unordered_map>
 #include <list>
-#include "OString.h"
 
 #define MAX_STRING_KEY_LEN 64
 class TableRow;
@@ -18,7 +17,7 @@ class TableDescriptor;
 class TableControl : public ITableControl{
     typedef std::vector<TableRow *> TABLE_ROWS;
     typedef std::unordered_map<s64, s32> KEY_INT_MAP;
-    typedef std::unordered_map<olib::OString<MAX_STRING_KEY_LEN>, s32, olib::OStringHash<MAX_STRING_KEY_LEN>> KEY_STRING_MAP;
+    typedef std::unordered_map<std::string, s32> KEY_STRING_MAP;
 
     typedef std::list<TableUpdateCallback> UPDATE_CB_POOL;
     typedef std::list<TableAddCallback> ADD_CB_POOL;

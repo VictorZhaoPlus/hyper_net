@@ -5,6 +5,7 @@
 #include "ICapacitySubscriber.h"
 #include "CoreProtocol.h"
 #include "StartNodeTimer.h"
+#include "OArgs.h"
 
 bool Starter::Initialize(IKernel * kernel) {
     _kernel = kernel;

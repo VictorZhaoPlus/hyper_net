@@ -56,11 +56,6 @@ private:
 	s32 _tableWatcher;
 	s32 _settingShare;
 
-	s32 _commandAddInterest;
-	s32 _commandRemoveInterest;
-	s32 _commandAddWatcher;
-	s32 _commandRemoveWatcher;
-
 	s32 _eventSceneObjectDestroy;
 
 	s32 _appearId;

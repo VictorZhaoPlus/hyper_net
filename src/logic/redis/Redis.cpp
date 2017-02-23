@@ -9,7 +9,7 @@ Redis * Redis::s_self = nullptr;
 IKernel * Redis::s_kernel = nullptr;
 
 std::vector<Redis::Context> Redis::s_contexts;
-std::unordered_map<olib::OString<32>, olib::OString<512>, olib::OStringHash<32>> Redis::s_scripts;
+std::unordered_map<std::string, std::string> Redis::s_scripts;
 
 bool Redis::Initialize(IKernel * kernel) {
     s_self = this;
@@ -110,7 +110,7 @@ bool Redis::Call(const s64 id, const char* proc, const s32 keyCount, const OArgs
 	CommandBuff buf;
 	buf.size = 0;
 
-	const char * scriptId = s_contexts[id % s_contexts.size()].scriptIds[proc].GetString();
+	const char * scriptId = s_contexts[id % s_contexts.size()].scriptIds[proc].c_str();
 	s32 len = (s32)strlen(scriptId);
 	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "*%d\r\n$7\r\nEVALSHA\r\n$%d\r\n%s\r\n", args.Count() + 2, len, scriptId);
 	buf.size += (s32)strlen(buf.data + buf.size);
@@ -149,7 +149,7 @@ bool Redis::Connect(IKernel * kernel, Context& ctx) {
 	tv.tv_sec = 0;
 	tv.tv_usec = 50000;
 
-	ctx.ctx = redisConnectWithTimeout(ctx.ip.GetString(), ctx.port, tv);
+	ctx.ctx = redisConnectWithTimeout(ctx.ip.c_str(), ctx.port, tv);
 	OASSERT(ctx.ctx, "wtf");
 	if (!ctx.ctx)
 		return false;
@@ -165,7 +165,7 @@ bool Redis::LoadScript(IKernel * kernel, const s64 id, const char * proc) {
 		auto itrId = ctx.scriptIds.find(proc);
 		if (itrId == ctx.scriptIds.end()) {
 			IArgs<2, 1024> args;
-			args << "LOAD" << itr->second.GetString();
+			args << "LOAD" << itr->second.c_str();
 			return s_self->Exec(id, "SCRIPT", args.Out(), [&ctx, proc](IKernel * kernel, const IRedisResult * ret) {
 				ctx.scriptIds[proc] = ret->AsString();
 				return true;

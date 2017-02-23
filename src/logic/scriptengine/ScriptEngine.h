@@ -2,6 +2,7 @@
 #define __LUACORE_H__
 #include "util.h"
 #include "IScriptEngine.h"
+#include "singleton.h"
 #ifndef LUAJIT
 extern "C" {
     #include "lua/lua.h"
@@ -16,7 +17,7 @@ extern "C" {
 #include <unordered_map>
 
 typedef std::function<void (IKernel * kernel, lua_State * state)> ResultReader;
-class ScriptEngine : public IScriptEngine {
+class ScriptEngine : public IScriptEngine, public OHolder<ScriptEngine>{
 public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);
@@ -27,26 +28,24 @@ public:
 
 	virtual bool Call(const IScriptModule * module, const char * func, const ScriptResultReadFuncType& f, const char * format, ...);
 
-	static ScriptEngine * Self() { return s_self; }
-	static IKernel * GetKernel() { return s_kernel; }
+	IKernel * GetKernel() const { return _kernel; }
 
 private:
-    static bool LoadLua(const char * path, const char * logic);
-    static void AddSearchPath(const char* path);
+    bool LoadLua(const char * path, const char * logic);
+    void AddSearchPath(const char* path);
 
 	static s32 Callback(lua_State * state);
 
-	static bool PrepareCall(const IScriptModule * module, const char * func);
-    static bool ExecuteFunction(IKernel * kernel, int argc, const ResultReader& reader);
-    static bool ExecuteGlobalFunction(IKernel * kernel, const char * functionName, const ResultReader& reader);
-    static bool ExecuteString(IKernel * kernel, const char *codes, const ResultReader& reader);
-    static bool ExecuteScriptFile(IKernel * kernel, const char * module);
+	bool PrepareCall(const IScriptModule * module, const char * func);
+    bool ExecuteFunction(IKernel * kernel, int argc, const ResultReader& reader);
+    bool ExecuteGlobalFunction(IKernel * kernel, const char * functionName, const ResultReader& reader);
+    bool ExecuteString(IKernel * kernel, const char *codes, const ResultReader& reader);
+    bool ExecuteScriptFile(IKernel * kernel, const char * module);
 
 private:
-	static ScriptEngine * s_self;
-    static IKernel * s_kernel;
+    IKernel * _kernel;
 
-    static lua_State * s_state;
+    lua_State * _state;
 };
 
 #endif //__STARTER_H__

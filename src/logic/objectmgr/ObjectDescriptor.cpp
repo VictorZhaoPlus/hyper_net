@@ -11,7 +11,7 @@ ObjectDescriptor::ObjectDescriptor(s32 typeId, const char * name, ObjectDescript
 	if (parent) {
 		_layouts = parent->_layouts;
 		for (auto& layout : _layouts) {
-			const IProp * prop = ObjectMgr::Instance()->SetObjectProp(layout.name.GetString(), _typeId, &layout);
+			const IProp * prop = ObjectMgr::Instance()->SetObjectProp(layout.name.c_str(), _typeId, &layout);
 			_props.push_back(prop);
 		}
 		_size = parent->_size;
@@ -21,7 +21,7 @@ ObjectDescriptor::ObjectDescriptor(s32 typeId, const char * name, ObjectDescript
 		_size = 0;
 }
 
-bool ObjectDescriptor::LoadFrom(const olib::IXmlObject& root, const std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, s32, olib::OStringHash<MAX_MODEL_NAME_LEN>>& defines) {
+bool ObjectDescriptor::LoadFrom(const olib::IXmlObject& root, const std::unordered_map<std::string, s32>& defines) {
 	if (!LoadProps(root["prop"], defines))
 		return false;
 
@@ -32,7 +32,7 @@ bool ObjectDescriptor::LoadFrom(const olib::IXmlObject& root, const std::unorder
 	return true;
 }
 
-bool ObjectDescriptor::LoadProps(const olib::IXmlObject& props, const std::unordered_map<olib::OString<MAX_MODEL_NAME_LEN>, s32, olib::OStringHash<MAX_MODEL_NAME_LEN>>& defines) {
+bool ObjectDescriptor::LoadProps(const olib::IXmlObject& props, const std::unordered_map<std::string, s32>& defines) {
 	for (s32 i = 0; i < props.Count(); ++i) {
 		const char * name = props[i].GetAttributeString("name");
 		const char * typeStr = props[i].GetAttributeString("type");
@@ -79,7 +79,7 @@ bool ObjectDescriptor::LoadProps(const olib::IXmlObject& props, const std::unord
 
 		layout.setting = 0;
 		for (auto itr = defines.begin(); itr != defines.end(); ++itr) {
-			if (props[i].HasAttribute(itr->first.GetString()) && props[i].GetAttributeBoolean(itr->first.GetString()))
+			if (props[i].HasAttribute(itr->first.c_str()) && props[i].GetAttributeBoolean(itr->first.c_str()))
 				layout.setting |= itr->second;
 		}
 		_layouts.push_back(layout);

@@ -4,7 +4,6 @@
 #include "IScene.h"
 #include "singleton.h"
 #include <unordered_map>
-#include "OString.h"
 
 #define MAX_SCENE_LEN 32
 
@@ -12,7 +11,7 @@ class IEventEngine;
 class IHarbor;
 class SceneClient : public ISceneClient, public OHolder<SceneClient> {
 	struct Area {
-		olib::OString<MAX_SCENE_LEN> scene;
+		std::string scene;
 		Position center;
 		s16 range;
 		AreaCallBack f;

@@ -3,7 +3,9 @@
 
 #include "IKernel.h"
 #include "IModule.h"
-#include "OArgs.h"
+
+class OArgs;
+class OBuffer;
 
 class INodeListener {
 public:
@@ -13,7 +15,7 @@ public:
     virtual void OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) = 0;
 };
 
-typedef std::function<void(IKernel * kernel, s32 nodeType, s32 nodeId, const void * context, const s32 size)> NodeCB;
+typedef std::function<void(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& stream)> NodeCB;
 typedef std::function<void(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args)> NodeArgsCB;
 
 class IHarbor : public IModule {
@@ -43,7 +45,7 @@ public:
     virtual s32 GetNodeId() const = 0;
 };
 
-#define RGS_HABOR_HANDLER(messageId, handler) _harbor->RegProtocolHandler(messageId, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5), #handler)
+#define RGS_HABOR_HANDLER(messageId, handler) _harbor->RegProtocolHandler(messageId, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), #handler)
 #define RGS_HABOR_ARGS_HANDLER(messageId, handler) _harbor->RegProtocolArgsHandler(messageId, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), #handler)
 
 #endif //__IHARBOR_H__

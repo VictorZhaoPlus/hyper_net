@@ -4,8 +4,8 @@
 
 static s32 l_readline(lua_State * L) {
 	const char * context = (const char *)lua_touserdata(L, 1);
-	s32 offset = lua_tointeger(L, 2);
-	s32 size = lua_tointeger(L, 3);
+	s32 offset = (s32)lua_tointeger(L, 2);
+	s32 size = (s32)lua_tointeger(L, 3);
 	const char * sep = "\n";
 	size_t sepLen = strlen(sep);
 	if (lua_gettop(L) == 4)
@@ -25,8 +25,8 @@ static s32 l_readline(lua_State * L) {
 
 static s32 l_readstr(lua_State * L) {
 	const char * context = (const char *)lua_touserdata(L, 1);
-	s32 offset = lua_tointeger(L, 2);
-	s32 len = lua_tointeger(L, 3);
+	s32 offset = (s32)lua_tointeger(L, 2);
+	s32 len = (s32)lua_tointeger(L, 3);
 
 	lua_pushlstring(L, context + offset, len);
 	return 1;
@@ -34,7 +34,7 @@ static s32 l_readstr(lua_State * L) {
 
 static s32 l_readint8(lua_State * L) {
 	const char * context = (const char *)lua_touserdata(L, 1);
-	s32 offset = lua_tointeger(L, 2);
+	s32 offset = (s32)lua_tointeger(L, 2);
 
 	lua_pushinteger(L, *(s8*)(context + offset));
 	return 1;
@@ -42,7 +42,7 @@ static s32 l_readint8(lua_State * L) {
 
 static s32 l_readint16(lua_State * L) {
 	const char * context = (const char *)lua_touserdata(L, 1);
-	s32 offset = lua_tointeger(L, 2);
+	s32 offset = (s32)lua_tointeger(L, 2);
 
 	lua_pushinteger(L, *(s16*)(context + offset));
 	return 1;
@@ -50,7 +50,7 @@ static s32 l_readint16(lua_State * L) {
 
 static s32 l_readint32(lua_State * L) {
 	const char * context = (const char *)lua_touserdata(L, 1);
-	s32 offset = lua_tointeger(L, 2);
+	s32 offset = (s32)lua_tointeger(L, 2);
 
 	lua_pushinteger(L, *(s32*)(context + offset));
 	return 1;
@@ -58,7 +58,7 @@ static s32 l_readint32(lua_State * L) {
 
 static s32 l_readint64(lua_State * L) {
 	const char * context = (const char *)lua_touserdata(L, 1);
-	s32 offset = lua_tointeger(L, 2);
+	s32 offset = (s32)lua_tointeger(L, 2);
 
 	lua_pushinteger(L, *(s64*)(context + offset));
 	return 1;
@@ -66,7 +66,7 @@ static s32 l_readint64(lua_State * L) {
 
 static s32 l_readfloat(lua_State * L) {
 	const char * context = (const char *)lua_touserdata(L, 1);
-	s32 offset = lua_tointeger(L, 2);
+	s32 offset = (s32)lua_tointeger(L, 2);
 
 	lua_pushnumber(L, *(float*)(context + offset));
 	return 1;
@@ -74,7 +74,7 @@ static s32 l_readfloat(lua_State * L) {
 
 static s32 l_readboolean(lua_State * L) {
 	const char * context = (const char *)lua_touserdata(L, 1);
-	s32 offset = lua_tointeger(L, 2);
+	s32 offset = (s32)lua_tointeger(L, 2);
 
 	lua_pushboolean(L, *(bool*)(context + offset));
 	return 1;

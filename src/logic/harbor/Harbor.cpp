@@ -4,6 +4,8 @@
 #include "tools.h"
 #include <algorithm>
 #include "NodeType.h"
+#include "OArgs.h"
+#include "OBuffer.h"
 
 Harbor * Harbor::s_harbor = nullptr;
 IKernel * Harbor::s_kernel = nullptr;
@@ -14,7 +16,7 @@ public:
 	virtual ~NodeCBProtoHandler() {}
 
 	virtual void DealNodeProto(IKernel * kernel, const s32 nodeType, const s32 nodeId, const void * context, const s32 size) {
-		_cb(kernel, nodeType, nodeId, context, size);
+		_cb(kernel, nodeType, nodeId, OBuffer((const char*)context, size));
 	}
 
 private:
