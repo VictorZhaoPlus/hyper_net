@@ -9,6 +9,8 @@
 #include "IObjectMgr.h"
 #include "Memory.h"
 #include "XmlReader.h"
+#include "TableControl.h"
+#include "ObjectMgr.h"
 
 struct TableLayout : public Layout {
 	s8 type;
@@ -73,7 +75,14 @@ public:
 	virtual s32 GetRowIndex() const { return _index; }
 	void SetRowIndex(const s32 index) { _index = index; }
 
-	const void * Get(const s32 prop, const s8 type, s32& size) const;
+	inline const void * Get(const s32 col, const s8 type, s32& size) const {
+		const TableLayout * info = _descriptor->Query(col, type, size);
+		if (!info)
+			return nullptr;
+
+		size = info->size;
+		return _memory->Get(info);
+	}
 	virtual s8 GetDataInt8(const s32 col) const { s32 size = sizeof(s8); return *(s8*)Get(col, DTYPE_INT8, size); }
 	virtual s16 GetDataInt16(const s32 col) const { s32 size = sizeof(s16); return *(s8*)Get(col, DTYPE_INT16, size); }
 	virtual s32 GetDataInt32(const s32 col) const { s32 size = sizeof(s32); return *(s8*)Get(col, DTYPE_INT32, size); }
@@ -83,7 +92,27 @@ public:
 	virtual const void * GetDataStruct(const s32 col, const s32 size) const { s32 tempSize = size; return (const char *)Get(col, DTYPE_STRUCT, tempSize); }
 	virtual const void * GetDataBlob(const s32 col, s32& size) const { size = 0; return (const char *)Get(col, DTYPE_BLOB, size); }
 
-	void Set(const s32 col, const s8 type, const void * data, const s32 size, bool changeKey = true);
+	inline void Set(const s32 col, const s8 type, const void * data, const s32 size, bool changeKey = true) {
+		const TableLayout * info = _descriptor->Query(col, type, size);
+		if (!info)
+			return;
+
+		if (changeKey) {
+			if (info->key) {
+				switch (info->type) {
+				case DTYPE_STRING: _table->ChangeKey((const char *)_memory->Get(info), (const char *)data, info->type); break;
+				case DTYPE_INT8: _table->ChangeKey(*(s8*)_memory->Get(info), *(s8*)data, info->type); break;
+				case DTYPE_INT16: _table->ChangeKey(*(s16*)_memory->Get(info), *(s16*)data, info->type); break;
+				case DTYPE_INT32: _table->ChangeKey(*(s32*)_memory->Get(info), *(s32*)data, info->type); break;
+				case DTYPE_INT64: _table->ChangeKey(*(s64*)_memory->Get(info), *(s64*)data, info->type); break;
+				default: OASSERT(false, "key type invalid");  break;
+				}
+			}
+		}
+
+		_memory->Set(info, data, size);
+		_table->UpdateCallBack(ObjectMgr::Instance()->GetKernel(), this, col, info->type);
+	}
 	virtual void SetDataInt8(const s32 col, const s8 value) { Set(col, DTYPE_INT8, &value, sizeof(s8)); }
 	virtual void SetDataInt16(const s32 col, const s16 value) { Set(col, DTYPE_INT16, &value, sizeof(s16)); }
 	virtual void SetDataInt32(const s32 col, const s32 value) { Set(col, DTYPE_INT32, &value, sizeof(s32)); }

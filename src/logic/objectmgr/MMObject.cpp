@@ -33,43 +33,9 @@ const std::vector<const IProp*>& MMObject::GetPropsInfo(bool noParent) const {
 	return _descriptor->GetPropsInfo(noParent);
 }
 
-bool MMObject::Set(const IProp * prop, const s8 type, const void * data, const s32 size, const bool sync) {
-	const ObjectLayout * layout = ((ObjectProp*)prop)->GetLayout(_descriptor->GetTypeId());
-	OASSERT(layout, "wtf");
-	if (layout != nullptr) {
-		OASSERT(layout->type == type && layout->size >= size, "wtf");
-
-		if (layout->type == type && layout->size >= size) {
-			_memory->Set(layout, data, size);
-			PropCall(prop, sync);
-			return true;
-		}
-	}
-	return false;
-}
-
-const void *  MMObject::Get(const IProp * prop, const s8 type, s32& size) const {
-	const ObjectLayout * layout = ((ObjectProp*)prop)->GetLayout(_descriptor->GetTypeId());
-	OASSERT(layout, "wtf");
-	if (layout != nullptr) {
-		OASSERT(layout->type == type && layout->size >= size, "wtf");
-
-		if (layout->type == type && layout->size >= size) {
-			size = layout->size;
-			return _memory->Get(layout);
-		}
-	}
-	return nullptr;
-}
-
 ITableControl * MMObject::FindTable(const s32 name) const {
     TABLE_MAP::const_iterator itor = _tables.find(name);
     if (itor == _tables.end())
         return nullptr;
     return itor->second;
-}
-
-void MMObject::PropCall(const IProp * prop, const bool sync) {
-	_propCBPool.Call(prop, ObjectMgr::Instance()->GetKernel(), this, _type.c_str(), prop, sync);
-	_propCBPool.Call(nullptr, ObjectMgr::Instance()->GetKernel(), this, _type.c_str(), prop, sync);
 }

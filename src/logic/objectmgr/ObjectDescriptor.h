@@ -50,7 +50,7 @@ private:
 private:
 	s32 _typeId;
 	std::string _type;
-	std::vector<ObjectLayout> _layouts;
+	std::vector<ObjectLayout*> _layouts;
 	std::vector<const IProp*> _props;
 	std::vector<const IProp*> _selfProps;
 	s32 _size;

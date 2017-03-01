@@ -11,7 +11,7 @@ ObjectDescriptor::ObjectDescriptor(s32 typeId, const char * name, ObjectDescript
 	if (parent) {
 		_layouts = parent->_layouts;
 		for (auto& layout : _layouts) {
-			const IProp * prop = ObjectMgr::Instance()->SetObjectProp(layout.name.c_str(), _typeId, &layout);
+			const IProp * prop = ObjectMgr::Instance()->SetObjectProp(layout->name.c_str(), _typeId, layout);
 			_props.push_back(prop);
 		}
 		_size = parent->_size;
@@ -37,55 +37,55 @@ bool ObjectDescriptor::LoadProps(const olib::IXmlObject& props, const std::unord
 		const char * name = props[i].GetAttributeString("name");
 		const char * typeStr = props[i].GetAttributeString("type");
 
-		ObjectLayout layout;
-		layout.offset = _size;
-		layout.name = name;
+		ObjectLayout * layout = NEW ObjectLayout;
+		layout->offset = _size;
+		layout->name = name;
 		if (!strcmp(typeStr, "s8")) {
-			layout.size = sizeof(s8);
-			layout.type = DTYPE_INT8;
+			layout->size = sizeof(s8);
+			layout->type = DTYPE_INT8;
 		}
 		else if (!strcmp(typeStr, "s16")) {
-			layout.size = sizeof(s16);
-			layout.type = DTYPE_INT16;
+			layout->size = sizeof(s16);
+			layout->type = DTYPE_INT16;
 		}
 		else if (!strcmp(typeStr, "s32")) {
-			layout.size = sizeof(s32);
-			layout.type = DTYPE_INT32;
+			layout->size = sizeof(s32);
+			layout->type = DTYPE_INT32;
 		}
 		else if (!strcmp(typeStr, "s64")) {
-			layout.size = sizeof(s64);
-			layout.type = DTYPE_INT64;
+			layout->size = sizeof(s64);
+			layout->type = DTYPE_INT64;
 		}
 		else if (!strcmp(typeStr, "float")) {
-			layout.size = sizeof(float);
-			layout.type = DTYPE_FLOAT;
+			layout->size = sizeof(float);
+			layout->type = DTYPE_FLOAT;
 		}
 		else if (!strcmp(typeStr, "string")) {
-			layout.size = props[i].GetAttributeInt32("size");
-			layout.type = DTYPE_STRING;
+			layout->size = props[i].GetAttributeInt32("size");
+			layout->type = DTYPE_STRING;
+		}
+		else if (!strcmp(typeStr, "struct")) {
+			layout->size = props[i].GetAttributeInt32("size");
+			layout->type = DTYPE_STRUCT;
 		}
 		else if (!strcmp(typeStr, "blob")) {
-			layout.size = props[i].GetAttributeInt32("size");
-			layout.type = DTYPE_STRUCT;
-		}
-		else if (!strcmp(typeStr, "blob")) {
-			layout.size = props[i].GetAttributeInt32("size");
-			layout.type = DTYPE_BLOB;
+			layout->size = props[i].GetAttributeInt32("size");
+			layout->type = DTYPE_BLOB;
 		}
 		else {
 			OASSERT(false, "what's this");
 			return false;
 		}
 
-		layout.setting = 0;
+		layout->setting = 0;
 		for (auto itr = defines.begin(); itr != defines.end(); ++itr) {
 			if (props[i].HasAttribute(itr->first.c_str()) && props[i].GetAttributeBoolean(itr->first.c_str()))
-				layout.setting |= itr->second;
+				layout->setting |= itr->second;
 		}
 		_layouts.push_back(layout);
-		_size += layout.size;
+		_size += layout->size;
 
-		const IProp * prop = ObjectMgr::Instance()->SetObjectProp(name, _typeId, &(*_layouts.rbegin()));
+		const IProp * prop = ObjectMgr::Instance()->SetObjectProp(name, _typeId, layout);
 		_props.push_back(prop);
 		_selfProps.push_back(prop);
 	}

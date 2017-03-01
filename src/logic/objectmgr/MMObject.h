@@ -11,9 +11,11 @@
 #include "IObjectMgr.h"
 #include <unordered_map>
 #include "OCallback.h"
+#include "Memory.h"
+#include "ObjectDescriptor.h"
+#include "ObjectMgr.h"
+#include "ObjectProp.h"
 
-class Memory;
-class ObjectDescriptor;
 class MMObject : public IObject {
     typedef olib::CallbackType<IProp *, PropCallback>::type PROP_CB_POOL;
 	typedef std::unordered_map<s32, TableControl*> TABLE_MAP;
@@ -32,7 +34,20 @@ public:
 
 	virtual const std::vector<const IProp*>& GetPropsInfo(bool noParent) const;
 
-	bool Set(const IProp * prop, const s8 type, const void * data, const s32 size, const bool sync);
+	inline bool Set(const IProp * prop, const s8 type, const void * data, const s32 size, const bool sync) {
+		const ObjectLayout * layout = ((ObjectProp*)prop)->GetLayout(_descriptor->GetTypeId());
+		OASSERT(layout, "wtf");
+		if (layout != nullptr) {
+			OASSERT(layout->type == type && layout->size >= size, "wtf");
+
+			if (layout->type == type && layout->size >= size) {
+				_memory->Set(layout, data, size);
+				PropCall(prop, sync);
+				return true;
+			}
+		}
+		return false;
+	}
 	virtual bool SetPropInt8(const IProp * prop, const s8 value, const bool sync) { return Set(prop, DTYPE_INT8, &value, sizeof(s8), sync); }
 	virtual bool SetPropInt16(const IProp * prop, const s16 value, const bool sync) { return Set(prop, DTYPE_INT16, &value, sizeof(s16), sync); }
 	virtual bool SetPropInt32(const IProp * prop, const s32 value, const bool sync) { return Set(prop, DTYPE_INT32, &value, sizeof(s32), sync); }
@@ -42,7 +57,19 @@ public:
 	virtual bool SetPropStruct(const IProp * prop, const void * value, const s32 size, const bool sync) { return Set(prop, DTYPE_STRUCT, value, size, sync); }
 	virtual bool SetPropBlob(const IProp * prop, const void * value, const s32 size, const bool sync) { return Set(prop, DTYPE_BLOB, value, size, sync); }
 
-	const void * Get(const IProp * prop, const s8 type, s32& size) const;
+	inline const void * Get(const IProp * prop, const s8 type, s32& size) const {
+		const ObjectLayout * layout = ((ObjectProp*)prop)->GetLayout(_descriptor->GetTypeId());
+		OASSERT(layout, "wtf");
+		if (layout != nullptr) {
+			OASSERT(layout->type == type && layout->size >= size, "wtf");
+
+			if (layout->type == type && layout->size >= size) {
+				size = layout->size;
+				return _memory->Get(layout);
+			}
+		}
+		return nullptr;
+	}
 	virtual s8 GetPropInt8(const IProp * prop) const { s32 size = sizeof(s8); return *(s8*)Get(prop, DTYPE_INT8, size); }
     virtual s16 GetPropInt16(const IProp * prop) const { s32 size = sizeof(s16); return *(s8*)Get(prop, DTYPE_INT16, size); }
     virtual s32 GetPropInt32(const IProp * prop) const { s32 size = sizeof(s32); return *(s8*)Get(prop, DTYPE_INT32, size); }
@@ -57,7 +84,10 @@ public:
     virtual ITableControl * FindTable(const s32 name) const ;
 
 private:
-    void PropCall(const IProp * prop, const bool sync);
+	inline void PropCall(const IProp * prop, const bool sync) {
+		_propCBPool.Call(prop, ObjectMgr::Instance()->GetKernel(), this, _type.c_str(), prop, sync);
+		_propCBPool.Call(nullptr, ObjectMgr::Instance()->GetKernel(), this, _type.c_str(), prop, sync);
+	}
 
 private:
     const std::string _type;
