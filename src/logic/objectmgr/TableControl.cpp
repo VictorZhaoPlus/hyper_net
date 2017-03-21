@@ -65,6 +65,7 @@ IRow * TableControl::AddRow() {
 	OASSERT(_descriptor->GetKeyType() == DTYPE_CANT_BE_KEY, "wtf");
 	if (_descriptor->GetKeyType() == DTYPE_CANT_BE_KEY) {
 		TableRow * row = NEW TableRow(this, _descriptor);
+		row->SetRowIndex((s32)_rows.size());
 		_rows.push_back(row);
 		AddCallBack(ObjectMgr::Instance()->GetKernel(), row, nullptr, 0, DTYPE_CANT_BE_KEY);
 		return row;
@@ -78,6 +79,7 @@ IRow * TableControl::AddRowKeyInt(s8 type, const void * data, const s32 size, s6
 		TableRow * row = NEW TableRow(this, _descriptor);
 		_intKeyMap.insert(std::make_pair(key, (s32)_rows.size()));
 		row->Set(_descriptor->GetKeyCol(), type, data, size, false);
+		row->SetRowIndex((s32)_rows.size());
 		_rows.push_back(row);
 		AddCallBack(ObjectMgr::Instance()->GetKernel(), row, data, size, type);
 		return row;
@@ -91,6 +93,7 @@ IRow * TableControl::AddRowKeyString(const char * key) {
 		TableRow * row = NEW TableRow(this, _descriptor);
 		_stringKeyMap.insert(std::make_pair(key, (s32)_rows.size()));
 		row->Set(_descriptor->GetKeyCol(), DTYPE_STRING, key, (s32)strlen(key), false);
+		row->SetRowIndex((s32)_rows.size());
 		_rows.push_back(row);
 		AddCallBack(ObjectMgr::Instance()->GetKernel(), row, key, (s32)strlen(key) + 1, DTYPE_STRING);
 		return row;
@@ -166,36 +169,36 @@ bool TableControl::SwapRowIndex(const s32 src, const s32 dst) {
 	case DTYPE_INT8: {
 		s8 keySrc = rowSrc->GetDataInt8(_descriptor->GetKeyCol());
 		s8 keyDst = rowDst->GetDataInt8(_descriptor->GetKeyCol());
-		_intKeyMap[keySrc] = src;
-		_intKeyMap[keyDst] = dst;
+		_intKeyMap[keySrc] = dst;
+		_intKeyMap[keyDst] = src;
 		break;
 	}
 	case DTYPE_INT16: {
 		s16 keySrc = rowSrc->GetDataInt16(_descriptor->GetKeyCol());
 		s16 keyDst = rowDst->GetDataInt16(_descriptor->GetKeyCol());
-		_intKeyMap[keySrc] = src;
-		_intKeyMap[keyDst] = dst;
+		_intKeyMap[keySrc] = dst;
+		_intKeyMap[keyDst] = src;
 		break;
 	}
 	case DTYPE_INT32: {
 		s32 keySrc = rowSrc->GetDataInt32(_descriptor->GetKeyCol());
 		s32 keyDst = rowDst->GetDataInt32(_descriptor->GetKeyCol());
-		_intKeyMap[keySrc] = src;
-		_intKeyMap[keyDst] = dst;
+		_intKeyMap[keySrc] = dst;
+		_intKeyMap[keyDst] = src;
 		break;
 	}
 	case DTYPE_INT64: {
 		s64 keySrc = rowSrc->GetDataInt64(_descriptor->GetKeyCol());
 		s64 keyDst = rowDst->GetDataInt64(_descriptor->GetKeyCol());
-		_intKeyMap[keySrc] = src;
-		_intKeyMap[keyDst] = dst;
+		_intKeyMap[keySrc] = dst;
+		_intKeyMap[keyDst] = src;
 		break;
 	}
 	case DTYPE_STRING: {
 		const char * keySrc = rowSrc->GetDataString(_descriptor->GetKeyCol());
 		const char * keyDst = rowDst->GetDataString(_descriptor->GetKeyCol());
-		_stringKeyMap[keySrc] = src;
-		_stringKeyMap[keyDst] = dst;
+		_stringKeyMap[keySrc] = dst;
+		_stringKeyMap[keyDst] = src;
 		break;
 	}
 	case DTYPE_CANT_BE_KEY:

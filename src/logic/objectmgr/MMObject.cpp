@@ -9,11 +9,11 @@ MMObject::MMObject(const char * type, ObjectDescriptor * descriptor)
 	: _type(type)
 	, _objectId(0)
 	, _isShadow(false)
-	, _descriptor(descriptor){
+	, _descriptor(descriptor) {
 	_memory = NEW Memory(_descriptor->CalcMemorySize());
 
 	descriptor->QueryTableModel([this](const s32 name, const TableDescriptor * model) {
-		TableControl * table = NEW TableControl(name, model);
+		TableControl * table = NEW TableControl(name, model, this);
 		_tables[name] = table;
 	});
 }

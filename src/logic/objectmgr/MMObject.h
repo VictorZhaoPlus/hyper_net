@@ -71,13 +71,13 @@ public:
 		return nullptr;
 	}
 	virtual s8 GetPropInt8(const IProp * prop) const { s32 size = sizeof(s8); return *(s8*)Get(prop, DTYPE_INT8, size); }
-    virtual s16 GetPropInt16(const IProp * prop) const { s32 size = sizeof(s16); return *(s8*)Get(prop, DTYPE_INT16, size); }
-    virtual s32 GetPropInt32(const IProp * prop) const { s32 size = sizeof(s32); return *(s8*)Get(prop, DTYPE_INT32, size); }
-    virtual s64 GetPropInt64(const IProp * prop) const { s32 size = sizeof(s64); return *(s8*)Get(prop, DTYPE_INT64, size); }
-    virtual float GetPropFloat(const IProp * prop) const { s32 size = sizeof(float); return *(s8*)Get(prop, DTYPE_FLOAT, size); }
+    virtual s16 GetPropInt16(const IProp * prop) const { s32 size = sizeof(s16); return *(s16*)Get(prop, DTYPE_INT16, size); }
+    virtual s32 GetPropInt32(const IProp * prop) const { s32 size = sizeof(s32); return *(s32*)Get(prop, DTYPE_INT32, size); }
+    virtual s64 GetPropInt64(const IProp * prop) const { s32 size = sizeof(s64); return *(s64*)Get(prop, DTYPE_INT64, size); }
+    virtual float GetPropFloat(const IProp * prop) const { s32 size = sizeof(float); return *(float*)Get(prop, DTYPE_FLOAT, size); }
     virtual const char * GetPropString(const IProp * prop) const { s32 size = 0; return (const char *)Get(prop, DTYPE_STRING, size); }
-	virtual const void * GetPropStruct(const IProp * prop, const s32 size) const { s32 tmpSize = size; return (const char *)Get(prop, DTYPE_STRUCT, tmpSize); }
-	virtual const void * GetPropBlob(const IProp * prop, s32& size) const { size = 0; return (const char *)Get(prop, DTYPE_BLOB, size); }
+	virtual const void * GetPropStruct(const IProp * prop, const s32 size) const { s32 tmpSize = size; return Get(prop, DTYPE_STRUCT, tmpSize); }
+	virtual const void * GetPropBlob(const IProp * prop, s32& size) const { size = 0; return Get(prop, DTYPE_BLOB, size); }
 
     virtual void RgsPropChangeCB(const IProp * prop, const PropCallback& cb, const char * info) { _propCBPool.Register(prop, cb, info); }
 

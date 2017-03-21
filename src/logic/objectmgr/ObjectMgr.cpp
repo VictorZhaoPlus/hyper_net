@@ -141,6 +141,8 @@ IObject * ObjectMgr::CreateObjectByID(const char * file, const s32 line, const c
 	}
 
 	MMObject * object = NEW MMObject(name, itr->second);
+	object->SetID(id);
+	object->SetShadow(shadow);
 	_objects.insert(std::make_pair(id, ObjectCreateInfo({ object, file, line })));
 	return object;
 }
@@ -217,7 +219,7 @@ const IProp* ObjectMgr::SetObjectProp(const char* name, const s32 typeId, Object
 	if (itr != _props.end())
 		prop = itr->second;
 	else {
-		prop = NEW ObjectProp(tools::CalcStringUniqueId(name), (s32)_namePathMap.size());
+		prop = NEW ObjectProp(tools::CalcStringUniqueId(name), name, (s32)_namePathMap.size());
 		_props[name] = prop;
 	}
 
