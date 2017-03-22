@@ -1,7 +1,6 @@
 #include "Gate.h"
 #include "OBuffer.h"
 #include "UserNodeType.h"
-#include "FrameworkProtocol.h"
 #include "IIdMgr.h"
 #include "XmlReader.h"
 #include "IProtocolMgr.h"
@@ -65,13 +64,27 @@ bool Gate::Launched(IKernel * kernel) {
 		RGS_AGENT_LISTENER(_agent, this);
 
 		_harbor->AddNodeListener(this, "Gate");
-		RGS_HABOR_ARGS_HANDLER(framework_proto::BIND_ACCOUNT_ACK, Gate::OnRecvBindAccountAck);
-		RGS_HABOR_ARGS_HANDLER(framework_proto::DISTRIBUTE_LOGIC_ACK, Gate::OnRecvDistributeAck);
-		RGS_HABOR_ARGS_HANDLER(framework_proto::BIND_PLAYER_ACK, Gate::OnBindLogicAck);
-		RGS_HABOR_ARGS_HANDLER(framework_proto::KICK_FROM_ACCOUNT, Gate::OnRecvKickFromAccount);
-		RGS_HABOR_ARGS_HANDLER(framework_proto::KICK_FROM_LOGIC, Gate::OnRecvKickFromLogic);
-		RGS_HABOR_HANDLER(framework_proto::TRANSMIT_TO_ACTOR, Gate::OnTransMsgToActor);
-		RGS_HABOR_HANDLER(framework_proto::BROCAST_TO_ACTOR, Gate::OnBrocastMsgToActor);
+		_proto.bindAccountReq = _protocolMgr->GetId("proto_login", "bind_account_req");
+		_proto.bindAccountAck = _protocolMgr->GetId("proto_login", "bind_account_ack");
+		_proto.unbindAccountReq = _protocolMgr->GetId("proto_login", "unbind_account_req");
+		_proto.kickFromAccount = _protocolMgr->GetId("proto_login", "kick_from_account");
+		_proto.distributeLogicReq = _protocolMgr->GetId("proto_login", "distribute_logic_req");
+		_proto.distributeLogicAck = _protocolMgr->GetId("proto_login", "distribute_logic_ack");
+		_proto.bindPlayerReq = _protocolMgr->GetId("proto_login", "bind_player_req");
+		_proto.bindPlayerAck = _protocolMgr->GetId("proto_login", "bind_player_ack");
+		_proto.unbindPlayerReq = _protocolMgr->GetId("proto_login", "unbind_player_req");
+		_proto.transmitToLogic = _protocolMgr->GetId("proto_login", "transmit_to_logic");
+		_proto.kickFromLogic = _protocolMgr->GetId("proto_login", "kick_from_logic");
+		_proto.transmitToActor = _protocolMgr->GetId("proto_login", "transmit_to_actor");
+		_proto.brocastToActor = _protocolMgr->GetId("proto_login", "brocast_to_actor");
+
+		RGS_HABOR_ARGS_HANDLER(_proto.bindAccountAck, Gate::OnRecvBindAccountAck);
+		RGS_HABOR_ARGS_HANDLER(_proto.distributeLogicAck, Gate::OnRecvDistributeAck);
+		RGS_HABOR_ARGS_HANDLER(_proto.bindPlayerAck, Gate::OnBindLogicAck);
+		RGS_HABOR_ARGS_HANDLER(_proto.kickFromAccount, Gate::OnRecvKickFromAccount);
+		RGS_HABOR_ARGS_HANDLER(_proto.kickFromLogic, Gate::OnRecvKickFromLogic);
+		RGS_HABOR_HANDLER(_proto.transmitToActor, Gate::OnTransMsgToActor);
+		RGS_HABOR_HANDLER(_proto.brocastToActor, Gate::OnBrocastMsgToActor);
 
 		_protos[_protocolMgr->GetId("proto", "login_req")] = &Gate::OnRecvLoginReq;
 		_protos[_protocolMgr->GetId("proto", "reconect_req")] = &Gate::OnRecvReconnectReq;
@@ -199,7 +212,7 @@ void Gate::OnRecvLoginReq(IKernel * kernel, const s64 id, const OBuffer& buf) {
 			args << player.agentId << player.accountId << 0;
 			args.Fix();
 
-			_harbor->Send(user_node_type::ACCOUNT, 1, framework_proto::BIND_ACCOUNT_REQ, args.Out());
+			_harbor->Send(user_node_type::ACCOUNT, 1, _proto.bindAccountReq, args.Out());
 		}
 		else {
 			olib::Buffer<128> buf;
@@ -246,7 +259,7 @@ void Gate::OnRecvReconnectReq(IKernel * kernel, const s64 id, const OBuffer& buf
 			args << player.agentId << player.accountId << data.count;
 			args.Fix();
 
-			_harbor->Send(user_node_type::ACCOUNT, 1, framework_proto::BIND_ACCOUNT_REQ, args.Out());
+			_harbor->Send(user_node_type::ACCOUNT, 1, _proto.bindAccountReq, args.Out());
 		}
 		else {
 			olib::Buffer<128> buf;
@@ -330,7 +343,7 @@ void Gate::OnRecvSelectRoleReq(IKernel * kernel, const s64 id, const OBuffer& bu
 			args << actorId << player.accountId;
 			args.Fix();
 
-			_harbor->Send(user_node_type::LOGIC, 1, framework_proto::BIND_PLAYER, args.Out());
+			_harbor->Send(user_node_type::LOGIC, 1, _proto.bindPlayerReq, args.Out());
 		}
 		else {
 			player.state = ST_DISTRIBUTE;
@@ -339,7 +352,7 @@ void Gate::OnRecvSelectRoleReq(IKernel * kernel, const s64 id, const OBuffer& bu
 			args << id << actorId;
 			args.Fix();
 
-			_harbor->Send(user_node_type::SCENEMGR, 1, framework_proto::DISTRIBUTE_LOGIC_REQ, args.Out());
+			_harbor->Send(user_node_type::SCENEMGR, 1, _proto.distributeLogicReq, args.Out());
 		}
 	}
 }
@@ -365,7 +378,7 @@ void Gate::OnRecvDistributeAck(IKernel * kernel, s32 nodeType, s32 nodeId, const
 			args << actorId << player.accountId;
 			args.Fix();
 
-			_harbor->Send(user_node_type::LOGIC, logic, framework_proto::BIND_PLAYER, args.Out());
+			_harbor->Send(user_node_type::LOGIC, logic, _proto.bindPlayerReq, args.Out());
 		}
 		else {
 			Reset(kernel, agentId, ST_ROLELOADED, node_type::USER);
@@ -531,7 +544,7 @@ void Gate::Reset(IKernel * kernel, s64 id, s8 state, s32 from) {
 		IArgs<1, 32> args;
 		args << player.selectActorId;
 		args.Fix();
-		_harbor->Send(user_node_type::LOGIC, player.logic, framework_proto::UNBIND_PLAYER, args.Out());
+		_harbor->Send(user_node_type::LOGIC, player.logic, _proto.unbindPlayerReq, args.Out());
 
 		_actors.erase(player.selectActorId);
 		_logicPlayers[player.logic].erase(id);
@@ -544,7 +557,7 @@ void Gate::Reset(IKernel * kernel, s64 id, s8 state, s32 from) {
 		IArgs<1, 32> args;
 		args << player.agentId << player.accountId;
 		args.Fix();
-		_harbor->Send(user_node_type::ACCOUNT, 1, framework_proto::UNBIND_ACCOUNT, args.Out());
+		_harbor->Send(user_node_type::ACCOUNT, 1, _proto.unbindAccountReq, args.Out());
 
 		player.accountId = 0;
 		for (const auto& role : player.roles) {
@@ -556,7 +569,7 @@ void Gate::Reset(IKernel * kernel, s64 id, s8 state, s32 from) {
 
 void Gate::TransMsgToLogic(IKernel * kernel, const s64 id, const void * context, const s32 size) {
 	Player& player = _players[id];
-	_harbor->PrepareSend(user_node_type::LOGIC, player.logic, framework_proto::TRANSMIT_TO_LOGIC, sizeof(s64) + size);
+	_harbor->PrepareSend(user_node_type::LOGIC, player.logic, _proto.transmitToLogic, sizeof(s64) + size);
 	_harbor->Send(user_node_type::LOGIC, player.logic, &id, sizeof(id));
 	_harbor->Send(user_node_type::LOGIC, player.logic, context, size);
 }

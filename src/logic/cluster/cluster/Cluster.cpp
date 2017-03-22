@@ -1,9 +1,10 @@
 #include "Cluster.h"
 #include "IHarbor.h"
 #include "tinyxml.h"
-#include "CoreProtocol.h"
+#include "IProtocolMgr.h"
 #include "NodeType.h"
 #include "OBuffer.h"
+#include "proto.h"
 
 bool Cluster::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -29,8 +30,10 @@ bool Cluster::Launched(IKernel * kernel) {
 	FIND_MODULE(_harbor, Harbor);
 
 	if (_harbor->GetNodeType() != node_type::MASTER) {
+		FIND_MODULE(_protocolMgr, ProtocolMgr);
+
 		_harbor->Connect(_ip.c_str(), _port);
-		RGS_HABOR_HANDLER(core_proto::NEW_NODE, Cluster::NewNodeComming);
+		RGS_HABOR_HANDLER(_protocolMgr->GetId("proto_cluster", "new_node"), Cluster::NewNodeComming);
 	}
     return true;
 }

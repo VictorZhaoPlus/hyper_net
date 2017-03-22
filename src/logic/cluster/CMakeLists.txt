@@ -4,10 +4,12 @@ INCLUDE_DIRECTORIES(
     "${PROJECT_SOURCE_DIR}/src/public"
     "${PROJECT_SOURCE_DIR}/src/public/tinyxml"
     "${PROJECT_SOURCE_DIR}/src/logic/interface"
+	"${PROJECT_SOURCE_DIR}/src/logic/cluster"
     )
 
 SET(CLUSTER_MAIN
-    "${PROJECT_SOURCE_DIR}/src/logic/cluster/main.cpp"
+    "${PROJECT_SOURCE_DIR}/src/logic/cluster/proto.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/cluster/main.cpp"
     )
 	
 SET(CLUSTER

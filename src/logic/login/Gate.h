@@ -40,6 +40,22 @@ class Gate : public IGate, public IAgentListener, public INodeListener, public O
 		std::list<Role> roles;
 	};
 
+	struct Proto {
+		s32 bindAccountReq;
+		s32 bindAccountAck;
+		s32 unbindAccountReq;
+		s32 kickFromAccount;
+		s32 distributeLogicReq;
+		s32 distributeLogicAck;
+		s32 bindPlayerReq;
+		s32 bindPlayerAck;
+		s32 unbindPlayerReq;
+		s32 transmitToLogic;
+		s32 kickFromLogic;
+		s32 transmitToActor;
+		s32 brocastToActor;
+	};
+
 	typedef void (Gate::*ProtoHandlerType)(IKernel * kernel, const s64 id, const OBuffer& buf);
 
 #pragma pack(push, 4)
@@ -109,6 +125,8 @@ private:
 	s32 _maxRole;
 	std::string _loginKey;
 	std::string _tokenKey;
+
+	Proto _proto;
 
 	s32 _loginAckId;
 	s32 _selectRoleAckId;

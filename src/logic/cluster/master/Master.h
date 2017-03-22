@@ -4,8 +4,9 @@
 #include "ICluster.h"
 #include "IHarbor.h"
 #include <unordered_map>
-#include "Define.h"
+#include "proto.h"
 
+class IProtocolMgr;
 class Master : public IModule, public INodeListener {
     struct NodeInfo {
         s32 nodeType;
@@ -28,6 +29,9 @@ private:
 private:
     IKernel * _kernel;
     IHarbor * _harbor;
+	IProtocolMgr * _protocolMgr;
+
+	s32 _protoNewNode;
 
     std::unordered_map<s64, NodeInfo> _nodes;
 };

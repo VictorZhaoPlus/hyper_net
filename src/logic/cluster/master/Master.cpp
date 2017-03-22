@@ -1,5 +1,5 @@
 #include "Master.h"
-#include "CoreProtocol.h"
+#include "IProtocolMgr.h"
 #include "tinyxml.h"
 #include "NodeType.h"
 
@@ -13,6 +13,9 @@ bool Master::Launched(IKernel * kernel) {
 
 	if (_harbor->GetNodeType() == node_type::MASTER) {
 		_harbor->AddNodeListener(this, "Master");
+
+		FIND_MODULE(_protocolMgr, ProtocolMgr);
+		_protoNewNode = _protocolMgr->GetId("proto_cluster", "new_node");
 	}
     return true;
 }
@@ -60,6 +63,6 @@ void Master::SendNewNode(IKernel * kernel, s32 nodeType, s32 nodeId, s32 newNode
     SafeSprintf(info.ip, sizeof(info.ip), ip);
     info.port = port;
 
-    _harbor->PrepareSend(nodeType, nodeId, core_proto::NEW_NODE, sizeof(info));
+    _harbor->PrepareSend(nodeType, nodeId, _protoNewNode, sizeof(info));
     _harbor->Send(nodeType, nodeId, &info, sizeof(info));
 }

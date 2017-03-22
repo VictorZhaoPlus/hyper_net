@@ -1,9 +1,10 @@
 #include "Slave.h"
 #include "IHarbor.h"
 #include "OArgs.h"
-#include "CoreProtocol.h"
+#include "IProtocolMgr.h"
 #include "XmlReader.h"
 #include "NodeType.h"
+#include "proto.h"
 #ifdef WIN32
 #include <process.h>
 #else
@@ -28,6 +29,8 @@ bool Slave::Launched(IKernel * kernel) {
 	FIND_MODULE(_harbor, Harbor);
 
 	if (_harbor->GetNodeType() == node_type::SLAVE) {
+		FIND_MODULE(_protocolMgr, ProtocolMgr);
+
 		olib::XmlReader conf;
 		std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
 		if (!conf.LoadXml(coreConfigPath.c_str())) {
@@ -84,7 +87,7 @@ bool Slave::Launched(IKernel * kernel) {
 			}
 		}
 
-		RGS_HABOR_ARGS_HANDLER(core_proto::START_NODE, Slave::OpenNewNode);
+		RGS_HABOR_ARGS_HANDLER(_protocolMgr->GetId("proto_cluster", "start_node"), Slave::OpenNewNode);
 	}
     return true;
 }

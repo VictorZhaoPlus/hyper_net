@@ -5,6 +5,10 @@
 
 class IStartStrategy {
 public:
+	enum {
+		INVALID_NODE = 0,
+	};
+
 	virtual ~IStartStrategy() {}
 
 	virtual s32 ChooseNode(const s32 nodeType) = 0;

@@ -1,6 +1,5 @@
 #include "Logic.h"
 #include "IObjectMgr.h"
-#include "FrameworkProtocol.h"
 #include "UserNodeType.h"
 #include "IProtocolMgr.h"
 #include "OBuffer.h"
@@ -39,10 +38,21 @@ bool Logic::Initialize(IKernel * kernel) {
 bool Logic::Launched(IKernel * kernel) {
 	FIND_MODULE(_harbor, Harbor);
 	if (_harbor->GetNodeType() == user_node_type::LOGIC) {
+		FIND_MODULE(_protocolMgr, ProtocolMgr);
+		_noError = _protocolMgr->GetId("error", "no_error");
+		_errorLoadPlayerFailed = _protocolMgr->GetId("error", "load_player_failed");
+
 		_harbor->AddNodeListener(this, "Logic");
-		RGS_HABOR_ARGS_HANDLER(framework_proto::BIND_PLAYER, Logic::OnBindLogic);
-		RGS_HABOR_ARGS_HANDLER(framework_proto::UNBIND_PLAYER, Logic::OnUnbindLogic);
-		RGS_HABOR_HANDLER(framework_proto::TRANSMIT_TO_LOGIC, Logic::OnTransMsg);
+		_proto.bindPlayerReq = _protocolMgr->GetId("proto_login", "bind_player_req");
+		_proto.bindPlayerAck = _protocolMgr->GetId("proto_login", "bind_player_ack");
+		_proto.unbindPlayerReq = _protocolMgr->GetId("proto_login", "unbind_player_req");
+		_proto.transmitToLogic = _protocolMgr->GetId("proto_login", "transmit_to_logic");
+		_proto.addPlayer = _protocolMgr->GetId("proto_login", "add_player");
+		_proto.removePlayer = _protocolMgr->GetId("proto_login", "remove_player");
+
+		RGS_HABOR_ARGS_HANDLER(_proto.bindPlayerReq, Logic::OnBindLogic);
+		RGS_HABOR_ARGS_HANDLER(_proto.unbindPlayerReq, Logic::OnUnbindLogic);
+		RGS_HABOR_HANDLER(_proto.transmitToLogic, Logic::OnTransMsg);
 
 		FIND_MODULE(_objectMgr, ObjectMgr);
 		_prop.account = _objectMgr->CalcProp("account");
@@ -50,16 +60,11 @@ bool Logic::Launched(IKernel * kernel) {
 		_prop.logic = _objectMgr->CalcProp("logic");
 		_prop.recoverTimer = _objectMgr->CalcProp("recoverTimer");
 
-		FIND_MODULE(_protocolMgr, ProtocolMgr);
-		_noError = _protocolMgr->GetId("error", "no_error");
-		_errorLoadPlayerFailed = _protocolMgr->GetId("error", "load_player_failed");
-
+		FIND_MODULE(_eventEngine, EventEngine);
 		_eventOnline = _protocolMgr->GetId("event", "online");
 		_eventReconnect = _protocolMgr->GetId("event", "reconnect");
 		_eventGateLost = _protocolMgr->GetId("event", "gate_lost");
 		_eventRecover = _protocolMgr->GetId("event", "recover");
-
-		FIND_MODULE(_eventEngine, EventEngine);
 	}
 
     return true;
@@ -109,14 +114,14 @@ void Logic::OnBindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs 
 		args << actorId << accountId << _noError;
 		args.Fix();
 
-		_harbor->Send(nodeType, nodeId, framework_proto::BIND_PLAYER_ACK, args.Out());
+		_harbor->Send(nodeType, nodeId, _proto.bindPlayerAck, args.Out());
 
 		_eventEngine->Exec(_eventReconnect, &object, sizeof(object));
 
 		IArgs<1, 32> notify;
 		notify << actorId;
 		notify.Fix();
-		_harbor->Send(user_node_type::SCENEMGR, 1, framework_proto::ADD_PLAYER, notify.Out());
+		_harbor->Send(user_node_type::SCENEMGR, 1, _proto.addPlayer, notify.Out());
 
 		OASSERT(object->GetPropInt64(_prop.recoverTimer) != 0, "wtf");
 		logic::RemoveObjectTimer * timer = (logic::RemoveObjectTimer*)object->GetPropInt64(_prop.recoverTimer);
@@ -138,14 +143,14 @@ void Logic::OnBindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs 
 			args << actorId << accountId << _noError;
 			args.Fix();
 
-			_harbor->Send(nodeType, nodeId, framework_proto::BIND_PLAYER_ACK, args.Out());
+			_harbor->Send(nodeType, nodeId, _proto.bindPlayerAck, args.Out());
 
 			_eventEngine->Exec(_eventOnline, &object, sizeof(object));
 
 			IArgs<1, 32> notify;
 			notify << actorId;
 			notify.Fix();
-			_harbor->Send(user_node_type::SCENEMGR, 1, framework_proto::ADD_PLAYER, notify.Out());
+			_harbor->Send(user_node_type::SCENEMGR, 1, _proto.addPlayer, notify.Out());
 		}
 		else {
 			_objectMgr->Recove(object);
@@ -154,7 +159,7 @@ void Logic::OnBindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs 
 			args << actorId << accountId << _errorLoadPlayerFailed;
 			args.Fix();
 
-			_harbor->Send(nodeType, nodeId, framework_proto::BIND_PLAYER_ACK, args.Out());
+			_harbor->Send(nodeType, nodeId, _proto.bindPlayerAck, args.Out());
 		}
 	}
 }
@@ -212,6 +217,6 @@ void Logic::Recover(IKernel * kernel, const s64 id) {
 		IArgs<1, 32> notify;
 		notify << id;
 		notify.Fix();
-		_harbor->Send(user_node_type::SCENEMGR, 1, framework_proto::REMOVE_PLAYER, notify.Out());
+		_harbor->Send(user_node_type::SCENEMGR, 1, _proto.removePlayer, notify.Out());
 	}
 }

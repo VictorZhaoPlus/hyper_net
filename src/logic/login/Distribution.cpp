@@ -1,6 +1,6 @@
 #include "Distribution.h"
 #include "OArgs.h"
-#include "FrameworkProtocol.h"
+#include "IProtocolMgr.h"
 #include "UserNodeType.h"
 
 bool Distribution::Initialize(IKernel * kernel) {
@@ -13,10 +13,17 @@ bool Distribution::Initialize(IKernel * kernel) {
 bool Distribution::Launched(IKernel * kernel) {
 	FIND_MODULE(_harbor, Harbor);
 	if (_harbor->GetNodeType() == user_node_type::SCENEMGR) {
+		FIND_MODULE(_protocolMgr, ProtocolMgr);
+
 		_harbor->AddNodeListener(this, "Distribution");
-		RGS_HABOR_ARGS_HANDLER(framework_proto::DISTRIBUTE_LOGIC_REQ, Distribution::OnRecvDistributeLogic);
-		RGS_HABOR_ARGS_HANDLER(framework_proto::ADD_PLAYER, Distribution::OnRecvAddPlayer);
-		RGS_HABOR_ARGS_HANDLER(framework_proto::REMOVE_PLAYER, Distribution::OnRecvRemovePlayer);
+		_proto.distributeLogicReq = _protocolMgr->GetId("proto_login", "distribute_logic_req");
+		_proto.distributeLogicAck = _protocolMgr->GetId("proto_login", "distribute_logic_ack");
+		_proto.addPlayer = _protocolMgr->GetId("proto_login", "add_player");
+		_proto.removePlayer = _protocolMgr->GetId("proto_login", "remove_player");
+
+		RGS_HABOR_ARGS_HANDLER(_proto.distributeLogicReq, Distribution::OnRecvDistributeLogic);
+		RGS_HABOR_ARGS_HANDLER(_proto.addPlayer, Distribution::OnRecvAddPlayer);
+		RGS_HABOR_ARGS_HANDLER(_proto.removePlayer, Distribution::OnRecvRemovePlayer);
 	}
     return true;
 }
@@ -62,7 +69,7 @@ void Distribution::OnRecvDistributeLogic(IKernel * kernel, s32 nodeType, s32 nod
 	ret << agentId << actorId << logic;
 	ret.Fix();
 
-	_harbor->Send(nodeType, nodeId, framework_proto::DISTRIBUTE_LOGIC_ACK, ret.Out());
+	_harbor->Send(nodeType, nodeId, _proto.distributeLogicAck, ret.Out());
 }
 
 void Distribution::OnRecvAddPlayer(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {

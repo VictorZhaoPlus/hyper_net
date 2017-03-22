@@ -21,6 +21,15 @@ class Logic : public ILogic, public INodeListener, public OHolder<Logic> {
 		const IProp * recoverTimer;
 	};
 
+	struct Proto {
+		s32 bindPlayerReq;
+		s32 bindPlayerAck;
+		s32 unbindPlayerReq;
+		s32 transmitToLogic;
+		s32 addPlayer;
+		s32 removePlayer;
+	};
+
 	typedef olib::CallbackType<s32, ProtocolCB>::type ProtocolPool;
 public:
     virtual bool Initialize(IKernel * kernel);
@@ -51,6 +60,7 @@ private:
 	s32 _recoverInverval;
 
 	Props _prop;
+	Proto _proto;
 	
 	s32 _noError;
 	s32 _errorLoadPlayerFailed;

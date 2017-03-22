@@ -3,9 +3,6 @@ SET(LOGIC_INTERFACE
     "${PROJECT_SOURCE_DIR}/src/logic/interface/Define.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/NodeType.h"
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/UserNodeType.h"
-    "${PROJECT_SOURCE_DIR}/src/logic/interface/CoreProtocol.h"
-    "${PROJECT_SOURCE_DIR}/src/logic/interface/FrameworkProtocol.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/LogicProtocol.h"
    
 	"${PROJECT_SOURCE_DIR}/src/logic/interface/IHarbor.h"
     "${PROJECT_SOURCE_DIR}/src/logic/interface/ICluster.h"

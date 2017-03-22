@@ -43,8 +43,8 @@ bool IdMgr::Launched(IKernel * kernel) {
 		FIND_MODULE(_eventEngine, EventEngine);
 		FIND_MODULE(_protocolMgr, ProtocolMgr);
 
-		_askProtocolId = _protocolMgr->GetId("node_proto", "ask_id");
-		_giveProtocolId = _protocolMgr->GetId("node_proto", "give_id");
+		_askProtocolId = _protocolMgr->GetId("proto_id", "ask_id");
+		_giveProtocolId = _protocolMgr->GetId("proto_id", "give_id");
 		_eventIdLoaded = _protocolMgr->GetId("event", "id_loaded");
 
 		if (_harbor->GetNodeType() == _nodeType) {

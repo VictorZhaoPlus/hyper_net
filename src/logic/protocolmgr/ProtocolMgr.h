@@ -4,7 +4,6 @@
 #include "IProtocolMgr.h"
 #include "singleton.h"
 #include <unordered_map>
-#include <OString.h>
 
 #define MAX_PROTOCOL_NAME_LEN 64
 #define MAX_PROTOCOL_DESC_LEN 1024

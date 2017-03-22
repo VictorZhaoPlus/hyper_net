@@ -3,7 +3,7 @@
 #include "XmlReader.h"
 #include "NodeType.h"
 #include "ICapacitySubscriber.h"
-#include "CoreProtocol.h"
+#include "IProtocolMgr.h"
 #include "StartNodeTimer.h"
 #include "OArgs.h"
 
@@ -54,6 +54,9 @@ bool Starter::Launched(IKernel * kernel) {
 			itr->second.timer = StartNodeTimer::Create(itr->first);
 			kernel->StartTimer(itr->second.timer, itr->second.delay, TIMER_BEAT_FOREVER, _checkInterval);
 		}
+
+		FIND_MODULE(_protocolMgr, ProtocolMgr);
+		_protoStartNode = _protocolMgr->GetId("proto_cluster", "new_node");
 	}
 
     return true;
@@ -137,11 +140,11 @@ void Starter::OnNodeTimerEnd(IKernel * kernel, s32 type, s64 tick) {
 void Starter::StartNode(IKernel * kernel, s32 nodeType, s32 nodeId) {
 	OASSERT(_strategy, "miss start strategy");
 	s32 slave = _strategy->ChooseNode(nodeType);
-	OASSERT(slave != INVALID_NODE_ID, "where is slave");
+	OASSERT(slave != IStartStrategy::INVALID_NODE, "where is slave");
 
 	IArgs<2, 64> args;
 	args << nodeType << nodeId;
 	args.Fix();
 
-	_harbor->Send(node_type::SLAVE, slave, core_proto::START_NODE, args.Out());
+	_harbor->Send(node_type::SLAVE, slave, _protoStartNode, args.Out());
 }

@@ -9,6 +9,7 @@
 
 class ICapacitySubscriber;
 class StartNodeTimer;
+class IProtocolMgr;
 class Starter : public IStarter, public IStartStrategy, public INodeListener, public OHolder<Starter> {
 	struct Execute {
 		s32 type;
@@ -55,6 +56,9 @@ private:
 	IHarbor * _harbor;
 	IStartStrategy * _strategy;
 	ICapacitySubscriber * _capacitySubscriber;
+	IProtocolMgr * _protocolMgr;
+
+	s32 _protoStartNode;
 
 	s32 _checkInterval;
 	s32 _deadInterval;
