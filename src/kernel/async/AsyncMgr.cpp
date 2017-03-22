@@ -39,13 +39,13 @@ void AsyncMgr::Loop(s64 overTime) {
 }
 
 void AsyncMgr::Start(const s64 threadId, IAsyncHandler * handler, const char * debug) {
-	OASSERT(handler->GetBase(), "wtf");
+	OASSERT(!handler->GetBase(), "wtf");
 	OASSERT(_threads.size() > 0, "wtf");
 	AsyncBase * base = NEW AsyncBase(handler, debug);
 	_threads[threadId % _threads.size()]->Add(base);
 }
 
 void AsyncMgr::Stop(IAsyncHandler * handler) {
-	OASSERT(!handler->GetBase(), "wtf");
+	OASSERT(handler->GetBase(), "wtf");
 	((AsyncBase*)handler->GetBase())->SetInvalid();
 }
