@@ -49,7 +49,6 @@ SET(PUBLIC
 	"${PROJECT_SOURCE_DIR}/src/public/OMap.h"
 	"${PROJECT_SOURCE_DIR}/src/public/Fsm.h"
 	"${PROJECT_SOURCE_DIR}/src/public/OArgs.h"
-	"${PROJECT_SOURCE_DIR}/src/public/OString.h"
 	"${PROJECT_SOURCE_DIR}/src/public/OBuffer.h"
 	"${PROJECT_SOURCE_DIR}/src/public/ORingBuffer.h"
 	"${PROJECT_SOURCE_DIR}/src/public/ORingBuffer.c"
