@@ -33,8 +33,8 @@ class IRedis : public IModule {
 public:
 	virtual ~IRedis() {}
 
-	virtual bool Exec(const s64 id, const char* command, const OArgs& args, const std::function<bool(IKernel *, const IRedisResult *)>& f) = 0;
-	virtual bool Call(const s64 id, const char* proc, const s32 keyCount, const OArgs& args, const std::function<bool (IKernel *, const IRedisResult *)>& f) = 0;
+	virtual bool Exec(const s64 id, const char* command, const OArgs& args, const std::function<bool(IKernel *, const IRedisResult *)>& f = nullptr) = 0;
+	virtual bool Call(const s64 id, const char* proc, const s32 keyCount, const OArgs& args, const std::function<bool (IKernel *, const IRedisResult *)>& f = nullptr) = 0;
 };
 
 #endif /*__IREDIS_H__ */

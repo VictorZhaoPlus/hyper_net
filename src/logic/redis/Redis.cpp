@@ -35,7 +35,7 @@ bool Redis::Initialize(IKernel * kernel) {
 	}
 
 	olib::XmlReader scriptReader;
-	std::string scriptPath = std::string(tools::GetAppPath()) + "/envir/script.xml";
+	std::string scriptPath = std::string(tools::GetAppPath()) + "/config/redis_script.xml";
 	if (!scriptReader.LoadXml(scriptPath.c_str())) {
 		OASSERT(false, "can't find core file : %s", coreConfigPath.c_str());
 		return false;
@@ -70,7 +70,7 @@ bool Redis::Exec(const s64 id, const char* command, const OArgs& args, const std
 	CommandBuff buf;
 	buf.size = 0;
 
-	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "*%d\r\n$%d\r\n%s\r\n", args.Count() + 1, strlen(command), command);
+	SafeSprintf(buf.data + buf.size, sizeof(buf.data) - buf.size, "*%d\r\n$%d\r\n%s\r\n", args.Count() + 1, (s32)strlen(command), command);
 	buf.size += (s32)strlen(buf.data + buf.size);
 
 	Append(buf, args);

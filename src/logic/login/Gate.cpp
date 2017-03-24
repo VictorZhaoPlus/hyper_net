@@ -188,20 +188,22 @@ void Gate::OnRecvLoginReq(IKernel * kernel, const s64 id, const OBuffer& buf) {
 		s64 lastActorId = 0;
 		s64 bantime = 0;
 		bool writeOk = true;
-		bool readOk = _cacheDB->Read("account", data.accountID, [&data, &lastActorId, &bantime, &writeOk, this](IKernel * kernel, ICacheDBReadResult * result) {
+		bool readOk = _cacheDB->Read("account", [](IKernel * kernel, ICacheDBReader * reader) {
+			reader->ReadColumn("lastActor");
+			reader->ReadColumn("bantime");
+		}, [&data, &lastActorId, &bantime, &writeOk, this](IKernel * kernel, ICacheDBReadResult * result) {
 			if (result->Count() > 0) {
 				lastActorId = result->GetDataInt64(0, 1);
 				bantime = result->GetDataInt64(0, 2);
 			}
 			else {
-				ICacheDBContext * writer = _cacheDB->PrepareWrite("account", data.accountID);
-				writer->WriteInt64("id", data.accountID);
-				writer->WriteInt64("platform", data.platform);
-				writer->WriteInt64("lastActor", 0);
-				writer->WriteInt64("bantime", 0);
-				writeOk = writer->Update();
+				_cacheDB->Write("account", [&data](IKernel * kernel, ICacheDBContext * writer) {
+					writer->WriteInt64("platform", data.platform);
+					writer->WriteInt64("lastActor", 0);
+					writer->WriteInt64("bantime", 0);
+				}, 1, data.accountID);
 			}
-		}, "lastActor", "bantime");
+		}, 1, data.accountID);
 
 		if (readOk && writeOk) {
 			player.accountId = data.accountID;
@@ -242,13 +244,16 @@ void Gate::OnRecvReconnectReq(IKernel * kernel, const s64 id, const OBuffer& buf
 		s64 lastActorId = 0;
 		s64 bantime = 0;
 		bool hasOne = false;
-		bool readOk = _cacheDB->Read("account", data.accountID, [&data, &lastActorId, &bantime, &hasOne, this](IKernel * kernel, ICacheDBReadResult * result) {
+		bool readOk = _cacheDB->Read("account", [](IKernel * kernel, ICacheDBReader * reader) {
+			reader->ReadColumn("lastActor");
+			reader->ReadColumn("bantime");
+		}, [&data, &lastActorId, &bantime, &hasOne, this](IKernel * kernel, ICacheDBReadResult * result) {
 			if (result->Count() > 0) {
 				lastActorId = result->GetDataInt64(0, 1);
 				bantime = result->GetDataInt64(0, 2);
 				hasOne = true;
 			}
-		}, "lastActor", "bantime");
+		}, 1, data.accountID);
 
 		if (readOk && hasOne) {
 			player.accountId = data.accountID;
@@ -404,10 +409,9 @@ void Gate::OnBindLogicAck(IKernel * kernel, s32 nodeType, s32 nodeId, const OArg
 			player.state = ST_ONLINE;
 			player.lastActorId = actorId;
 
-			ICacheDBContext * writer = _cacheDB->PrepareWrite("account", player.accountId);
-			writer->WriteInt64("id", player.accountId);
-			writer->WriteInt64("lastActor", actorId);
-			writer->Update();
+			_cacheDB->Write("account", [&player, actorId](IKernel * kernel, ICacheDBContext * writer) {
+				writer->WriteInt64("lastActor", actorId);
+			}, 1, player.accountId);
 
 			const s32 tokenCount = args.GetDataInt32(3);
 		}
