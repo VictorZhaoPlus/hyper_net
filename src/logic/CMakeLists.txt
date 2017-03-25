@@ -1,50 +1,15 @@
 SET(LIBRARY_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin")
-SET(LOGIC_INTERFACE
-    "${PROJECT_SOURCE_DIR}/src/logic/interface/Define.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/NodeType.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/UserNodeType.h"
-   
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IHarbor.h"
-    "${PROJECT_SOURCE_DIR}/src/logic/interface/ICluster.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IScriptEngine.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/ITest.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IAgent.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IRedis.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IMonitor.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IAnalysis.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IHttpMgr.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IIdMgr.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IObjectMgr.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IProtocolMgr.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/ILogin.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IObjectTimer.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IEventEngine.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/ICacheDB.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IFSM.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IScene.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IOCommand.h"
-	"${PROJECT_SOURCE_DIR}/src/logic/interface/IShadowMgr.h"
-)
+FILE(GLOB LOGIC_INTERFACE "${PROJECT_SOURCE_DIR}/src/logic/interface/*.h")
 
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/harbor)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/cluster)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/scriptengine)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/redis)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/eventengine)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/agent)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/test)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/startnodestrategy)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/monitor)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/analysis)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/httpmgr)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/idmgr)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/objectmgr)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/protocolmgr)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/objecttimer)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/login)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/luaserver)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/cachedb)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/fsm)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/scene)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/ocommand)
-ADD_SUBDIRECTORY(${PROJECT_SOURCE_DIR}/src/logic/shadowmgr)
+FILE(GLOB LOGIC_DIRS "${PROJECT_SOURCE_DIR}/src/logic/*")
+FOREACH(LOGIC_DIR ${LOGIC_DIRS})
+    message("当前变量是：${LOGIC_DIR}")
+	string(COMPARE NOTEQUAL ${LOGIC_DIR} "${PROJECT_SOURCE_DIR}/src/logic/template" NOT_TEMP)
+	string(COMPARE NOTEQUAL ${LOGIC_DIR} "${PROJECT_SOURCE_DIR}/src/logic/CMakeLists.txt" NOT_SELF)
+	string(COMPARE NOTEQUAL ${LOGIC_DIR} "${PROJECT_SOURCE_DIR}/src/logic/create.exe" NOT_CREATE_EXE)
+	string(COMPARE NOTEQUAL ${LOGIC_DIR} "${PROJECT_SOURCE_DIR}/src/logic/create.hs" NOT_CREATE_HS)
+	string(COMPARE NOTEQUAL ${LOGIC_DIR} "${PROJECT_SOURCE_DIR}/src/logic/interface" NOT_CREATE_INTERFACE)
+	IF (NOT_TEMP AND NOT_SELF AND NOT_CREATE_EXE AND NOT_CREATE_HS AND NOT_CREATE_INTERFACE)
+		ADD_SUBDIRECTORY(${LOGIC_DIR})
+	ENDIF()
+ENDFOREACH()
