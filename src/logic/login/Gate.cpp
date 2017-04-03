@@ -18,7 +18,7 @@ public:
 	virtual ~DelaySendTimer() {}
 
 	virtual void OnStart(IKernel * kernel, s64 tick) {};
-	virtual void OnTimer(IKernel * kernel, s64 tick) {
+	virtual void OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
 		if (_actors.empty())
 			Gate::Instance()->Brocast(_packet.c_str(), (s32)_packet.size());
 		else {

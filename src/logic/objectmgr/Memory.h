@@ -7,6 +7,7 @@
 #ifndef __MEMORY_H__
 #define __MEMORY_H__
 #include "util.h"
+#include "MemoryPool.h"
 
 struct Layout {
 	s32 offset;
@@ -20,12 +21,12 @@ public:
 		, _size(size) {
 		OASSERT(size > 0, "nullptr PropInfo");
 
-		_buff = NEW char[_size];
+		_buff = (char*)MemoryPool::Instance()->Malloc(_size);
 		SafeMemset(_buff, _size, 0, _size);
 	}
 
 	virtual ~Memory() {
-		DEL[] _buff;
+		MemoryPool::Instance()->Free(_buff, _size);
 	}
 
     inline void Set(const Layout * info, const void * data, const s32 size) {

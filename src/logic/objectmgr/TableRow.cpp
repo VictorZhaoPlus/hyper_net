@@ -45,9 +45,9 @@ bool TableDescriptor::LoadFrom(const olib::IXmlObject& root) {
 TableRow::TableRow(TableControl * table, const TableDescriptor * descriptor) {
 	_table = table;
 	_descriptor = descriptor;
-	_memory = NEW Memory(descriptor->CalMemorySize());
+	_memory = MemoryPool::Instance()->Create<Memory>(__FILE__, __LINE__, descriptor->CalMemorySize());
 }
 
 TableRow::~TableRow() {
-	DEL _memory;
+	MemoryPool::Instance()->Recover(_memory);
 }

@@ -2,11 +2,12 @@
 #include "kernel.h"
 #include "tools.h"
 
-TimerBase::TimerBase(ITimer * timer, s32 count, s64 interval) {
+TimerBase::TimerBase(ITimer * timer, s32 count, s64 interval, const char * file, const s32 line) {
 	_list = nullptr;
 	_next = nullptr;
 	_prev = nullptr;
 
+	SafeSprintf(_debug, sizeof(_debug), "%d:%s", line, file);
 	_timer = timer;
 	_valid = true;
 	_polling = false;
@@ -15,6 +16,7 @@ TimerBase::TimerBase(ITimer * timer, s32 count, s64 interval) {
 	_interval = interval;
 	_count = count;
 	_started = false;
+	_beatCount = 0;
 
 	_pauseTick = 0;
 	_paused = false;
@@ -29,7 +31,7 @@ void TimerBase::OnTimer() {
 		_started = true;
 	}
 	else {
-		_timer->OnTimer(Kernel::Instance(), tools::GetTimeMillisecond());
+		_timer->OnTimer(Kernel::Instance(), _beatCount++, tools::GetTimeMillisecond());
 
 		if (_valid) {
 			if (_count > 0)

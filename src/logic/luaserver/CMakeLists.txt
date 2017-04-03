@@ -6,19 +6,14 @@ INCLUDE_DIRECTORIES(
     "${PROJECT_SOURCE_DIR}/src/logic/interface"
     )
 
-SET(RPC
-    "${PROJECT_SOURCE_DIR}/src/logic/luaserver/rpc/Rpc.h"
-    "${PROJECT_SOURCE_DIR}/src/logic/luaserver/rpc/Rpc.cpp" 
+SET(COMMAND
+    "${PROJECT_SOURCE_DIR}/src/logic/luaserver/command/Command.h"
+    "${PROJECT_SOURCE_DIR}/src/logic/luaserver/command/Command.cpp" 
     )
 	
 SET(HTTP
     "${PROJECT_SOURCE_DIR}/src/logic/luaserver/http/HttpScriptModule.h"
     "${PROJECT_SOURCE_DIR}/src/logic/luaserver/http/HttpScriptModule.cpp" 
-    )
-	
-SET(AGENT
-    "${PROJECT_SOURCE_DIR}/src/logic/luaserver/agent/AgentModule.h"
-    "${PROJECT_SOURCE_DIR}/src/logic/luaserver/agent/AgentModule.cpp" 
     )
 	
 SET(LUA_SERVER
@@ -30,15 +25,13 @@ SOURCE_GROUP(API FILES ${API})
 SOURCE_GROUP(public\\tinyxml FILES ${PUBLIC_XML})
 SOURCE_GROUP(public FILES ${PUBLIC})
 SOURCE_GROUP(\\ FILES ${LUA_SERVER})
-SOURCE_GROUP(rpc FILES ${RPC})
+SOURCE_GROUP(command FILES ${COMMAND})
 SOURCE_GROUP(http FILES ${HTTP})
-SOURCE_GROUP(agent FILES ${AGENT})
 
 ADD_LIBRARY(LuaServer SHARED
         ${LUA_SERVER}
-		${RPC}
+		${COMMAND}
 		${HTTP}
-		${AGENT}
         ${API}
         ${LOGIC_INTERFACE}
         ${PUBLIC}

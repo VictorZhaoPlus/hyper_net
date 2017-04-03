@@ -50,17 +50,17 @@ void NodeSession::OnDisconnected(IKernel * kernel) {
         Harbor::Self()->OnNodeClose(kernel, _nodeType, _nodeId);
 
 	if (_connect) {
-		Harbor::GetKernel()->StartTimer(this, 0, 1, Harbor::Self()->GetReconnectInterval());
+		Harbor::GetKernel()->StartTimer(this, 0, 1, Harbor::Self()->GetReconnectInterval(), __FILE__, __LINE__);
 		_ready = false;
 	}
 }
 
 void NodeSession::OnConnectFailed(IKernel * kernel) {
     if (_connect)
-		Harbor::GetKernel()->StartTimer(this, 0, 1, Harbor::Self()->GetReconnectInterval());
+		Harbor::GetKernel()->StartTimer(this, 0, 1, Harbor::Self()->GetReconnectInterval(), __FILE__, __LINE__);
 }
 
-void NodeSession::OnTimer(IKernel * kernel, s64 tick) {
+void NodeSession::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
 	OASSERT(_connect, "wtf");
 	Harbor::Self()->Reconnect(this);
 }

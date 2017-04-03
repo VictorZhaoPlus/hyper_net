@@ -1,7 +1,7 @@
 #include "CapacitySubscriber.h"
-#include "CoreProtocol.h"
 #include "Define.h"
 #include "OArgs.h"
+#include "IProtocolMgr.h"
 
 bool CapacitySubscriber::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -13,7 +13,9 @@ bool CapacitySubscriber::Launched(IKernel * kernel) {
 	FIND_MODULE(_harbor, Harbor);
 	_harbor->AddNodeListener(this, "CapacitySubscriber");
 
-	RGS_HABOR_ARGS_HANDLER(core_proto::OVER_LOAD, CapacitySubscriber::ReadLoad);
+	FIND_MODULE(_protocolMgr, ProtocolMgr);
+
+	RGS_HABOR_ARGS_HANDLER(_protocolMgr->GetId("proto_capacity", "over_load"), CapacitySubscriber::ReadLoad);
 
     return true;
 }

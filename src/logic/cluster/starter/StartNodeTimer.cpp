@@ -5,7 +5,7 @@ void StartNodeTimer::OnStart(IKernel * kernel, s64 tick) {
 	Starter::Instance()->OnNodeTimerStart(kernel, _type, tick);
 }
 
-void StartNodeTimer::OnTimer(IKernel * kernel, s64 tick) {
+void StartNodeTimer::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
 	Starter::Instance()->OnNodeTimer(kernel, _type, tick);
 }
 

@@ -10,10 +10,10 @@ MMObject::MMObject(const char * type, ObjectDescriptor * descriptor)
 	, _objectId(0)
 	, _isShadow(false)
 	, _descriptor(descriptor) {
-	_memory = NEW Memory(_descriptor->CalcMemorySize());
+	_memory = MemoryPool::Instance()->Create<Memory>(__FILE__, __LINE__, _descriptor->CalcMemorySize());
 
 	descriptor->QueryTableModel([this](const s32 name, const TableDescriptor * model) {
-		TableControl * table = NEW TableControl(name, model, this);
+		TableControl * table = MemoryPool::Instance()->Create<TableControl>(__FILE__, __LINE__, name, model, this);
 		_tables[name] = table;
 	});
 }
@@ -21,10 +21,10 @@ MMObject::MMObject(const char * type, ObjectDescriptor * descriptor)
 MMObject::~MMObject() {
 	_propCBPool.Clear();
 
-	DEL _memory;
+	MemoryPool::Instance()->Recover(_memory);
 
 	for (auto itr = _tables.begin(); itr != _tables.end(); ++itr) {
-		DEL itr->second;
+		MemoryPool::Instance()->Recover(itr->second);
 	}
 	_tables.clear();
 }

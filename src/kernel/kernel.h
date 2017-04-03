@@ -17,12 +17,12 @@ public:
     virtual bool Listen(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, ISessionFactory * factory);
     virtual bool Connect(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, ISession * session);
 
-	virtual void StartTimer(ITimer * timer, s64 delay, s32 count, s64 interval);
+	virtual void StartTimer(ITimer * timer, s64 delay, s32 count, s64 interval, const char * file, const s32 line);
 	virtual void KillTimer(ITimer * timer);
 	virtual void PauseTimer(ITimer * timer);
 	virtual void ResumeTimer(ITimer * timer);
 
-	virtual void StartAsync(const s64 threadId, IAsyncHandler * handler, const char * debug);
+	virtual void StartAsync(const s64 threadId, IAsyncHandler * handler, const char * file, const s32 line);
 	virtual void StopAsync(IAsyncHandler * handler);
 
     virtual IModule * FindModule(const char * name);

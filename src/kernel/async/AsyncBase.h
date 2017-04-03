@@ -8,8 +8,8 @@ using namespace core;
 
 class AsyncBase : public IAsyncBase {
 public:
-	AsyncBase(IAsyncHandler * handler, const char * debug) : _handler(handler) {
-		SafeSprintf(_debug, sizeof(_debug), "%s", debug);
+	AsyncBase(IAsyncHandler * handler, const char * file, s32 line) : _handler(handler) {
+		SafeSprintf(_debug, sizeof(_debug), "%d:%s", line, file);
 		handler->SetBase(this);
 
 		_valid = true;

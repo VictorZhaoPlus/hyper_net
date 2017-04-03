@@ -38,10 +38,10 @@ void AsyncMgr::Loop(s64 overTime) {
 		t->Loop(overTime / _threads.size());
 }
 
-void AsyncMgr::Start(const s64 threadId, IAsyncHandler * handler, const char * debug) {
+void AsyncMgr::Start(const s64 threadId, IAsyncHandler * handler, const char * file, const s32 line) {
 	OASSERT(!handler->GetBase(), "wtf");
 	OASSERT(_threads.size() > 0, "wtf");
-	AsyncBase * base = NEW AsyncBase(handler, debug);
+	AsyncBase * base = NEW AsyncBase(handler, file, line);
 	_threads[threadId % _threads.size()]->Add(base);
 }
 

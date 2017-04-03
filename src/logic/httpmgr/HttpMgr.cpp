@@ -44,7 +44,8 @@ void HttpMgr::Get(const s64 id, IHttpHandler * handler, const char * uri) {
 	HttpBase * base = NEW HttpBase(s_urls[id % s_urls.size()]);
 	base->Get(handler, uri);
 
-	s_kernel->StartAsync(id, base, "HttpMgr::Get");
+	IKernel * kernel = s_kernel;
+	START_ASYNC(id, base);
 }
 
 void HttpMgr::Post(const s64 id, IHttpHandler * handler, const char * url, const char * field) {
@@ -52,7 +53,8 @@ void HttpMgr::Post(const s64 id, IHttpHandler * handler, const char * url, const
 	HttpBase * base = NEW HttpBase(s_urls[id % s_urls.size()]);
 	base->Post(handler, url, field);
 
-	s_kernel->StartAsync(id, base, "HttpMgr::Post");
+	IKernel * kernel = s_kernel;
+	START_ASYNC(id, base);
 }
 
 void HttpMgr::Stop(IHttpHandler * handler) {

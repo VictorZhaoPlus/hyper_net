@@ -13,6 +13,8 @@ SET(MAIN
     "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/ObjectMgr.h"
     "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/ObjectMgr.cpp"
 	"${PROJECT_SOURCE_DIR}/src/logic/objectmgr/Memory.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/objectmgr/MemoryPool.h"
+	"${PROJECT_SOURCE_DIR}/src/logic/objectmgr/MemoryPool.cpp"
     "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/MMObject.h"
     "${PROJECT_SOURCE_DIR}/src/logic/objectmgr/MMObject.cpp"
 	"${PROJECT_SOURCE_DIR}/src/logic/objectmgr/ObjectDescriptor.h"

@@ -14,13 +14,16 @@ class IObject;
 class OArgs;
 
 typedef std::function<void(IKernel * kernel, const s64 sender, IObject * reciever, const OArgs& args)> CommandCB;
+typedef std::function<void(IKernel * kernel, const s64 sender, const s64 reciver)> CommandFailCB;
 class IOCommand : public IModule {
 public:
 	virtual ~IOCommand() {}
 
-	virtual void RegCommand(s32 cmd, const CommandCB& handler, const char * debug) = 0;
+	virtual void RegisterCmd(s32 cmd, const CommandCB& handler, const char * debug) = 0;
+	virtual void Command(s32 cmd, const IObject * sender, const s64 reciever, const OArgs& args, const CommandFailCB& fail = nullptr) = 0;
 
-	virtual void Command(s32 cmd, IObject * sender, s64 reciever, const OArgs& args) = 0;
+	//can't use in logic
+	virtual bool CommandTo(const s64 reciver, const s32 cmd, const OArgs & args);
 };
 
 #define RGS_COMMAND_CB(messageId, handler) _command->RegCommand(messageId, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), #handler)

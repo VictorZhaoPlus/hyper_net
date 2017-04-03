@@ -11,6 +11,7 @@ namespace user_node_type {
 		LOGIC,
 		SCENEMGR,
 		CELL,
+		RELATION,
     };
 }
 

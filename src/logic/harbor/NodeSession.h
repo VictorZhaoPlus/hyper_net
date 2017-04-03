@@ -5,6 +5,8 @@
 using namespace core;
 #include "Define.h"
 
+#define MAX_IP_SIZE 64
+
 class NodeSession : public ISession, public ITimer {
 public:
     NodeSession();
@@ -25,7 +27,7 @@ public:
     virtual void OnConnectFailed(IKernel * kernel);
 
 	virtual void OnStart(IKernel * kernel, s64 tick) {}
-	virtual void OnTimer(IKernel * kernel, s64 tick);
+	virtual void OnTimer(IKernel * kernel, s32 beatCount, s64 tick);
 	virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) {}
 
 	virtual void OnPause(IKernel * kernel, s64 tick) {}

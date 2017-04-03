@@ -54,7 +54,7 @@ void TimerMgr::Destroy() {
 	DEL this;
 }
 
-void TimerMgr::StartTimer(ITimer * timer, s64 delay, s32 count, s64 interval) {
+void TimerMgr::StartTimer(ITimer * timer, s64 delay, s32 count, s64 interval, const char * file, const s32 line) {
 	TimerBase * base = (TimerBase*)timer->GetBase();
 	if (base != nullptr) {
 		OASSERT(false, "already has timer base");
@@ -64,7 +64,7 @@ void TimerMgr::StartTimer(ITimer * timer, s64 delay, s32 count, s64 interval) {
 	if (interval < JIFFIES_INTERVAL)
 		interval = JIFFIES_INTERVAL;
 	
-	base = NEW TimerBase(timer, count, interval / JIFFIES_INTERVAL);
+	base = NEW TimerBase(timer, count, interval / JIFFIES_INTERVAL, file, line);
 	if (delay > 0) {
 		if (delay < JIFFIES_INTERVAL)
 			delay = JIFFIES_INTERVAL;

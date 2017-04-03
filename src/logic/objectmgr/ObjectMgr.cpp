@@ -140,7 +140,7 @@ IObject * ObjectMgr::CreateObjectByID(const char * file, const s32 line, const c
 		return nullptr;
 	}
 
-	MMObject * object = NEW MMObject(name, itr->second);
+	MMObject * object = MemoryPool::Instance()->Create<MMObject>(__FILE__, __LINE__, name, itr->second);
 	object->SetID(id);
 	object->SetShadow(shadow);
 	_objects.insert(std::make_pair(id, ObjectCreateInfo({ object, file, line })));
@@ -159,7 +159,7 @@ void ObjectMgr::Recove(IObject * object) {
     }
 	OASSERT(itr->second.object == object, "wtf");
 
-	DEL object;
+	MemoryPool::Instance()->Recover(object);
     _objects.erase(itr);
 }
 
@@ -197,7 +197,7 @@ ITableControl * ObjectMgr::CreateStaticTable(const char * name, const char * mod
 	if (itr == _tableModels.end())
 		return nullptr;
 
-	TableControl * table = NEW TableControl(tools::CalcStringUniqueId(name), itr->second);
+	TableControl * table = MemoryPool::Instance()->Create<TableControl>(__FILE__, __LINE__, tools::CalcStringUniqueId(name), itr->second);
 	TableCreateInfo info({ table, file, line });
 	_tableMap.insert(std::make_pair(tools::CalcStringUniqueId(name), info));
     return table;
@@ -206,7 +206,7 @@ ITableControl * ObjectMgr::CreateStaticTable(const char * name, const char * mod
 void ObjectMgr::RecoverStaticTable(ITableControl * table) {
 	OASSERT(!table->GetHost(), "wtf");
 	_tableMap.erase(((TableControl*)table)->GetName());
-	DEL table;
+	MemoryPool::Instance()->Recover(table);
 }
 
 s32 ObjectMgr::CalcTableName(const char * table) {

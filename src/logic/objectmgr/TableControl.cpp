@@ -10,9 +10,8 @@ TableControl::TableControl(s32 name, const TableDescriptor * descriptor, IObject
 }
 
 TableControl::~TableControl() {
-	for (s32 i = 0; i < (s32)_rows.size(); ++i) {
-		DEL _rows[i];
-	}
+	for (s32 i = 0; i < (s32)_rows.size(); ++i)
+		MemoryPool::Instance()->Recover(_rows[i]);
 	_rows.clear();
 
 	_updateCallPool.clear();
@@ -22,9 +21,8 @@ TableControl::~TableControl() {
 }
 
 void TableControl::ClearRows() {
-	for (s32 i = 0; i < (s32)_rows.size(); ++i) {
-		DEL _rows[i];
-	}
+	for (s32 i = 0; i < (s32)_rows.size(); ++i)
+		MemoryPool::Instance()->Recover(_rows[i]);
 	_rows.clear();
 
 	_intKeyMap.clear();
@@ -64,7 +62,7 @@ IRow * TableControl::GetRow(const s32 index) const {
 IRow * TableControl::AddRow() {
 	OASSERT(_descriptor->GetKeyType() == DTYPE_CANT_BE_KEY, "wtf");
 	if (_descriptor->GetKeyType() == DTYPE_CANT_BE_KEY) {
-		TableRow * row = NEW TableRow(this, _descriptor);
+		TableRow * row = MemoryPool::Instance()->Create<TableRow>(__FILE__, __LINE__, this, _descriptor);
 		row->SetRowIndex((s32)_rows.size());
 		_rows.push_back(row);
 		AddCallBack(ObjectMgr::Instance()->GetKernel(), row, nullptr, 0, DTYPE_CANT_BE_KEY);
@@ -76,7 +74,7 @@ IRow * TableControl::AddRow() {
 IRow * TableControl::AddRowKeyInt(s8 type, const void * data, const s32 size, s64 key) {
 	OASSERT(_descriptor->GetKeyType() == type, "wtf");
 	if (_descriptor->GetKeyType() == type) {
-		TableRow * row = NEW TableRow(this, _descriptor);
+		TableRow * row = MemoryPool::Instance()->Create<TableRow>(__FILE__, __LINE__, this, _descriptor);
 		_intKeyMap.insert(std::make_pair(key, (s32)_rows.size()));
 		row->Set(_descriptor->GetKeyCol(), type, data, size, false);
 		row->SetRowIndex((s32)_rows.size());
@@ -90,7 +88,7 @@ IRow * TableControl::AddRowKeyInt(s8 type, const void * data, const s32 size, s6
 IRow * TableControl::AddRowKeyString(const char * key) {
 	OASSERT(_descriptor->GetKeyType() == DTYPE_STRING, "wtf");
 	if (_descriptor->GetKeyType() == DTYPE_STRING) {
-		TableRow * row = NEW TableRow(this, _descriptor);
+		TableRow * row = MemoryPool::Instance()->Create<TableRow>(__FILE__, __LINE__, this, _descriptor);
 		_stringKeyMap.insert(std::make_pair(key, (s32)_rows.size()));
 		row->Set(_descriptor->GetKeyCol(), DTYPE_STRING, key, (s32)strlen(key), false);
 		row->SetRowIndex((s32)_rows.size());
@@ -147,7 +145,7 @@ bool TableControl::DelRow(const s32 index) {
 
 	auto itr = _rows.begin() + index;
 	_rows.erase(itr);
-	DEL row;
+	MemoryPool::Instance()->Recover(row);
 
 	OrderProcIndex(index);
 	return true;

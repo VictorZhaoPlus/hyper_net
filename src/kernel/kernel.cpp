@@ -100,8 +100,8 @@ bool Kernel::Connect(const char * ip, const s32 port, const s32 sendSize, const 
     return NetEngine::Instance()->Connect(ip, port, sendSize, recvSize, session);
 }
 
-void Kernel::StartTimer(ITimer * timer, s64 delay, s32 count, s64 interval) {
-	TimerMgr::Instance()->StartTimer(timer, delay, count, interval);
+void Kernel::StartTimer(ITimer * timer, s64 delay, s32 count, s64 interval, const char * file, const s32 line) {
+	TimerMgr::Instance()->StartTimer(timer, delay, count, interval, file, line);
 }
 
 void Kernel::KillTimer(ITimer * timer) {
@@ -116,8 +116,8 @@ void Kernel::ResumeTimer(ITimer * timer) {
 	TimerMgr::Instance()->ResumeTimer(timer);
 }
 
-void Kernel::StartAsync(const s64 threadId, IAsyncHandler * handler, const char * debug) {
-	AsyncMgr::Instance()->Start(threadId, handler, debug);
+void Kernel::StartAsync(const s64 threadId, IAsyncHandler * handler, const char * file, const s32 line) {
+	AsyncMgr::Instance()->Start(threadId, handler, file, line);
 }
 
 void Kernel::StopAsync(IAsyncHandler * handler) {

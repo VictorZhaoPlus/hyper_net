@@ -43,7 +43,7 @@ namespace core {
 		inline ITimerBase * GetBase() { return _base; }
 
 		virtual void OnStart(IKernel * kernel, s64 tick) = 0;
-		virtual void OnTimer(IKernel * kernel, s64 tick) = 0;
+		virtual void OnTimer(IKernel * kernel, s32 beatCount, s64 tick) = 0;
 		virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) = 0;
 
 		virtual void OnPause(IKernel * kernel, s64 tick) {}
@@ -119,12 +119,12 @@ namespace core {
         virtual bool Connect(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, ISession * session) = 0;
 
 #define TIMER_BEAT_FOREVER -1
-		virtual void StartTimer(ITimer * timer, s64 delay, s32 count, s64 interval) = 0;
+		virtual void StartTimer(ITimer * timer, s64 delay, s32 count, s64 interval, const char * file, const s32 line) = 0;
 		virtual void KillTimer(ITimer * timer) = 0;
 		virtual void PauseTimer(ITimer * timer) = 0;
 		virtual void ResumeTimer(ITimer * timer) = 0;
 
-		virtual void StartAsync(const s64 threadId, IAsyncHandler * handler, const char * debug) = 0;
+		virtual void StartAsync(const s64 threadId, IAsyncHandler * handler, const char * file, const s32 line) = 0;
 		virtual void StopAsync(IAsyncHandler * handler) = 0;
 
         virtual IModule * FindModule(const char * name) = 0;
@@ -139,9 +139,8 @@ namespace core {
     printf("%s\n", debug); \
 }
 
-#define START_TIMER(timer, delay, count, interval) {\
-	kernel->StartTimer(timer, delay, count, interval);\
-}
+#define START_TIMER(timer, delay, count, interval) kernel->StartTimer(timer, delay, count, interval, __FILE__, __LINE__)
+#define START_ASYNC(threadId, handler) kernel->StartAsync(threadId, handler, __FILE__, __LINE__)
 
 #define FIND_MODULE(m, name) {\
 	m = (I##name *)kernel->FindModule(#name);\

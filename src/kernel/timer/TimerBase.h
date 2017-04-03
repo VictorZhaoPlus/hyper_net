@@ -5,10 +5,12 @@
 #include "IKernel.h"
 using namespace core;
 
+#define DEBUG_SIZE 256
+
 class TimerList;
 class TimerBase : public ITimerBase{
 public:
-	TimerBase(ITimer * timer, s32 count, s64 interval);
+	TimerBase(ITimer * timer, s32 count, s64 interval, const char * file, const s32 line);
 	virtual ~TimerBase() {}
 
 	void OnTimer();
@@ -48,6 +50,7 @@ private:
 	TimerBase * _next;
 	TimerBase * _prev;
 
+	char _debug[DEBUG_SIZE];
 	ITimer * _timer;
 	bool _valid;
 	bool _polling;
@@ -56,6 +59,7 @@ private:
 	u64 _interval;
 	s32 _count;
 	bool _started;
+	s32 _beatCount;
 
 	u64 _pauseTick;
 	bool _paused;

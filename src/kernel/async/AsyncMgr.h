@@ -18,7 +18,7 @@ public:
     bool Destroy();
 	void Loop(s64 overTime);
 
-	void Start(const s64 threadId, IAsyncHandler * handler, const char * debug);
+	void Start(const s64 threadId, IAsyncHandler * handler, const char * file, const s32 line);
 	void Stop(IAsyncHandler * handler);
 
 private:

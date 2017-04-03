@@ -80,7 +80,7 @@ s64 IdMgr::AllocId() {
 	return 0;
 }
 
-void IdMgr::OnTimer(IKernel * kernel, s64 tick) {
+void IdMgr::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
 	
 	if ((s32)_ids.size() < _poolSize) {
 		if (_harbor->GetNodeType() == _nodeType) {

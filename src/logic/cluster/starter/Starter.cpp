@@ -52,7 +52,7 @@ bool Starter::Launched(IKernel * kernel) {
 
 		for (auto itr = _executes.begin(); itr != _executes.end(); ++itr) {
 			itr->second.timer = StartNodeTimer::Create(itr->first);
-			kernel->StartTimer(itr->second.timer, itr->second.delay, TIMER_BEAT_FOREVER, _checkInterval);
+			START_TIMER(itr->second.timer, itr->second.delay, TIMER_BEAT_FOREVER, _checkInterval);
 		}
 
 		FIND_MODULE(_protocolMgr, ProtocolMgr);

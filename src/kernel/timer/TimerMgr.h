@@ -30,7 +30,7 @@ public:
 	void Loop();
 	void Destroy();
 
-	void StartTimer(ITimer * timer, s64 delay, s32 count, s64 interval);
+	void StartTimer(ITimer * timer, s64 delay, s32 count, s64 interval, const char * file, const s32 line);
 	void KillTimer(ITimer * timer);
 	void PauseTimer(ITimer * timer);
 	void ResumeTimer(ITimer * timer);
