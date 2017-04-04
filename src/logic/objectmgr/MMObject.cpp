@@ -8,7 +8,6 @@
 MMObject::MMObject(const char * type, ObjectDescriptor * descriptor)
 	: _type(type)
 	, _objectId(0)
-	, _isShadow(false)
 	, _descriptor(descriptor) {
 	_memory = MemoryPool::Instance()->Create<Memory>(__FILE__, __LINE__, _descriptor->CalcMemorySize());
 

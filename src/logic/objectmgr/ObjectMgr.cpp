@@ -124,11 +124,11 @@ IObject * ObjectMgr::FindObject(const s64 id) {
     return itr->second.object;
 }
 
-IObject * ObjectMgr::Create(const char * file, const s32 line, const char * name, bool shadow) {
-	return CreateObjectByID(file, line, name, _idMgr->AllocId(), shadow);
+IObject * ObjectMgr::Create(const char * file, const s32 line, const char * name) {
+	return CreateObjectByID(file, line, name, _idMgr->AllocId());
 }
 
-IObject * ObjectMgr::CreateObjectByID(const char * file, const s32 line, const char * name, const s64 id, bool shadow) {
+IObject * ObjectMgr::CreateObjectByID(const char * file, const s32 line, const char * name, const s64 id) {
 	if (_objects.find(id) != _objects.end()) {
 		OASSERT(false, "object id is exists");
 		return nullptr;
@@ -142,7 +142,6 @@ IObject * ObjectMgr::CreateObjectByID(const char * file, const s32 line, const c
 
 	MMObject * object = MemoryPool::Instance()->Create<MMObject>(__FILE__, __LINE__, name, itr->second);
 	object->SetID(id);
-	object->SetShadow(shadow);
 	_objects.insert(std::make_pair(id, ObjectCreateInfo({ object, file, line })));
 	return object;
 }

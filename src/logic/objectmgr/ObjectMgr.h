@@ -41,8 +41,8 @@ public:
     virtual bool Launched(IKernel * kernel);
     virtual bool Destroy(IKernel * kernel);
 
-    virtual IObject * Create(const char * file, const s32 line, const char * name, bool shadow);
-    virtual IObject * CreateObjectByID(const char * file, const s32 line, const char * name, const s64 id, bool shadow);
+    virtual IObject * Create(const char * file, const s32 line, const char * name);
+    virtual IObject * CreateObjectByID(const char * file, const s32 line, const char * name, const s64 id);
     virtual IObject * FindObject(const s64 id);
     virtual void Recove(IObject * object);
 

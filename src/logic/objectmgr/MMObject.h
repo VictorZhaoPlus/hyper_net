@@ -29,9 +29,6 @@ public:
 	virtual const char * GetTypeName() const { return _type.c_str(); }
 	inline ObjectDescriptor * GetDescriptor() const { return _descriptor; }
 
-	virtual const bool IsShadow() const { return _isShadow; }
-	void SetShadow(const bool b) { _isShadow = b; }
-
 	virtual const std::vector<const IProp*>& GetPropsInfo(bool noParent) const;
 
 	inline bool Set(const IProp * prop, const s8 type, const void * data, const s32 size, const bool sync) {
@@ -92,7 +89,6 @@ private:
 private:
     const std::string _type;
     s64 _objectId;
-	bool _isShadow;
 
 	Memory * _memory;
 	ObjectDescriptor * _descriptor;

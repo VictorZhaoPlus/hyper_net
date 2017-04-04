@@ -120,7 +120,6 @@ public:
 
     virtual const s64 GetID() const = 0;
     virtual const char * GetTypeName() const = 0;
-    virtual const bool IsShadow() const = 0;
 
     virtual const std::vector<const IProp*>& GetPropsInfo(bool noFather = false) const = 0;
 
@@ -155,8 +154,8 @@ class IObjectMgr : public IModule {
 public:
     virtual ~IObjectMgr() {}
 
-    virtual IObject * Create(const char * file, const s32 line, const char * name, bool shadow = false) = 0;
-    virtual IObject * CreateObjectByID(const char * file, const s32 line, const char * name, const s64 id, bool shadow = false) = 0;
+    virtual IObject * Create(const char * file, const s32 line, const char * name) = 0;
+    virtual IObject * CreateObjectByID(const char * file, const s32 line, const char * name, const s64 id) = 0;
     virtual IObject * FindObject(const s64 id) = 0;
     virtual void Recove(IObject * pObject) = 0;
 

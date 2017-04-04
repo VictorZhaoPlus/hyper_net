@@ -31,9 +31,18 @@ public:
 		return false;
 	}
 
-	bool ReadBlob(VoidType& val, s32& size) {
+	bool ReadBlob(VoidType& val, s32& size) const {
 		if (!Read(size))
 			return false;
+		const void * data = GetData(size);
+		if (data != nullptr) {
+			val = data;
+			return true;
+		}
+		return false;
+	}
+
+	bool ReadStruct(VoidType& val, const s32 size) const {
 		const void * data = GetData(size);
 		if (data != nullptr) {
 			val = data;
@@ -78,6 +87,7 @@ public:
 	virtual IBuffer& operator<<(const float& t) = 0;
 	virtual IBuffer& operator<<(const char * t) = 0;
 	virtual IBuffer& WriteBuffer(const void * context, const s32 size) = 0;
+	virtual IBuffer& WriteStruct(const void * context, const s32 size) = 0;
 };
 
 namespace olib {
@@ -119,6 +129,15 @@ namespace olib {
 			OASSERT(_offset + size + sizeof(s32) <= maxSize, "wtf");
 			if (_offset + size + sizeof(s32) <= maxSize) {
 				*this << size;
+				SafeMemcpy(_buf + _offset, maxSize - _offset, context, size);
+				_offset += size;
+			}
+			return *this;
+		}
+
+		virtual IBuffer& WriteStruct(const void * context, const s32 size) {
+			OASSERT(_offset + size <= maxSize, "wtf");
+			if (_offset + size <= maxSize) {
 				SafeMemcpy(_buf + _offset, maxSize - _offset, context, size);
 				_offset += size;
 			}
