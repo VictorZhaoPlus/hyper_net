@@ -13,7 +13,7 @@ class IProtocolMgr;
 class IPacketSender;
 class IOCommand;
 class IShadowMgr;
-class Watcher : public IWatcher, public IWatcherSelector, public OHolder<Watcher> {
+class Watcher : public IWatcher, public OHolder<Watcher> {
 public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);
@@ -23,8 +23,6 @@ public:
 
 	virtual void QueryNeighbor(IObject * object, const std::function<void(IKernel*, IObject * object)>& f);
 	virtual bool IsNeighbor(IObject * object, s64 id);
-
-	virtual void SetSelector(IWatcherSelector * selector) { _selector = selector; }
 
 	virtual s32 Check(IObject * object, s64 id, s32 type, s64& eliminateId);
 	virtual s64 Pop(IObject * object, s64 id, s32 type);
@@ -40,7 +38,6 @@ public:
 
 private:
     IKernel * _kernel;
-	IWatcherSelector * _selector;
 	IHarbor * _harbor;
 	IObjectMgr * _objectMgr;
 	IEventEngine * _eventEngine;

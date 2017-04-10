@@ -29,42 +29,39 @@ public:
 	virtual ~ISceneClient() {}
 
 	virtual s64 RegisterArea(s8 type, const char * scene, s16 x, s16 y, s16 z, s16 range, const AreaCallBack& f) = 0;
-	virtual void SwitchTo(IObject * object, const char * scene, const Position& pos, const s64 copyId = 0) = 0;
-	virtual void SwitchTo(IObject * object, IObject * scene, const Position& pos) = 0;
 
-	virtual std::vector<Position> FindPath(IObject * scene, const Position& start, const Position& end, float radius = 0) = 0;
-	virtual Position RandomInRange(IObject * scene, const Position& start, const Position& end, float radius) = 0;
-	virtual Position RayCast(IObject * scene, const Position& start, const Position& end, float radius) = 0;
+	virtual void AppearOn(IObject * object, const char * scene, const Position& pos, const s64 copyId = 0, const bool appear = false) = 0;
+	virtual void SwitchTo(IObject * object, const char * scene, const Position& pos, const s64 copyId = 0) = 0;
+
+	virtual Position RandomInRange(const char * scene, const s32 copyId, const Position& start, const Position& end, float radius) = 0;
+	virtual Position Random(const char * scene, const s32 copyId) = 0;
+
+	virtual std::vector<Position> FindPath(const char * scene, const s32 copyId, const Position& start, const Position& end, float radius = 0) = 0;
+	virtual Position RayCast(const char * scene, const s32 copyId, const Position& start, const Position& end, float radius) = 0;
 
 	virtual s32 GetAreaType(IObject * object) = 0;
 };
 
-enum {
-	WSCR_NONE = 0,
-	WSCR_ADD,
-	WSCR_REPLACE,
-};
-
-class ICellVisibleChecker {
+class IVisibleChecker {
 public:
-	virtual ~ICellVisibleChecker() {}
+	virtual ~IVisibleChecker() {}
 
 	virtual bool IsVisiable(IObject * object, IObject * test) = 0;
 };
 
-class ICell : public IModule {
+class IScene : public IModule {
 public:
-	virtual ~ICell() {}
+	virtual ~IScene() {}
 
-	virtual void SetVisibleChecker(ICellVisibleChecker * checker) = 0;
+	virtual void SetVisibleChecker(IVisibleChecker * checker) = 0;
 };
 
-class IWatcherSelector {
+class ITargetSet {
 public:
-	virtual ~IWatcherSelector() {}
+	virtual ~ITargetSet() {}
 
-	virtual s32 Check(IObject * object, s64 id, s32 type, s64& eliminateId) = 0;
-	virtual s64 Pop(IObject * object, s64 id, s32 type) = 0;
+	virtual s32 Count() const = 0;
+	virtual s64 GetTarget(const s32 idx) const = 0;
 };
 
 class IWatcher : public IModule {
@@ -73,10 +70,7 @@ public:
 
 	virtual void Brocast(IObject * object, const s32 msgId, const OBuffer& buf, bool self = false) = 0;
 
-	virtual void QueryNeighbor(IObject * object, const std::function<void(IKernel*, IObject * object)>& f) = 0;
-	virtual bool IsNeighbor(IObject * object, s64 id) = 0;
-
-	virtual void SetSelector(IWatcherSelector * selector) = 0;
+	virtual void QueryNeighbor(IObject * object, const s32 cmd, const OArgs& args, const std::function<void(IKernel*, IObject * object, const ITargetSet * targets)>& cb) = 0;
 };
 
 #endif /*__ISCENE_H__ */

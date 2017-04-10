@@ -1,5 +1,5 @@
-#ifndef __CELL_H__
-#define __CELL_H__
+#ifndef __SCENE_H__
+#define __SCENE_H__
 #include "util.h"
 #include "IScene.h"
 #include "singleton.h"
