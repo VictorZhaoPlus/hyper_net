@@ -1,133 +1,207 @@
-#include "Cell.h"
+#include "Scene.h"
 #include "IHarbor.h"
 #include "UserNodeType.h"
-#include "FrameworkProtocol.h"
-#include "CellInterface.h"
 #include "OArgs.h"
 #include "OBuffer.h"
 #include "IObjectMgr.h"
+#include "SceneController.h"
+#include "IProtocolMgr.h"
 
-bool Cell::Initialize(IKernel * kernel) {
+bool Scene::Initialize(IKernel * kernel) {
     _kernel = kernel;
-	_cellVisibleChecker = this;
+	_visibleChecker = nullptr;
 
     return true;
 }
 
-bool Cell::Launched(IKernel * kernel) {
+bool Scene::Launched(IKernel * kernel) {
 	FIND_MODULE(_harbor, Harbor);
-	if (_harbor->GetNodeType() == user_node_type::CELL) {
+	if (_harbor->GetNodeType() == user_node_type::SCENE) {
 		FIND_MODULE(_objectMgr, ObjectMgr);
-		FIND_MODULE(_capacityPublisher, CapacityPublisher);
+		FIND_MODULE(_protocolMgr, ProtocolMgr);
 
-		RGS_HABOR_ARGS_HANDLER(framework_proto::CREATE_CELL, Cell::CreateCell);
-		RGS_HABOR_ARGS_HANDLER(framework_proto::RECOVER_CELL, Cell::RecoverCell);
-		RGS_HABOR_HANDLER(framework_proto::ENTER_CELL, Cell::EnterCell);
-		RGS_HABOR_ARGS_HANDLER(framework_proto::LEAVE_CELL, Cell::LeaveCell);
-		RGS_HABOR_HANDLER(framework_proto::UPDATE_CELL, Cell::UpdateCell);
+		_prop.sceneId = _objectMgr->CalcProp("scene_id");
+		_prop.copyId = _objectMgr->CalcProp("copy_id");
+		_prop.controller = _objectMgr->CalcProp("controller");
+		_prop.x = _objectMgr->CalcProp("x");
+		_prop.y = _objectMgr->CalcProp("y");
+		_prop.z = _objectMgr->CalcProp("z");
+		
+		_proto.createScene = _protocolMgr->GetId("proto_scene", "create_scene");
+		_proto.enterScene = _protocolMgr->GetId("proto_scene", "enter_scene");
+		_proto.leaveScene = _protocolMgr->GetId("proto_scene", "leave_scene");
+		_proto.update = _protocolMgr->GetId("proto_scene", "update");
+		_proto.dealInterest = _protocolMgr->GetId("proto_scene", "deal_interest");
 
-		_propId = _objectMgr->CalcProp("objectId");
+		RGS_HABOR_ARGS_HANDLER(_proto.createScene, Scene::CreateScene);
+		RGS_HABOR_ARGS_HANDLER(_proto.enterScene, Scene::EnterScene);
+		RGS_HABOR_ARGS_HANDLER(_proto.leaveScene, Scene::LeaveScene);
+		RGS_HABOR_ARGS_HANDLER(_proto.update, Scene::UpdateObject);
 	}
     return true;
 }
 
-bool Cell::Destroy(IKernel * kernel) {
+bool Scene::Destroy(IKernel * kernel) {
     DEL this;
     return true;
 }
 
-void Cell::CreateCell(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args) {
+void Scene::CreateScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args) {
 	s64 id = args.GetDataInt64(0);
+	const char * sceneId = args.GetDataString(1);
+	s32 copyId = args.GetDataInt32(2);
 
-	OASSERT(_cells.find(id) == _cells.end(), "wtf");
+	if (_objectMgr->FindObject(id))
+		return;
 
-	_cells[id] = NEW CellInterface(id);
-	START_TIMER(_cells[id], 0, TIMER_BEAT_FOREVER, _updateInterval);
+	IObject * scene = CREATE_OBJECT_BYID(_objectMgr, "Scene", id);
+	OASSERT(scene, "wtf");
+
+	scene->SetPropString(_prop.sceneId, sceneId);
+	scene->SetPropInt32(_prop.copyId, copyId);
+
+	SceneController * controller = NEW SceneController();
+	scene->SetPropInt64(_prop.controller, (s64)controller);
+	controller->OnCreate(scene);
+
+	START_TIMER(controller, 0, TIMER_BEAT_FOREVER, _updateInterval);
 }
 
-void Cell::RecoverCell(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args) {
-	s64 id = args.GetDataInt64(0);
-
-	auto itr = _cells.find(id);
-	OASSERT(itr != _cells.end(), "wtf");
-	if (itr != _cells.end()) {
-		kernel->KillTimer(itr->second);
-		DEL itr->second;
-		_cells.erase(itr);
-	}
-}
-
-void Cell::EnterCell(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args) {
-	s64 cellId = 0;
-	if (!args.Read(cellId)) {
+void Scene::EnterScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args) {
+	s64 sceneId = 0;
+	s64 objectId = 0;
+	s8 objectType = 0;
+	if (!args.ReadMulti(sceneId, objectId, objectType)) {
 		OASSERT(false, "wtf");
 		return;
 	}
 
-	bool update = false;
-	if (!args.Read(update)) {
+	IObject * scene = _objectMgr->FindObject(sceneId);
+	OASSERT(scene, "wtf");
+	if (scene) {
+		SceneController * controller = (SceneController *)scene->GetPropInt64(_prop.controller);
+		OASSERT(controller, "wtf");
+
+		IObject * object = controller->FindOrCreate(objectId, objectType);
+		OASSERT(object, "wtf");
+
+		ReadProps(_kernel, object, args);
+		controller->OnObjectEnter(kernel, object);
+	}
+}
+
+void Scene::LeaveScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args) {
+	s64 sceneId = 0;
+	s64 objectId = 0;
+	if (!args.ReadMulti(sceneId, objectId)) {
 		OASSERT(false, "wtf");
 		return;
 	}
 
-	auto itr = _cells.find(cellId);
-	OASSERT(itr != _cells.end(), "wtf");
-	if (itr != _cells.end()) {
-		s64 id = 0;
-		if (!args.Read(id)) {
+	IObject * scene = _objectMgr->FindObject(sceneId);
+	OASSERT(scene, "wtf");
+	if (scene) {
+		SceneController * controller = (SceneController *)scene->GetPropInt64(_prop.controller);
+		OASSERT(controller, "wtf");
+
+		controller->OnObjectLeave(kernel, objectId);
+	}
+}
+
+void Scene::UpdateObject(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args) {
+	s64 sceneId = 0;
+	s64 objectId = 0;
+	if (!args.ReadMulti(sceneId, objectId)) {
+		OASSERT(false, "wtf");
+		return;
+	}
+
+	IObject * scene = _objectMgr->FindObject(sceneId);
+	OASSERT(scene, "wtf");
+	if (scene) {
+		SceneController * controller = (SceneController *)scene->GetPropInt64(_prop.controller);
+		IObject * object = controller->Find(objectId);
+		OASSERT(object, "wtf");
+
+		ReadProps(_kernel, object, args);
+		controller->OnObjectUpdate(kernel, object);
+	}
+}
+
+void Scene::ReadProps(IKernel * kernel, IObject * object, const OBuffer& args) {
+	s16 x, y, z;
+	if (!args.ReadMulti(x, y, z)) {
+		OASSERT(false, "wtf");
+		return;
+	}
+
+	object->SetPropInt16(_prop.x, x);
+	object->SetPropInt16(_prop.y, y);
+	object->SetPropInt16(_prop.z, z);
+
+	s8 count = 0;
+	if (!args.Read(count)) {
+		OASSERT(false, "wtf");
+		return;
+	}
+
+	for (s32 i = 0; i < count; ++i) {
+		s32 name = 0;
+		if (!args.Read(name)) {
 			OASSERT(false, "wtf");
 			return;
 		}
 
-		IObject * object = CREATE_OBJECT(_objectMgr, "CellObject");
-		OASSERT(object, "wtf");
-		if (object) {
-			object->SetPropInt64(_propId, id);
-			ReadProps(kernel, object, args);
+		const IProp * prop = _objectMgr->CalcProp(name);
+		OASSERT(prop, "wtf");
 
-			itr->second->Add(id, object, update);
+		switch (prop->GetType(object)) {
+		case DTYPE_INT8: {
+				s8 val = 0;
+				if (!args.Read(val)) {
+					OASSERT(false, "wtf");
+					return;
+				}
+				object->SetPropInt8(prop, val);
+			}
+			break;
+		case DTYPE_INT16: {
+				s16 val = 0;
+				if (!args.Read(val)) {
+					OASSERT(false, "wtf");
+					return;
+				}
+				object->SetPropInt16(prop, val);
+			}
+			break;
+		case DTYPE_INT32: {
+				s32 val = 0;
+				if (!args.Read(val)) {
+					OASSERT(false, "wtf");
+					return;
+				}
+				object->SetPropInt32(prop, val);
+			}
+			break;
+		case DTYPE_INT64: {
+				s64 val = 0;
+				if (!args.Read(val)) {
+					OASSERT(false, "wtf");
+					return;
+				}
+				object->SetPropInt64(prop, val);
+			}
+			break;
+		case DTYPE_FLOAT: {
+				float val = 0.f;
+				if (!args.Read(val)) {
+					OASSERT(false, "wtf");
+					return;
+				}
+				object->SetPropFloat(prop, val);
+			}
+			break;
 		}
 	}
-}
-
-void Cell::LeaveCell(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args) {
-	s64 cellId = args.GetDataInt64(0);
-	bool update = args.GetDataBool(1);
-	s64 id = args.GetDataInt64(2);
-
-	auto itr = _cells.find(cellId);
-	OASSERT(itr != _cells.end(), "wtf");
-	if (itr != _cells.end())
-		itr->second->Remove(id, update);
-}
-
-void Cell::UpdateCell(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args) {
-	s64 cellId = 0;
-	if (!args.Read(cellId)) {
-		OASSERT(false, "wtf");
-		return;
-	}
-
-	auto itr = _cells.find(cellId);
-	OASSERT(itr != _cells.end(), "wtf");
-	if (itr != _cells.end()) {
-		s64 id = 0;
-		if (!args.Read(id)) {
-			OASSERT(false, "wtf");
-			return;
-		}
-
-		IObject * object = itr->second->Find(id);
-		OASSERT(object, "wtf");
-		if (object) {
-			ReadProps(kernel, object, args);
-
-			itr->second->Update(id, object);
-		}
-	}
-}
-
-void Cell::ReadProps(IKernel * kernel, IObject * object, const OBuffer& buf) {
-
 }
 

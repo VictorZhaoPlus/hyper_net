@@ -10,7 +10,7 @@ namespace user_node_type {
 		ACCOUNT,
 		LOGIC,
 		SCENEMGR,
-		CELL,
+		SCENE,
 		RELATION,
     };
 }

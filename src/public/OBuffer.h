@@ -9,6 +9,13 @@ public:
 	OBuffer(const char * buf, const s32 size) : _buffer(buf), _size(size), _offset(0) {}
 	~OBuffer() {}
 
+	template <typename... Args>
+	bool ReadMulti(Args&... args) const {
+
+
+		return true;
+	}
+
 	template<typename T>
 	bool Read(T& val) const {
 		const void * data = GetData(sizeof(T));
@@ -19,7 +26,7 @@ public:
 		return false;
 	}
 
-	bool ReadString(StringType& val) const {
+	bool Read(StringType& val) const {
 		s32 size;
 		if (!Read(size))
 			return false;
@@ -31,7 +38,7 @@ public:
 		return false;
 	}
 
-	bool ReadBlob(VoidType& val, s32& size) const {
+	bool Read(VoidType& val, s32& size) const {
 		if (!Read(size))
 			return false;
 		const void * data = GetData(size);

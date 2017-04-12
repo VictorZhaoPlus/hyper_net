@@ -160,6 +160,7 @@ public:
     virtual void Recove(IObject * pObject) = 0;
 
 	virtual const IProp * CalcProp(const char * name) = 0;
+	virtual const IProp * CalcProp(const s32 name) = 0;
 	virtual s32 CalcPropSetting(const char * setting) = 0;
 	virtual s32 CalcTableName(const char * table) = 0;
 

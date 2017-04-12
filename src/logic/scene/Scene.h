@@ -11,37 +11,57 @@ class IObjectMgr;
 class IObject;
 class ICapacityPublisher;
 class IProp;
-class CellInterface;
-class Cell : public ICell, public ICellVisibleChecker, public OHolder<Cell> {
+class SceneController;
+class IProtocolMgr;
+class Scene : public IScene, public OHolder<Scene> {
+	struct Property {
+		const IProp * sceneId;
+		const IProp * copyId;
+		const IProp * controller;
+		const IProp * x;
+		const IProp * y;
+		const IProp * z;
+	};
+
+	struct Proto {
+		s32 createScene;
+		s32 enterScene;
+		s32 leaveScene;
+		s32 update;
+		s32 dealInterest;
+	};
+
 public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);
     virtual bool Destroy(IKernel * kernel);
 
-	virtual bool IsVisiable(IObject * object, IObject * test) { return true; }
+	inline bool IsVisiable(IObject * object, IObject * test) {
+		if (_visibleChecker)
+			return _visibleChecker->IsVisiable(object, test);
+		return true; 
+	}
 
-	void CreateCell(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args);
-	void RecoverCell(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args);
+	void CreateScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args);
 
-	void EnterCell(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args);
-	void LeaveCell(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args);
+	void EnterScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args);
+	void LeaveScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args);
 
-	void UpdateCell(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args);
-	
-	void ReadProps(IKernel * kernel, IObject * object, const OBuffer& buf);
+	void UpdateObject(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args);
+
+	void ReadProps(IKernel * kernel, IObject * object, const OBuffer& args);
 
 private:
     IKernel * _kernel;
 	IHarbor * _harbor;
 	IObjectMgr * _objectMgr;
-	ICapacityPublisher * _capacityPublisher;
-	ICellVisibleChecker * _cellVisibleChecker;
+	IVisibleChecker * _visibleChecker;
+	IProtocolMgr * _protocolMgr;
+
+	Property _prop;
+	Proto _proto;
 
 	s32 _updateInterval;
-
-	const IProp * _propId;
-
-	std::unordered_map<s32, CellInterface*> _cells;
 };
 
 #endif //__SCENE_H__
