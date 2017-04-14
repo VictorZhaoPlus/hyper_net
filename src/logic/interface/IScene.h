@@ -31,6 +31,7 @@ public:
 	virtual s64 RegisterArea(s8 type, const char * scene, s16 x, s16 y, s16 z, s16 range, const AreaCallBack& f) = 0;
 
 	virtual void AppearOn(IObject * object, const char * scene, const Position& pos, const s64 copyId = 0, const bool appear = false) = 0;
+	virtual void Disappear(IObject * object) = 0;
 	virtual void SwitchTo(IObject * object, const char * scene, const Position& pos, const s64 copyId = 0) = 0;
 
 	virtual Position RandomInRange(const char * scene, const s32 copyId, const Position& start, const Position& end, float radius) = 0;
@@ -72,5 +73,18 @@ public:
 
 	virtual void QueryNeighbor(IObject * object, const s32 cmd, const OArgs& args, const std::function<void(IKernel*, IObject * object, const ITargetSet * targets)>& cb) = 0;
 };
+
+namespace scene_event {
+	struct ScenePos {
+		const char * scene;
+		Position pos;
+	};
+
+	struct SwitchScene {
+		IObject * object;
+		ScenePos from;
+		ScenePos to;
+	};
+}
 
 #endif /*__ISCENE_H__ */

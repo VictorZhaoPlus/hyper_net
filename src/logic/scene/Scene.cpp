@@ -4,7 +4,7 @@
 #include "OArgs.h"
 #include "OBuffer.h"
 #include "IObjectMgr.h"
-#include "SceneController.h"
+#include "Vision.h"
 #include "IProtocolMgr.h"
 
 bool Scene::Initialize(IKernel * kernel) {
@@ -60,7 +60,7 @@ void Scene::CreateScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs&
 	scene->SetPropString(_prop.sceneId, sceneId);
 	scene->SetPropInt32(_prop.copyId, copyId);
 
-	SceneController * controller = NEW SceneController();
+	Vision * controller = NEW Vision();
 	scene->SetPropInt64(_prop.controller, (s64)controller);
 	controller->OnCreate(scene);
 
@@ -70,8 +70,7 @@ void Scene::CreateScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs&
 void Scene::EnterScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args) {
 	s64 sceneId = 0;
 	s64 objectId = 0;
-	s8 objectType = 0;
-	if (!args.ReadMulti(sceneId, objectId, objectType)) {
+	if (!args.ReadMulti(sceneId, objectId)) {
 		OASSERT(false, "wtf");
 		return;
 	}
@@ -79,10 +78,10 @@ void Scene::EnterScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer
 	IObject * scene = _objectMgr->FindObject(sceneId);
 	OASSERT(scene, "wtf");
 	if (scene) {
-		SceneController * controller = (SceneController *)scene->GetPropInt64(_prop.controller);
+		Vision * controller = (Vision *)scene->GetPropInt64(_prop.controller);
 		OASSERT(controller, "wtf");
 
-		IObject * object = controller->FindOrCreate(objectId, objectType);
+		IObject * object = controller->FindOrCreate(objectId);
 		OASSERT(object, "wtf");
 
 		ReadProps(_kernel, object, args);
@@ -101,7 +100,7 @@ void Scene::LeaveScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer
 	IObject * scene = _objectMgr->FindObject(sceneId);
 	OASSERT(scene, "wtf");
 	if (scene) {
-		SceneController * controller = (SceneController *)scene->GetPropInt64(_prop.controller);
+		Vision * controller = (Vision *)scene->GetPropInt64(_prop.controller);
 		OASSERT(controller, "wtf");
 
 		controller->OnObjectLeave(kernel, objectId);
@@ -119,7 +118,7 @@ void Scene::UpdateObject(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuff
 	IObject * scene = _objectMgr->FindObject(sceneId);
 	OASSERT(scene, "wtf");
 	if (scene) {
-		SceneController * controller = (SceneController *)scene->GetPropInt64(_prop.controller);
+		Vision * controller = (Vision *)scene->GetPropInt64(_prop.controller);
 		IObject * object = controller->Find(objectId);
 		OASSERT(object, "wtf");
 

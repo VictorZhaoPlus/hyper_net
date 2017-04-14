@@ -1,14 +1,14 @@
-#ifndef __SCENECONTROLLER_H__
-#define __SCENECONTROLLER_H__
+#ifndef __VISION_H__
+#define __VISION_H__
 #include "util.h"
 #include "IKernel.h"
 using namespace core;
 
 class IObject;
-class SceneController : public ITimer {
+class Vision : public ITimer {
 public:
-	SceneController() : _scene(nullptr) {}
-	~SceneController() {}
+	Vision() : _scene(nullptr) {}
+	~Vision() {}
 
 	virtual void OnStart(IKernel * kernel, s64 tick);
 	virtual void OnTimer(IKernel * kernel, s32 beatCount, s64 tick);
@@ -16,7 +16,7 @@ public:
 
 	void OnCreate(IObject * scene);
 
-	IObject * FindOrCreate(s64 objectId, s8 objectType);
+	IObject * FindOrCreate(s64 objectId);
 	IObject * Find(s64 objectId);
 
 	void OnObjectEnter(IKernel * kernel, IObject * object);
@@ -27,5 +27,5 @@ private:
 	IObject * _scene;
 };
 
-#endif //__SCENECONTROLLER_H__
+#endif //__VISION_H__
 
