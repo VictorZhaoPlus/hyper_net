@@ -35,6 +35,12 @@ class SceneClient : public ISceneClient, public OHolder<SceneClient> {
 		const IProp * appeared;
 	};
 
+	struct Proto {
+		s32 appear;
+		s32 disappear;
+		s32 update;
+	};
+
 public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);
@@ -54,10 +60,9 @@ public:
 
 	virtual s32 GetAreaType(IObject * object);
 
-	void SendEnterScene(IKernel * kernel, IObject * object);
-	void SendLeaveScene(IKernel * kernel, IObject * object);
 	void SendAppearScene(IKernel * kernel, IObject * object);
 	void SendDisappearScene(IKernel * kernel, IObject * object);
+	void SendUpdateObject(IKernel * kernel, IObject * object);
 	void SendSceneInfo(IKernel * kernel, IObject * object);
 
 	s32 DistributeSceneCopy(IKernel * kernel, const char * scene);
@@ -78,11 +83,14 @@ private:
 	std::unordered_map<std::string, Scene> _scenes;
 
 	Property _props;
+	Proto _proto;
 
 	s32 _eventAppearOnMap;
 	s32 _eventDisappearOnMap;
 	s32 _eventPrepareSwitchScene;
 	s32 _eventSwitchScene;
+
+	std::vector<const IProp *> _syncProps;
 };
 
 #endif //__SCENE_H__
