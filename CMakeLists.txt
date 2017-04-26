@@ -43,8 +43,6 @@ SET(PUBLIC
     "${PROJECT_SOURCE_DIR}/src/public/singleton.h"
 	"${PROJECT_SOURCE_DIR}/src/public/XmlReader.h"
 	"${PROJECT_SOURCE_DIR}/src/public/XmlReader.cpp"
-	"${PROJECT_SOURCE_DIR}/src/public/OStream.h"
-	"${PROJECT_SOURCE_DIR}/src/public/OStream.cpp"
 	"${PROJECT_SOURCE_DIR}/src/public/CycleQueue.h"
 	"${PROJECT_SOURCE_DIR}/src/public/OMap.h"
 	"${PROJECT_SOURCE_DIR}/src/public/Fsm.h"

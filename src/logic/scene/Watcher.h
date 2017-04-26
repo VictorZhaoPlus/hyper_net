@@ -4,15 +4,13 @@
 #include "IScene.h"
 #include "singleton.h"
 
-class OArgs;
+class OBuffer;
 class IHarbor;
 class IObjectMgr;
 class IProp;
 class IEventEngine;
 class IProtocolMgr;
 class IPacketSender;
-class IOCommand;
-class IShadowMgr;
 class Watcher : public IWatcher, public OHolder<Watcher> {
 public:
     virtual bool Initialize(IKernel * kernel);
@@ -21,20 +19,12 @@ public:
 
 	virtual void Brocast(IObject * object, const s32 msgId, const OBuffer& buf, bool self = false);
 
-	virtual void QueryNeighbor(IObject * object, const std::function<void(IKernel*, IObject * object)>& f);
-	virtual bool IsNeighbor(IObject * object, s64 id);
+	virtual void QueryNeighbor(IObject * object, const s32 cmd, const OArgs& args, const std::function<void(IKernel*, IObject * object, const ITargetSet * targets)>& cb);
 
-	virtual s32 Check(IObject * object, s64 id, s32 type, s64& eliminateId);
-	virtual s64 Pop(IObject * object, s64 id, s32 type);
-
-	void AddInterest(IKernel * kernel, const s64 sender, IObject * reciever, const OArgs& args);
-	void RemoveInterest(IKernel * kernel, const s64 sender, IObject * reciever, const OArgs& args);
-
-	void AddWatcher(IKernel * kernel, const s64 sender, IObject * reciever, const OArgs& args);
-	void RemoveWatcher(IKernel * kernel, const s64 sender, IObject * reciever, const OArgs& args);
+	void DealInterest(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args);
+	void DealWatcher(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args);
 
 	void DisapperWhenDestroy(IKernel * kernel, const void * context, const s32 size);
-	void RemoveAllInterestWhenDestroy(IKernel * kernel, const void * context, const s32 size);
 
 private:
     IKernel * _kernel;
@@ -43,8 +33,6 @@ private:
 	IEventEngine * _eventEngine;
 	IProtocolMgr * _protocolMgr;
 	IPacketSender * _packetSender;
-	IOCommand * _command;
-	IShadowMgr * _shadowMgr;
 
 	const IProp * _gate;
 	const IProp * _logic;

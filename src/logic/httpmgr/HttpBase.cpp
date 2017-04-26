@@ -30,7 +30,7 @@ bool HttpBase::OnExecute(IKernel * kernel) {
 }
 
 void HttpBase::OnSuccess(IKernel * kernel) {
-	_handler->OnSuccess(kernel, _content.GetBuff(), _content.GetSize());
+	_handler->OnSuccess(kernel, _content.data(), _content.size());
 	_handler->SetBase(nullptr);
 	_handler = nullptr;
 }
@@ -57,9 +57,5 @@ void HttpBase::Get(IHttpHandler * handler, const char * url) {
 }
 
 void HttpBase::Append(const void * context, const s32 size) {
-	while (_content.GetFreeSize() < size)
-		_content.Expand();
-
-	SafeMemcpy(_content.GetFree(), _content.GetFreeSize(), context, size);
-	_content.In(size);
+	_content.append((const char*)context, size);
 }

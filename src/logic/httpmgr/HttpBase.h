@@ -2,7 +2,6 @@
 #define __HTTPBASE_H__
 #include "IHttpMgr.h"
 #include <curl/curl.h>
-#include "OStream.h"
 
 #define MAX_URL 256
 #define MAX_FIELD 256
@@ -19,8 +18,8 @@ public:
 		: _curl(curl)
 		, _type(HT_NONE)
 		, _handler(nullptr)
-		, _errCode(0)
-		, _content(DEFAULT_CONTENT_SIZE) {
+		, _errCode(0) {
+		_content.reserve(DEFAULT_CONTENT_SIZE);
 	}
 	virtual ~HttpBase() {}
 
@@ -45,7 +44,7 @@ private:
 	s32 _type;
 
 	s32 _errCode;
-	olib::OStream _content;
+	std::string _content;
 };
 
 #endif //__HTTPBASE_H__

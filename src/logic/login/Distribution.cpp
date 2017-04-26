@@ -41,9 +41,11 @@ s32 Distribution::ChooseLogic(s64 actorId) {
 }
 
 void Distribution::OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port) {
-	auto itr = std::find(_logices.begin(), _logices.end(), nodeId);
-	if (itr == _logices.end())
-		_logices.push_back(nodeId);
+	if (nodeType == user_node_type::LOGIC) {
+		auto itr = std::find(_logices.begin(), _logices.end(), nodeId);
+		if (itr == _logices.end())
+			_logices.push_back(nodeId);
+	}
 }
 
 void Distribution::OnRecvDistributeLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {

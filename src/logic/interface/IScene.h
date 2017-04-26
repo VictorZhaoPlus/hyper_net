@@ -17,13 +17,9 @@ struct Position {
 };
 class IObject;
 class OBuffer;
+class OArgs;
 
-class IScene : public IModule {
-public:
-	virtual ~IScene() {}
-};
-
-typedef std::function<void(IKernel * kernel, const char * scene, s16 x, s16 y, s16 z, s16 range)> AreaCallBack;
+typedef std::function<void(IKernel * kernel, IObject * object)> AreaCallBack;
 class ISceneClient : public IModule {
 public:
 	virtual ~ISceneClient() {}
@@ -41,6 +37,20 @@ public:
 	virtual Position RayCast(const char * scene, const s32 copyId, const Position& start, const Position& end, float radius) = 0;
 
 	virtual s32 GetAreaType(IObject * object) = 0;
+};
+
+class ISceneDistributor {
+public:
+	virtual ~ISceneDistributor() {}
+
+	virtual s32 ChooseSceneNode() = 0;
+};
+
+class ISceneMgr : public IModule {
+public:
+	virtual ~ISceneMgr() {}
+
+	virtual void SetDistributor(ISceneDistributor * distributor) = 0;
 };
 
 class IVisibleChecker {

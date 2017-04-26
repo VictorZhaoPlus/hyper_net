@@ -25,16 +25,21 @@ class Scene : public IScene, public OHolder<Scene> {
 
 	struct Proto {
 		s32 createScene;
-		s32 enterScene;
-		s32 leaveScene;
+		s32 appear;
+		s32 disappear;
 		s32 update;
+		s32 confirmScene;
+		s32 recoverScene;
 		s32 dealInterest;
+		s32 dealWatcher;
 	};
 
 public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);
     virtual bool Destroy(IKernel * kernel);
+
+	virtual void SetVisibleChecker(IVisibleChecker * checker) { _visibleChecker = checker; }
 
 	inline bool IsVisiable(IObject * object, IObject * test) {
 		if (_visibleChecker)

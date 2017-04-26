@@ -28,15 +28,18 @@ bool Scene::Launched(IKernel * kernel) {
 		_prop.z = _objectMgr->CalcProp("z");
 		
 		_proto.createScene = _protocolMgr->GetId("proto_scene", "create_scene");
-		_proto.enterScene = _protocolMgr->GetId("proto_scene", "enter_scene");
-		_proto.leaveScene = _protocolMgr->GetId("proto_scene", "leave_scene");
+		_proto.appear = _protocolMgr->GetId("proto_scene", "appear");
+		_proto.disappear = _protocolMgr->GetId("proto_scene", "disappear");
 		_proto.update = _protocolMgr->GetId("proto_scene", "update");
+		_proto.confirmScene = _protocolMgr->GetId("proto_scene", "comfirm_scene");
+		_proto.recoverScene = _protocolMgr->GetId("proto_scene", "recover_scene");
 		_proto.dealInterest = _protocolMgr->GetId("proto_scene", "deal_interest");
+		_proto.dealWatcher = _protocolMgr->GetId("proto_scene", "deal_watcher");
 
 		RGS_HABOR_ARGS_HANDLER(_proto.createScene, Scene::CreateScene);
-		RGS_HABOR_ARGS_HANDLER(_proto.enterScene, Scene::EnterScene);
-		RGS_HABOR_ARGS_HANDLER(_proto.leaveScene, Scene::LeaveScene);
-		RGS_HABOR_ARGS_HANDLER(_proto.update, Scene::UpdateObject);
+		RGS_HABOR_HANDLER(_proto.appear, Scene::EnterScene);
+		RGS_HABOR_HANDLER(_proto.disappear, Scene::LeaveScene);
+		RGS_HABOR_HANDLER(_proto.update, Scene::UpdateObject);
 	}
     return true;
 }
@@ -50,6 +53,12 @@ void Scene::CreateScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs&
 	s64 id = args.GetDataInt64(0);
 	const char * sceneId = args.GetDataString(1);
 	s32 copyId = args.GetDataInt32(2);
+
+	IArgs<2, 64> ntf;
+	ntf << sceneId << copyId;
+	ntf.Fix();
+	_harbor->Send(nodeType, nodeId, _proto.confirmScene, ntf.Out());
+
 
 	if (_objectMgr->FindObject(id))
 		return;

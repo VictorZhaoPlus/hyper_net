@@ -4,7 +4,10 @@
 #include "UserNodeType.h"
 #include "IObjectMgr.h"
 #include "IProtocolMgr.h"
+#include "IObjectTimer.h"
 #include "OBuffer.h"
+#include "ILogin.h"
+
 #define MAX_SYNC_SCENE_PACKET_LEN 4096
 
 bool SceneClient::Initialize(IKernel * kernel) {
@@ -20,7 +23,24 @@ bool SceneClient::Launched(IKernel * kernel) {
 		FIND_MODULE(_eventEngine, EventEngine);
 		FIND_MODULE(_protocolMgr, ProtocolMgr);
 		FIND_MODULE(_objectMgr, ObjectMgr);
+		FIND_MODULE(_objectTimer, ObjectTimer);
+		FIND_MODULE(_packetSender, PacketSender);
+		FIND_MODULE(_logic, Logic);
 
+		_props.sceneId = _objectMgr->CalcProp("sceneId");
+		_props.sceneCopyId = _objectMgr->CalcProp("sceneCopyId");
+		_props.x = _objectMgr->CalcProp("x");
+		_props.y = _objectMgr->CalcProp("y");
+		_props.z = _objectMgr->CalcProp("z");
+		_props.appeared = _objectMgr->CalcProp("appeared");
+		_props.syncTimer = _objectMgr->CalcProp("syncTimer");
+		_props.sync = _objectMgr->CalcProp("sync");
+		_props.gate = _objectMgr->CalcProp("gate");
+		_props.firstAppear = _objectMgr->CalcProp("firstAppear");
+
+		_proto.appear = _protocolMgr->GetId("proto_scene", "appear");
+		_proto.disappear = _protocolMgr->GetId("proto_scene", "disappear");
+		_proto.update = _protocolMgr->GetId("proto_scene", "update");
 	}
     return true;
 }
@@ -34,8 +54,7 @@ s64 SceneClient::RegisterArea(s8 type, const char * scene, s16 x, s16 y, s16 z, 
 	auto itr = _scenes.find(scene);
 	OASSERT(itr != _scenes.end(), "wtf");
 	if (itr != _scenes.end()) {
-		_areas[_nextAreaId] = { type, scene, { x, y, z }, range, f };
-		itr->second.areas.push_back(&_areas[_nextAreaId]);
+		itr->second.areas[_nextAreaId] = { type, scene, { x, y, z }, range, f };
 		++_nextAreaId;
 	}
 	return 0;
@@ -133,6 +152,37 @@ s32 SceneClient::GetAreaType(IObject * object) {
 
 }
 
+bool SceneClient::OnRecvEnterScene(IKernel * kernel, IObject * object, const OBuffer& buf) {
+	if (object->GetPropInt8(_props.appeared) == 0) {
+		SendAppearScene(kernel, object);
+		object->SetPropInt8(_props.appeared, 1);
+
+		_eventEngine->Exec(_eventPlayerAppear, &object, sizeof(object));
+		if (object->GetPropInt8(_props.firstAppear) == 0) {
+			object->SetPropInt8(_props.firstAppear, 1);
+			_eventEngine->Exec(_eventPlayerFirstAppear, &object, sizeof(object));
+		}
+	}
+}
+
+bool SceneClient::OnRecvEnterArea(IKernel * kernel, IObject * object, const OBuffer& buf) {
+	s32 idx = 0;
+	if (!buf.Read(idx))
+		return false;
+
+	auto itr = _scenes.find(object->GetPropString(_props.sceneId));
+	OASSERT(itr != _scenes.end(), "wtf");
+	if (itr != _scenes.end()) {
+		auto itrArea = itr->second.areas.find(idx);
+		if (itrArea != itr->second.areas.end()) {
+			if (math::CalcDistance(object->GetPropInt16(_props.x), object->GetPropInt16(_props.y), object->GetPropInt16(_props.z)
+				, itrArea->second.center.x, itrArea->second.center.y, itrArea->second.center.z) < itrArea->second.range + _areaCorrect) {
+				itrArea->second.cb(kernel, object);
+			}
+		}
+	}
+}
+
 void SceneClient::SendAppearScene(IKernel * kernel, IObject * object) {
 	olib::Buffer<MAX_SYNC_SCENE_PACKET_LEN> buf;
 	buf << object->GetPropString(_props.sceneId) << object->GetPropInt64(_props.sceneCopyId) << object->GetID();
@@ -181,7 +231,11 @@ void SceneClient::SendUpdateObject(IKernel * kernel, IObject * object) {
 }
 
 void SceneClient::SendSceneInfo(IKernel * kernel, IObject * object) {
+	olib::Buffer<MAX_SYNC_SCENE_PACKET_LEN> buf;
+	buf << object->GetPropString(_props.sceneId) << object->GetPropInt64(_props.sceneCopyId);
+	buf << object->GetPropInt16(_props.x) << object->GetPropInt16(_props.y) << object->GetPropInt16(_props.z);
 
+	_packetSender->Send(object->GetPropInt32(_props.gate), object->GetID(), _clientSceneInfo, buf.Out());
 }
 
 s32 SceneClient::DistributeSceneCopy(IKernel * kernel, const char * scene) {
@@ -193,9 +247,17 @@ void SceneClient::LeaveSceneCopy(IKernel * kernel, const char * scene, s64 copyI
 }
 
 void SceneClient::StartSync(IKernel * kernel, IObject * object) {
-
+	_objectTimer->Start(object, _props.syncTimer, 0, TIMER_BEAT_FOREVER, _syncInterval, __FILE__, __LINE__, nullptr, std::bind(&SceneClient::OnSyncTick, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), nullptr);
 }
 
 void SceneClient::StopSync(IKernel * kernel, IObject * object) {
+	_objectTimer->Stop(object, _props.syncTimer);
+}
 
+void SceneClient::OnSyncTick(IKernel * kernel, IObject * object, s32 beatCount, s64 tick) {
+	if (object->GetPropInt8(_props.sync)) {
+		object->SetPropInt8(_props.sync, 0);
+
+		SendUpdateObject(kernel, object);
+	}
 }
