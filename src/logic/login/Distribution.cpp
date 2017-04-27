@@ -5,7 +5,6 @@
 
 bool Distribution::Initialize(IKernel * kernel) {
     _kernel = kernel;
-	_strategy = this;
 
     return true;
 }
@@ -61,7 +60,7 @@ void Distribution::OnRecvDistributeLogic(IKernel * kernel, s32 nodeType, s32 nod
 		if (itrPlayer != _players.end())
 			logic = itrPlayer->second;
 		else
-			logic = _strategy->ChooseLogic(actorId);
+			logic = _strategy ? _strategy->ChooseLogic(actorId) : ChooseLogic(actorId);
 
 		if (logic > 0)
 			_distributes[actorId] = logic;

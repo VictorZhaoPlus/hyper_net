@@ -8,7 +8,7 @@
 #include <vector>
 
 class IProtocolMgr;
-class Distribution : public IModule, public INodeListener, public IDistributionStrategy, public OHolder<Distribution> {
+class Distribution : public IModule, public INodeListener, public OHolder<Distribution> {
 	struct Proto {
 		s32 distributeLogicReq;
 		s32 distributeLogicAck;
@@ -21,7 +21,7 @@ public:
     virtual bool Destroy(IKernel * kernel);
 
 	virtual void SetStrategy(IDistributionStrategy * strategy) { _strategy = strategy; }
-	virtual s32 ChooseLogic(s64 actorId);
+	s32 ChooseLogic(s64 actorId);
 
 	virtual void OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port);
 	virtual void OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) {}
