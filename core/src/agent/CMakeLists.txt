@@ -1,0 +1,30 @@
+SET(AGENT
+    "${PROJECT_SOURCE_DIR}/src/agent/Agent.h"
+    "${PROJECT_SOURCE_DIR}/src/agent/Agent.cpp"
+	"${PROJECT_SOURCE_DIR}/src/agent/AgentSession.h"
+    "${PROJECT_SOURCE_DIR}/src/agent/AgentSession.cpp"
+    "${PROJECT_SOURCE_DIR}/src/agent/main.cpp"
+    )
+
+SOURCE_GROUP(interface FILES ${LOGIC_INTERFACE})
+SOURCE_GROUP(API FILES ${API})
+SOURCE_GROUP(public\\tinyxml FILES ${PUBLIC_XML})
+SOURCE_GROUP(public FILES ${PUBLIC})
+SOURCE_GROUP(\\ FILES ${AGENT})
+
+ADD_LIBRARY(Agent SHARED
+	${AGENT}
+	${API}
+	${LOGIC_INTERFACE}
+	${PUBLIC}
+	${PUBLIC_XML}
+	)
+
+		
+IF(WIN32)
+TARGET_LINK_LIBRARIES(Agent
+	"${PROJECT_SOURCE_DIR}/thirdlibary/bin/$<CONFIGURATION>/serverd.lib"
+)
+ENDIF(WIN32)
+
+SET_TARGET_PROPERTIES(Agent PROPERTIES FOLDER "core")

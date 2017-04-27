@@ -1,0 +1,27 @@
+SET(OBJECTLOCATOR
+    "${PROJECT_SOURCE_DIR}/src/objectlocator/ObjectLocator.h"
+    "${PROJECT_SOURCE_DIR}/src/objectlocator/ObjectLocator.cpp"
+    "${PROJECT_SOURCE_DIR}/src/objectlocator/main.cpp"
+    )
+
+SOURCE_GROUP(interface FILES ${LOGIC_INTERFACE})
+SOURCE_GROUP(API FILES ${API})
+SOURCE_GROUP(public\\tinyxml FILES ${PUBLIC_XML})
+SOURCE_GROUP(public FILES ${PUBLIC})
+SOURCE_GROUP(\\ FILES ${OBJECTLOCATOR})
+
+ADD_LIBRARY(ObjectLocator SHARED
+	${OBJECTLOCATOR}
+	${API}
+	${LOGIC_INTERFACE}
+	${PUBLIC}
+	${PUBLIC_XML}
+	)
+
+IF(WIN32)
+TARGET_LINK_LIBRARIES(ObjectLocator
+	"${PROJECT_SOURCE_DIR}/thirdlibary/bin/$<CONFIGURATION>/serverd.lib"
+)
+ENDIF(WIN32)
+
+SET_TARGET_PROPERTIES(ObjectLocator PROPERTIES FOLDER "framework")
