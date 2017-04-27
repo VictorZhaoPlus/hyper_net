@@ -15,6 +15,7 @@ class IObjectMgr;
 class IObjectTimer;
 class IPacketSender;
 class ILogic;
+class OBuffer;
 class SceneClient : public ISceneClient, public OHolder<SceneClient> {
 	struct Area {
 		s8 type;
@@ -59,7 +60,7 @@ public:
 	virtual void Disappear(IObject * object);
 	virtual void SwitchTo(IObject * object, const char * scene, const Position& pos, const s64 copyId = 0);
 
-	virtual Position RandomInRange(const char * scene, const s32 copyId, const Position& start, const Position& end, float radius);
+	virtual Position RandomInRange(const char * scene, const s32 copyId, const Position& start, float radius);
 	virtual Position Random(const char * scene, const s32 copyId);
 
 	virtual std::vector<Position> FindPath(const char * scene, const s32 copyId, const Position& start, const Position& end, float radius = 0);
@@ -101,6 +102,8 @@ private:
 	Proto _proto;
 
 	s32 _clientSceneInfo;
+	s32 _clientEnterScene;
+	s32 _clientEnterArea;
 
 	s32 _eventAppearOnMap;
 	s32 _eventDisappearOnMap;

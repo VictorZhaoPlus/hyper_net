@@ -7,6 +7,7 @@
 #include "singleton.h"
 
 class ICapacitySubscriber;
+class IProtocolMgr;
 class Analysis : public IAnalysis, public INodeListener, public ITimer, public OHolder<Analysis> {
 	struct DataSample {
 
@@ -22,7 +23,7 @@ public:
 	void TestDelayRespone(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args);
 
 	virtual void OnStart(IKernel * kernel, s64 tick) {}
-	virtual void OnTimer(IKernel * kernel, s64 tick);
+	virtual void OnTimer(IKernel * kernel, s32 beatCount, s64 tick);
 	virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) {}
 
 	virtual void OnPause(IKernel * kernel, s64 tick) {}
@@ -32,8 +33,12 @@ private:
     IKernel * _kernel;
 	IHarbor * _harbor;
 	ICapacitySubscriber * _capacitySubscriber;
+	IProtocolMgr * _protocolMgr;
 
 	std::unordered_map<s32, std::unordered_map<s32, DataSample>> _nodes;
+
+	s32 _protoTestDelayRespone;
+	s32 _protpTestDelay;
 };
 
 #endif //__ANALYSIS_H__

@@ -58,6 +58,7 @@ public:
     virtual void AddNodeListener(INodeListener * listener, const char * debug);
 
 	virtual void Send(s32 nodeType, s32 nodeId, const s32 messageId, const OArgs& args);
+	virtual void Send(s32 nodeType, s32 nodeId, const s32 messageId, const OBuffer& args);
 	virtual void Brocast(s32 nodeType, const s32 messageId, const OArgs& args);
 	virtual void Brocast(const s32 messageId, const OArgs& args);
 

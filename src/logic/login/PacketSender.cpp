@@ -24,7 +24,7 @@ bool PacketSender::Destroy(IKernel * kernel) {
     return true;
 }
 
-void PacketSender::Send(const s32 gate, const s32 actorId, const s32 msgId, const OBuffer& buf, s8 delay) {
+void PacketSender::Send(const s32 gate, const s64 actorId, const s32 msgId, const OBuffer& buf, s8 delay) {
 	s32 header[2];
 	header[0] = msgId;
 	header[1] = buf.GetSize() + sizeof(s32) * 2;

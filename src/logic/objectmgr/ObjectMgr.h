@@ -17,10 +17,6 @@ class ObjectProp;
 class ObjectDescriptor;
 class TableDescriptor;
 class ObjectMgr : public IObjectMgr, public OHolder<ObjectMgr> {
-    typedef std::unordered_map<std::string, ObjectDescriptor *> OBJECT_MODEL_MAP;
-    typedef std::unordered_map<std::string, std::string> NAME_PATH_MAP;
-	typedef std::unordered_map<std::string, ObjectProp *> PROP_MAP;
-
     struct ObjectCreateInfo {
         MMObject * object;
         const std::string file;
@@ -47,6 +43,7 @@ public:
     virtual void Recove(IObject * object);
 
 	virtual const IProp * CalcProp(const char * name);
+	virtual const IProp * CalcProp(const s32 name);
 	virtual s32 CalcPropSetting(const char * setting);
 
 	virtual const std::vector<const IProp*>* GetPropsInfo(const char * type, bool noFather = false) const;
@@ -65,13 +62,14 @@ private:
 	ObjectDescriptor * CreateTemplate(IKernel * pKernel, const char * name);
 
 private:
-    NAME_PATH_MAP _namePathMap;
-    OBJECT_MODEL_MAP _models;
+	std::unordered_map<std::string, std::string> _namePathMap;
+	std::unordered_map<std::string, ObjectDescriptor *> _models;
 	std::unordered_map<s32, TableDescriptor *> _tableModels;
 	std::unordered_map<std::string, s32> _defines;
 	s32 _nextTypeId;
 
-	PROP_MAP _props;
+	std::unordered_map<std::string, ObjectProp *> _props;
+	std::unordered_map<s32, ObjectProp *> _propIds;
 	std::unordered_map<s64, ObjectCreateInfo> _objects;
 	std::unordered_map<s32, TableCreateInfo> _tableMap;
 

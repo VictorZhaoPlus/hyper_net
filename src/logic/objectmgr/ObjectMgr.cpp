@@ -51,6 +51,9 @@ bool ObjectMgr::Initialize(IKernel * kernel) {
 	for (auto itr = _namePathMap.begin(); itr != _namePathMap.end(); ++itr)
 		CreateTemplate(kernel, itr->first.c_str());
 
+	for (auto itr = _props.begin(); itr != _props.end(); ++itr)
+		_propIds[tools::CalcStringUniqueId(itr->first.c_str())] = itr->second;
+
     return true;
 }
 
@@ -166,6 +169,14 @@ const IProp * ObjectMgr::CalcProp(const char * name) {
 	auto itr = _props.find(name);
 	OASSERT(itr != _props.end(), "wtf");
 	if (itr != _props.end())
+		return itr->second;
+	return nullptr;
+}
+
+const IProp * ObjectMgr::CalcProp(const s32 name) {
+	auto itr = _propIds.find(name);
+	OASSERT(itr != _propIds.end(), "wtf");
+	if (itr != _propIds.end())
 		return itr->second;
 	return nullptr;
 }

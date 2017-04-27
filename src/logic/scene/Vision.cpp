@@ -18,11 +18,11 @@ void Vision::OnCreate(IObject * scene) {
 }
 
 IObject * Vision::FindOrCreate(s64 objectId) {
-
+	return nullptr;
 }
 
 IObject * Vision::Find(s64 objectId) {
-
+	return nullptr;
 }
 
 void Vision::OnObjectEnter(IKernel * kernel, IObject * object) {

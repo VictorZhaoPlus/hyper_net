@@ -41,6 +41,20 @@ bool SceneClient::Launched(IKernel * kernel) {
 		_proto.appear = _protocolMgr->GetId("proto_scene", "appear");
 		_proto.disappear = _protocolMgr->GetId("proto_scene", "disappear");
 		_proto.update = _protocolMgr->GetId("proto_scene", "update");
+
+		_clientSceneInfo = _protocolMgr->GetId("proto", "scene_info");
+		_clientEnterScene = _protocolMgr->GetId("proto", "enter_scene");
+		_clientEnterArea = _protocolMgr->GetId("proto", "enter_area");
+
+		_eventAppearOnMap = _protocolMgr->GetId("event", "appear_on_map");
+		_eventDisappearOnMap = _protocolMgr->GetId("event", "disappear_from_map");
+		_eventPrepareSwitchScene = _protocolMgr->GetId("event", "prepare_switch_scene");
+		_eventSwitchScene = _protocolMgr->GetId("event", "switch_scene");
+		_eventPlayerAppear = _protocolMgr->GetId("event", "player_appear");
+		_eventPlayerFirstAppear = _protocolMgr->GetId("event", "player_first_appear");
+
+		RGS_PROTOCOL_HANDLER(_clientEnterScene, SceneClient::OnRecvEnterScene);
+		RGS_PROTOCOL_HANDLER(_clientEnterArea, SceneClient::OnRecvEnterArea);
 	}
     return true;
 }
@@ -132,24 +146,25 @@ void SceneClient::SwitchTo(IObject * object, const char * scene, const Position&
 	_eventEngine->Exec(_eventSwitchScene, &info, sizeof(info));
 }
 
-Position SceneClient::RandomInRange(const char * scene, const s32 copyId, const Position& start, const Position& end, float radius) {
-
+Position SceneClient::RandomInRange(const char * scene, const s32 copyId, const Position& start, float radius) {
+	return start;
 }
 
 Position SceneClient::Random(const char * scene, const s32 copyId) {
-
+	return { 0,0,0 };
 }
 
 std::vector<Position> SceneClient::FindPath(const char * scene, const s32 copyId, const Position& start, const Position& end, float radius) {
-
+	std::vector<Position> ret;
+	return std::move(ret);
 }
 
 Position SceneClient::RayCast(const char * scene, const s32 copyId, const Position& start, const Position& end, float radius) {
-
+	return end;
 }
 
 s32 SceneClient::GetAreaType(IObject * object) {
-
+	return 0;
 }
 
 bool SceneClient::OnRecvEnterScene(IKernel * kernel, IObject * object, const OBuffer& buf) {
@@ -163,6 +178,7 @@ bool SceneClient::OnRecvEnterScene(IKernel * kernel, IObject * object, const OBu
 			_eventEngine->Exec(_eventPlayerFirstAppear, &object, sizeof(object));
 		}
 	}
+	return true;
 }
 
 bool SceneClient::OnRecvEnterArea(IKernel * kernel, IObject * object, const OBuffer& buf) {
@@ -175,12 +191,13 @@ bool SceneClient::OnRecvEnterArea(IKernel * kernel, IObject * object, const OBuf
 	if (itr != _scenes.end()) {
 		auto itrArea = itr->second.areas.find(idx);
 		if (itrArea != itr->second.areas.end()) {
-			if (math::CalcDistance(object->GetPropInt16(_props.x), object->GetPropInt16(_props.y), object->GetPropInt16(_props.z)
-				, itrArea->second.center.x, itrArea->second.center.y, itrArea->second.center.z) < itrArea->second.range + _areaCorrect) {
-				itrArea->second.cb(kernel, object);
-			}
+			//if (math::CalcDistance(object->GetPropInt16(_props.x), object->GetPropInt16(_props.y), object->GetPropInt16(_props.z)
+			//	, itrArea->second.center.x, itrArea->second.center.y, itrArea->second.center.z) < itrArea->second.range + _areaCorrect) {
+			//	itrArea->second.cb(kernel, object);
+			//}
 		}
 	}
+	return true;
 }
 
 void SceneClient::SendAppearScene(IKernel * kernel, IObject * object) {

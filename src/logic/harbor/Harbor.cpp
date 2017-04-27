@@ -146,6 +146,26 @@ void Harbor::Send(s32 nodeType, s32 nodeId, const s32 messageId, const OArgs& ar
 	}
 }
 
+void Harbor::Send(s32 nodeType, s32 nodeId, const s32 messageId, const OBuffer& args) {
+	auto itr = _nodes[nodeType].find(nodeId);
+	if (itr != _nodes[nodeType].end()) {
+		if (!itr->second->PrepareSendNodeMessage(args.GetSize() + sizeof(s32))) {
+			OASSERT(false, "send failed");
+			return;
+		}
+
+		if (!itr->second->SendNodeMessage(&messageId, sizeof(s32))) {
+			OASSERT(false, "send failed");
+			return;
+		}
+
+		if (!itr->second->SendNodeMessage(args.GetContext(), args.GetSize())) {
+			OASSERT(false, "send failed");
+			return;
+		}
+	}
+}
+
 void Harbor::Brocast(s32 nodeType, const s32 messageId, const OArgs& args) {
 	for (auto itr = _nodes[nodeType].begin(); itr != _nodes[nodeType].end(); ++itr) {
 		if (!itr->second->PrepareSendNodeMessage(args.GetSize() + sizeof(s32))) {

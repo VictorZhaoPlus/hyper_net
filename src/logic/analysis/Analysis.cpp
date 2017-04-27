@@ -1,8 +1,8 @@
 #include "Analysis.h"
 #include "NodeType.h"
-#include "CoreProtocol.h"
 #include "ICapacitySubscriber.h"
 #include "OArgs.h"
+#include "IProtocolMgr.h"
 
 bool Analysis::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -15,10 +15,13 @@ bool Analysis::Launched(IKernel * kernel) {
 
 	if (_harbor->GetNodeType() < node_type::USER) {
 		_harbor->AddNodeListener(this, "Analysis");
-
-		RGS_HABOR_ARGS_HANDLER(core_proto::TEST_DELAY_RESPONE, Analysis::TestDelayRespone);
-
+		FIND_MODULE(_protocolMgr, ProtocolMgr);
 		FIND_MODULE(_capacitySubscriber, CapacitySubscriber);
+
+		_protpTestDelay = _protocolMgr->GetId("proto_analysis", "test_delay");
+		_protoTestDelayRespone = _protocolMgr->GetId("proto_analysis", "test_delay_respone");
+
+		RGS_HABOR_ARGS_HANDLER(_protoTestDelayRespone, Analysis::TestDelayRespone);
 	}
 
     return true;
@@ -39,13 +42,13 @@ void Analysis::TestDelayRespone(IKernel * kernel, s32 nodeType, s32 nodeId, cons
 	DBG_INFO("%d-%d:%lld=>%lld,%d", nodeType, nodeId, args.GetDataInt64(0), tools::GetTimeMillisecond() - args.GetDataInt64(0), _capacitySubscriber->GetOverLoad(nodeType, nodeId));
 }
 
-void Analysis::OnTimer(IKernel * kernel, s64 tick) {
+void Analysis::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
 	IArgs<1, 64> args;
 	args << tick;
 	args.Fix();
 
 	for (auto itr = _nodes.begin(); itr != _nodes.end(); ++itr) {
 		for (auto itrType = itr->second.begin(); itrType != itr->second.end(); ++itrType)
-			_harbor->Send(itr->first, itrType->first, core_proto::TEST_DELAY, args.Out());
+			_harbor->Send(itr->first, itrType->first, _protpTestDelay, args.Out());
 	}
 }

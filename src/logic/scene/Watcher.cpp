@@ -41,6 +41,10 @@ bool Watcher::Launched(IKernel * kernel) {
 
 		FIND_MODULE(_protocolMgr, ProtocolMgr);
 
+		_protoDealInterest = _protocolMgr->GetId("proto_scene", "deal_interest");
+		_protoDealWatcher = _protocolMgr->GetId("proto_scene", "deal_watcher");
+		RGS_HABOR_HANDLER(_protoDealInterest, Watcher::DealInterest);
+		RGS_HABOR_HANDLER(_protoDealWatcher, Watcher::DealWatcher);
 
 		_eventSceneObjectDestroy = _protocolMgr->GetId("event", "scene_object_destroy");
 

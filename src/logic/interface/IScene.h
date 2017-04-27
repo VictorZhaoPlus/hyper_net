@@ -30,7 +30,7 @@ public:
 	virtual void Disappear(IObject * object) = 0;
 	virtual void SwitchTo(IObject * object, const char * scene, const Position& pos, const s64 copyId = 0) = 0;
 
-	virtual Position RandomInRange(const char * scene, const s32 copyId, const Position& start, const Position& end, float radius) = 0;
+	virtual Position RandomInRange(const char * scene, const s32 copyId, const Position& start, float radius) = 0;
 	virtual Position Random(const char * scene, const s32 copyId) = 0;
 
 	virtual std::vector<Position> FindPath(const char * scene, const s32 copyId, const Position& start, const Position& end, float radius = 0) = 0;

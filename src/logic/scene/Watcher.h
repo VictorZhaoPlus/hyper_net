@@ -41,6 +41,9 @@ private:
 	s32 _tableWatcher;
 	s32 _settingShare;
 
+	s32 _protoDealInterest;
+	s32 _protoDealWatcher;
+
 	s32 _eventSceneObjectDestroy;
 
 	s32 _appearId;
