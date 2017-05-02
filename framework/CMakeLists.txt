@@ -38,8 +38,7 @@ SET_TARGET_PROPERTIES(CopyFrameworkHeaderFile PROPERTIES FOLDER "framework")
 ENDIF(WIN32)
 
 IF(UNIX)
-ADD_CUSTOM_COMMAND(CopyFrameworkHeaderFile ALL 
-	POST_BUILD 
+ADD_CUSTOM_TARGET(CopyFrameworkHeaderFile ALL 
 	COMMAND cp -f ${PROJECT_SOURCE_DIR}/src/interface/*.h ${PROJECT_SOURCE_DIR}/../logic/interface
 )
 ENDIF(UNIX)
