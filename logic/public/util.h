@@ -22,6 +22,8 @@
 #include <dlfcn.h>
 #include <limits.h>
 #include <stdarg.h>
+#include <dirent.h>
+#include <sys/stat.h>
 #endif
 
 typedef unsigned char u8;
