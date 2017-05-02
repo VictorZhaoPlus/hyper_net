@@ -1,6 +1,4 @@
 #include "tools.h"
-#include <dirent.h>
-#include <sys/stat.h>  
 
 namespace tools {
 #ifndef WIN32
