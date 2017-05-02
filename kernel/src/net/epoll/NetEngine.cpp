@@ -7,9 +7,38 @@
 #include "kernel.h"
 #include <signal.h>
 #include "NetWorker.h"
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/epoll.h>
+#include <sys/ioctl.h>
+#include <netinet/tcp.h>
 
-NetEngine::NetEngine()
-	: _looper(nullptr) {
+
+s32 SetNonBlocking(const s32 fd) {
+	if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFD, 0) | O_NONBLOCK) == -1) {
+		printf("setnonblocking error %s\n", strerror(errno));
+		return -1;
+	}
+	return 0;
+}
+	
+s32 SetNonNegal(const s32 fd) {
+	long val = 1l;
+	return setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&val, sizeof(val));
+}
+
+s32 SetSendBuf(const s32 fd, const s32 size) {
+	return setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
+}
+
+s32 SetReuse(const s32 fd) {
+	s32 val = 1;
+	return setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char*)&val, sizeof(val));
+}
+
+NetEngine::NetEngine() {
     //ctor
 }
 
@@ -41,7 +70,7 @@ s32 NetEngine::Loop(s64 overtime) {
     s64 tick = tools::GetTimeMillisecond();
 	ProcessAC(ConfigMgr::Instance()->GetNetFrameWaitTick());
 	for (auto * worker : _workers)
-		worker->Process(overtime / _workers.size())
+		worker->Process(overtime / _workers.size());
 
 	return tools::GetTimeMillisecond() - tick;
 }
@@ -87,7 +116,7 @@ bool NetEngine::Listen(const char * ip, const s32 port, const s32 sendSize, cons
 	}
 
 	struct epoll_event ev;
-	ev.data.ptr = NEW ACDealer({ACDT_ACCEPT, fd, sendSize, recvSize});
+	ev.data.ptr = NEW ACDealer({ACDealerType::ACDT_ACCEPT, fd, sendSize, recvSize});
 	ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;
 	if (epoll_ctl(_acFd, EPOLL_CTL_ADD, fd, &ev) != 0) {
 		KERNEL_LOG("listen[%s:%d] epoll add failed, error %d\n", ip, port, errno);
@@ -131,7 +160,7 @@ bool NetEngine::Connect(const char * ip, const s32 port, const s32 sendSize, con
 	}
 	
 	struct epoll_event ev;
-	ev.data.ptr = NEW ACDealer({ACDT_CONNECT, fd, sendSize, recvSize});
+	ev.data.ptr = NEW ACDealer({ACDealerType::ACDT_CONNECT, fd, sendSize, recvSize});
 	ev.events = EPOLLOUT | EPOLLET | EPOLLERR | EPOLLHUP;
 	if (epoll_ctl(_acFd, EPOLL_CTL_ADD, fd, &ev) != 0) {
 		KERNEL_LOG("connect[%s:%d] epoll add failed, error %d\n", ip, port, errno);
@@ -161,7 +190,7 @@ void NetEngine::ProcessAC(s64 waitTime) {
 	for (s32 i = 0; i < retCount; i++) {
 		ACDealer * dealer = (ACDealer*)events[i].data.ptr;
 		switch (dealer->type) {
-		case ACDT_ACCEPT: {
+		case ACDealerType::ACDT_ACCEPT: {
 			if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
 				OASSERT(0, "wtf");
 			} 
@@ -181,7 +210,7 @@ void NetEngine::ProcessAC(s64 waitTime) {
 			}
 			break;
 		}
-		case ACDT_CONNECT: {
+		case ACDealerType::ACDT_CONNECT: {
 			epoll_ctl(_acFd, EPOLL_CTL_DEL, dealer->fd, &events[i]);
 			if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
 				OnConnect(dealer, false);
@@ -235,7 +264,7 @@ void NetEngine::OnAccept(ACDealer * accepter, s32 fd) {
 void NetEngine::OnConnect(ACDealer * connecter, bool connectSuccess) {
 	core::ISession * session = (core::ISession *)connecter->context;
 	if (connectSuccess) {
-		Connection * connection = Connection::Create(connecter->fd, connecter->msendSize, connecter->recvSize);
+		Connection * connection = Connection::Create(connecter->fd, connecter->sendSize, connecter->recvSize);
 		OASSERT(connection != nullptr, "wtf");
 		connection->SetSession(session);
 
@@ -262,7 +291,7 @@ void NetEngine::OnConnect(ACDealer * connecter, bool connectSuccess) {
 bool NetEngine::AddToWorker(Connection * connection) {
 	NetWorker * sel = nullptr;
 	for (auto * worker : _workers) {
-		if (sel == nullptr || sel->Count() > worker->Counter())
+		if (sel == nullptr || sel->Count() > worker->Count())
 			sel = worker;
 	}
 	

@@ -3,6 +3,8 @@
 #include "util.h"
 #include "singleton.h"
 #include <thread>
+#include <list>
+#include <vector>
 
 namespace core {
     class ISessionFactory;
@@ -10,6 +12,7 @@ namespace core {
 }
 
 class Connection;
+class NetWorker;
 class NetEngine : public OSingleton<NetEngine> {
     friend class OSingleton<NetEngine>;
 	
@@ -24,7 +27,7 @@ class NetEngine : public OSingleton<NetEngine> {
 		s32 sendSize;
 		s32 recvSize;
 		void * context;
-	}
+	};
 public:
     bool Ready();
     bool Initialize();
@@ -38,7 +41,7 @@ public:
 	
 	void ProcessAC(s64 waitTime);
 	void OnAccept(ACDealer * acceptor, s32 fd);
-	void OnConnect(NetBase * connecter, bool connectSuccess);
+	void OnConnect(ACDealer * connecter, bool connectSuccess);
 	
 	bool AddToWorker(Connection * connection);
 	
@@ -48,6 +51,8 @@ private:
 
 	s32 _acFd;
 	s32 _acSize;
+
+	std::vector<NetWorker*> _workers;
 };
 
 #endif // __NETENGINE_H__

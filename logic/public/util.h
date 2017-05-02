@@ -21,6 +21,7 @@
 #include <sys/time.h>
 #include <dlfcn.h>
 #include <limits.h>
+#include <stdarg.h>
 #endif
 
 typedef unsigned char u8;
@@ -64,7 +65,7 @@ KERNEL_API void __OAssert(const char * file, s32 line, const char * funname, con
 
 #define OASSERT(p, format, ...) { \
     char debug[4096]; \
-    SafeSprintf(debug, sizeof(debug), format, __VA_ARGS__); \
+    SafeSprintf(debug, sizeof(debug), format, ##__VA_ARGS__); \
     ((p) ? (void)0 : (void)__OAssert(__FILE__, __LINE__, __FUNCTION__, debug)); \
 }
 

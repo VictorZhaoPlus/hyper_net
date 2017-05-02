@@ -3,7 +3,6 @@
 #include "ConfigMgr.h"
 #include "XmlReader.h"
 #include "tools.h"
-#include <profile/profile.h>
 #include "Logger.h"
 
 void WirteDump(const char * buf) {

@@ -3,7 +3,7 @@
 
 class OCTimer : public ITimer {
 public:
-	OCTimer(IObject * object, const IProp * prop, const const char * file, const s32 line) 
+	OCTimer(IObject * object, const IProp * prop, const char * file, const s32 line) 
 		: _id(object->GetID())
 		, _object(object)
 		, _prop(prop)

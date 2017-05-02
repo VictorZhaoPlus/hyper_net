@@ -5,6 +5,7 @@
 #include "CycleQueue.h"
 #include "spin_mutex.h"
 #include <mutex>
+#include <list>
 
 class Connection;
 class NetWorker {
@@ -12,9 +13,9 @@ class NetWorker {
 		NWET_SEND,
 		NWET_CLOSING,
 		
-		NEWT_RECV,
-		NEWT_ERROR,
-		NEWT_DONE,
+		NWET_RECV,
+		NWET_ERROR,
+		NWET_DONE,
 	};
 	
 	struct NetEvent {
@@ -25,7 +26,7 @@ public:
 	NetWorker();
 	~NetWorker() {}
 	
-	void Start();
+	bool Start();
 	void Terminate();
 
 	void Process(s64 overtime);
@@ -46,9 +47,11 @@ public:
 		_waitCompleteQueue.push_back({NWET_CLOSING, connection});
 	}
 	
-	inline void PostRecv(Connection * connection) { _runQueue.Push({NEWT_RECV, connection}); }
-	inline void PostError(Connection * connection) { _runQueue.Push({NEWT_ERROR, connection}); }
-	inline void PostDone(Connection * connection) { _runQueue.Push({NEWT_DONE, connection}); }
+	inline void PostRecv(Connection * connection) { _runQueue.Push({NWET_RECV, connection}); }
+	inline void PostError(Connection * connection) { _runQueue.Push({NWET_ERROR, connection}); }
+	inline void PostDone(Connection * connection) { _runQueue.Push({NWET_DONE, connection}); }
+
+	inline s32 Count() const { return _count; }
 
 private:
 	s32 _fd;

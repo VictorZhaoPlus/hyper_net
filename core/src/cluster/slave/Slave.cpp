@@ -11,6 +11,8 @@
 #include <sys/wait.h>
 #endif
 
+#define MAX_CMD_ARGS_COUNT 256
+
 #define EXECUTE_CMD_PORT "$port$"
 #define EXECUTE_CMD_PORT_SIZE 6
 #define EXECUTE_CMD_OUT_PORT "$out_port$"

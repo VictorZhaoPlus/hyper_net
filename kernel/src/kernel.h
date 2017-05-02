@@ -40,4 +40,6 @@ private:
     bool _terminate;
 };
 
+#define KERNEL_LOG(format, ...) 
+
 #endif //__kernel_h__

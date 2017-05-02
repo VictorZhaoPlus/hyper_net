@@ -23,6 +23,7 @@ public:
     inline s32 GetNetFrameWaitTick() const { return _netFrameWaitTick; }
     inline s32 GetNetSupportSize() const { return _netSupportSize; }
 	inline s32 GetNetThreadCount() const { return _netThreadCount; }
+	inline s32 GetNetMaxPacketSize() const { return _netMaxPacketSize; }
 
 	inline s32 GetAsyncThreadCount() const { return _asyncThreadCount; }
 	inline s32 GetAsyncTick() const { return _asyncTick; }
@@ -48,6 +49,7 @@ private:
     s32 _netFrameWaitTick;
     s32 _netSupportSize;
 	s32 _netThreadCount;
+	s32 _netMaxPacketSize;
 
 	s32 _asyncThreadCount;
 	s32 _asyncTick;

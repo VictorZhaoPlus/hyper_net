@@ -39,6 +39,7 @@ bool ConfigMgr::Initialize(int argc, char ** argv) {
     _netFrameWaitTick = conf.Root()["extend"][0][name][0]["net"][0].GetAttributeInt32("wait");
     _netSupportSize = conf.Root()["extend"][0][name][0]["net"][0].GetAttributeInt32("support");
 	_netThreadCount = conf.Root()["extend"][0][name][0]["net"][0].GetAttributeInt32("thread");
+	_netMaxPacketSize = conf.Root()["extend"]["0"][name][0]["net"][0].GetAttributeInt32("packet");
 
 	SafeSprintf(_loggerPath, sizeof(_loggerPath), conf.Root()["logger"][0].GetAttributeString("path"));
 	_logToConsole = conf.Root()["logger"][0].GetAttributeBoolean("console");

@@ -31,6 +31,7 @@ public:
     }
 	
 	inline void SetWorker(NetWorker * worker) { _worker = worker; }
+	inline s32 GetFd() const { return _fd; }
 
     inline void SetRemoteIp(const char * ip) { SafeSprintf(_remoteIp, sizeof(_remoteIp) - 1, ip); }
     virtual const char * GetRemoteIp() const { return _remoteIp; }
@@ -44,8 +45,8 @@ public:
 	void OnRecv();
 	void OnDone();
 	
-	void ThreadRecv();
-	void ThreadSend();
+	bool ThreadRecv();
+	void ThreadSend(bool inThread);
 	void ThreadClose(bool force);
 
 private:
@@ -59,10 +60,10 @@ private:
     char _remoteIp[MAX_IP_SIZE];
     s32 _remotePort;
 	
-	RingBuffer * _sendBuf;
-	RingBuffer * _recvBuf;
+	RingBuffer * _sendBuff;
+	RingBuffer * _recvBuff;
 
-	bool _closeing;
+	bool _closing;
 	s8 _threadStatus;
 	bool _pending;
 };

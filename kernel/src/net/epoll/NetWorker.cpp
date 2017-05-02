@@ -1,22 +1,28 @@
 #include "NetWorker.h"
 #include "Connection.h"
 #include "kernel.h"
+#include "ConfigMgr.h"
+#include <sys/epoll.h>
+#include "tools.h"
 
 #define QUEUE_SIZE 8196
 
 NetWorker::NetWorker() 
 	: _fd(-1)
 	, _count(0)
-	, _runQueue(8196)
+	, _runQueue(QUEUE_SIZE)
 	, _terminate(false) {
 	
 }
 	
-void NetWorker::Start() {
+bool NetWorker::Start() {
 	_fd = epoll_create(ConfigMgr::Instance()->GetNetSupportSize());
+	return true;
 }
 
 void NetWorker::Terminate() {
+	_terminate = true;
+	_thread.join();
 	close(_fd);
 }
 
@@ -64,7 +70,7 @@ void NetWorker::ThreadProc() {
 
 void NetWorker::ProcessRS(s64 waitTime) {
 	if (_count <= 0) {
-		SLEEP(1);
+		CSLEEP(1);
 		return;
 	}
 	
@@ -115,5 +121,4 @@ void NetWorker::Remove(Connection * connection) { //in thread
 	ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLERR | EPOLLHUP;
 	
 	epoll_ctl(_fd, EPOLL_CTL_DEL, connection->GetFd(), &ev);
-	return true;	
 }
