@@ -2,9 +2,7 @@
 #define __NETENGINE_H__
 #include "util.h"
 #include "singleton.h"
-#include "NetLoop.h"
 #include <thread>
-#include "CycleQueue.h"
 
 namespace core {
     class ISessionFactory;
@@ -14,6 +12,19 @@ namespace core {
 class Connection;
 class NetEngine : public OSingleton<NetEngine> {
     friend class OSingleton<NetEngine>;
+	
+	enum class ACDealerType {
+		ACDT_ACCEPT,
+		ACDT_CONNECT,
+	};
+	
+	struct ACDealer {
+		ACDealerType type;
+		s32 fd;
+		s32 sendSize;
+		s32 recvSize;
+		void * context;
+	}
 public:
     bool Ready();
     bool Initialize();
@@ -23,26 +34,20 @@ public:
     bool Listen(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::ISessionFactory * factory);
     bool Connect(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::ISession * session);
 	
-	void Flush();
-
-	static s32 OnAccept(NetBase * accepter, struct NetBase * base);
-	static s32 OnConnect(NetBase * connecter, const int code);
-
-	static s32 OnRecv(NetBase * base, const s32 code, const char * buff, const s32 size);
-	static s32 OnSend(NetBase * base);
+	void Flush() {}
 	
-	void InsertIntoChain(Connection * connection);
-	void RemoveFromChain(Connection * connection);
-
-	bool IsDirectSend() const { return _directSend; }
+	void ProcessAC(s64 waitTime);
+	void OnAccept(ACDealer * acceptor, s32 fd);
+	void OnConnect(NetBase * connecter, bool connectSuccess);
+	
+	bool AddToWorker(Connection * connection);
 	
 private:
     NetEngine();
     virtual ~NetEngine();
 
-	NetLooper * _looper;
-	Connection * _head;
-	bool _directSend;
+	s32 _acFd;
+	s32 _acSize;
 };
 
 #endif // __NETENGINE_H__

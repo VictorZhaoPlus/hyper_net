@@ -1,10 +1,17 @@
 #ifndef __CONNECTION_H__
 #define __CONNECTION_H__
 #include "IKernel.h"
-#include "NetLoop.h"
+#include "ORingBuffer.h"
 
 #define MAX_IP_SIZE 32
+class NetWorker;
 class Connection : public core::IPipe {
+	enum {
+		ST_NORMAL = 0,
+		ST_CLOSING,
+		ST_ERROR,
+		ST_CLOSED,
+	};
 	enum {
 		ERROR = -1,
 		EMPTY,
@@ -12,8 +19,8 @@ class Connection : public core::IPipe {
 	};
 	
 public:
-    static Connection * Create(NetBase * base, const s32 fd, const s32 sendSize, const s32 recvSize) {
-        return NEW Connection(base, fd, sendSize, recvSize);
+    static Connection * Create(const s32 fd, const s32 sendSize, const s32 recvSize) {
+        return NEW Connection(fd, sendSize, recvSize);
     }
 
 	void OnRelease() { DEL this; }
@@ -22,48 +29,42 @@ public:
         _session = session;
         session->SetPipe(this);
     }
+	
+	inline void SetWorker(NetWorker * worker) { _worker = worker; }
 
     inline void SetRemoteIp(const char * ip) { SafeSprintf(_remoteIp, sizeof(_remoteIp) - 1, ip); }
     virtual const char * GetRemoteIp() const { return _remoteIp; }
 
     inline void SetRemotePort(const s32 port) { _remotePort = port; }
     virtual s32 GetRemotePort() const { return _remotePort; }
-
-	inline Connection * GetPrev() const { return _prev; }
-	inline void SetPrev(Connection * prev) { _prev = prev; }
-	
-	inline Connection * GetNext() const { return next; }
-	inline void SetNext(Connection * next) { _next = next; }
-
-	inline bool IsNeedSend() const { return _needSend; }
-	inline void SetNeedSend(bool val) { _needSend = val; }
 	
 	virtual void Send(const void * context, const s32 size);
     virtual void Close();
-	void InnerClose();
 
-	void OnRecv(const s32 size);
-	void Recv();
-
-	void OnSendBack();
-	s32 SendBack();
+	void OnRecv();
+	void OnDone();
+	
+	void ThreadRecv();
+	void ThreadSend();
+	void ThreadClose(bool force);
 
 private:
-    Connection(NetBase * base, const s32 fd, const s32 sendSize, const s32 recvSize);
+    Connection(const s32 fd, const s32 sendSize, const s32 recvSize);
     virtual ~Connection();
 
 private:
-	NetBase * _base;
 	s32 _fd;
     core::ISession * _session;
+	NetWorker * _worker;
     char _remoteIp[MAX_IP_SIZE];
     s32 _remotePort;
+	
+	RingBuffer * _sendBuf;
+	RingBuffer * _recvBuf;
 
 	bool _closeing;
-
-	Connection * _prev;
-	Connection * _next;
-	bool _needSend;
+	s8 _threadStatus;
+	bool _pending;
 };
 
 #endif //__CONNECTION_H__

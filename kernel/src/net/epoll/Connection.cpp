@@ -2,27 +2,25 @@
 #include "NetEngine.h"
 #include "kernel.h"
 #include "tools.h"
-#include "ORingBuffer.h"
+#include "NetWorker.h"
 
 #define ERROR_PARSE_FAILED -1
 #define SINGLE_RECV_SIZE 32768
 
-Connection::Connection(NetBase * base, const s32 fd, const s32 sendSize, const s32 recvSize)
-    : _base(base)
-	, _fd(fd)
+Connection::Connection(const s32 fd, const s32 sendSize, const s32 recvSize)
+    : _fd(fd)
     , _session(nullptr)
+	, _worker(nullptr)
     , _remotePort(0) 
 	, _closeing(false) 
-	, _prev(false)
-	, _next(false)
-	, _needSend(false) {
-	_base->sendBuff = RingBufferAlloc(sendSize);
-	_base->recvBuff = RingBufferAlloc(recvSize);
+	, _threadStatus(ST_NORMAL) {
+	_sendBuff = RingBufferAlloc(sendSize);
+	_recvBuff = RingBufferAlloc(recvSize);
 }
 
 Connection::~Connection() {
-	RingBufferDestroy(_base->sendBuff);
-	RingBufferDestroy(_base->recvBuff);
+	RingBufferDestroy(_sendBuff);
+	RingBufferDestroy(_recvBuff);
 }
 
 void Connection::Send(const void * context, const s32 size) {
@@ -35,102 +33,138 @@ void Connection::Send(const void * context, const s32 size) {
 		return;
 	}
 	
-	if (pending) {
-		if (NetEngine::Instance()->IsDirectSend()) {
-			if (SendBack() == ERROR)
-				InnerClose();
-		}
-		else 
-			NetEngine::Instance()->InsertIntoChain(this);
-	}
+	_worker->PostSend(this);
 }
 
 void Connection::Close() {
 	if (!_closeing) {
-		if (RingBufferLength(_base->sendBuff) == 0)
-			shutdown(_fd, SHUT_RDWR);
 		_closeing = true;
+		_worker->PostClosing(this);
 	}
 }
 
-void Connection::InnerClose() {
-	if (!_closeing) {
-		shutdown(_fd, SHUT_RDWR);
-		_closeing = true;
-	}
-}
-
-void Connection::OnRecv(const s32 size) {
-	if (!_closeing) {
-		RingBufferIn(_base->recvBuff, size);
-		Recv();
-	}
-}
-
-void Connection::Recv(const void * buff, const s32 size) {
-	char temp[SINGLE_RECV_SIZE];
-	while (true) {
-		if (_closeing)
-			break;
-		
-		u32 dataLen = 0;
-		char * data = RingBufferReadTemp(_base->recvBuff, (char*)temp, sizeof(temp), &dataLen);
-		if (data == nullptr || dataLen == 0)
-			break;
-		
-		s32 used = 0;
-		s32 totalUsed = 0;
-		do {
-			used = _session->OnRecv(Kernel::Instance(), data + totalUsed, (s32)dataLen - totalUsed);
-			if (used > 0) {
-				OASSERT(totalUsed + used < (s32)dataLen, "wtf");
-				totalUsed += used;
-			}
-
-		} while (used > 0 && totalUsed < dataLen);
-		
-		if (used >= 0) {
-			if (totalUsed > 0)
-				RingBufferOut(_base->recvBuff, totalUsed);
-			else
-				break;
+void Connection::OnRecv() {
+	if (_closing)
+		return;
+	
+	char temp[ConfigMgr::Instance()->GetNetMaxPacketSize()];
+	u32 dataLen = 0;
+	char * data = RingBufferReadTemp(_base->recvBuff, (char*)temp, sizeof(temp), &dataLen);
+	if (data == nullptr || dataLen == 0)
+		return;
+	
+	s32 used = 0;
+	s32 totalUsed = 0;
+	do {
+		used = _session->OnRecv(Kernel::Instance(), data + totalUsed, (s32)dataLen - totalUsed);
+		if (used > 0) {
+			OASSERT(totalUsed + used < (s32)dataLen, "wtf");
+			totalUsed += used;
 		}
-		else
-			Close();
+
+	} while (used > 0 && totalUsed < dataLen);
+	
+	if (used >= 0) {
+		if (totalUsed > 0)
+			RingBufferOut(_base->recvBuff, totalUsed);
+	}
+	else
+		Close();
+}
+
+void Connection::OnDone() {
+	OASSERT(_closing, "wtf");
+	
+	close(_fd);
+	_session->OnDisconnected(Kernel::Instance());
+	_session->SetPipe(nullptr);
+	OnRelease();
+}
+
+void Connection::ThreadRecv() {
+	if (_threadStatus == ST_NORMAL) {
+		s32 totalRead = 0;
+		while (true) {
+			u32 size = 0;
+			char * buf = RingBufferWrite(base->recvBuff, &size);
+			if (buf && size > 0) {
+				s32 len = recv(base->fd, buf, size, 0);
+				if (len > 0)
+					totalRead += len;
+				else if (len < 0 && errno == EAGAIN) {
+					if (totalRead > 0)
+						_worker->PostRecv(this);
+					break;
+				}
+			}
+			else
+				len = -1;
+
+			if (len <= 0) {
+				if (totalRead > 0)
+					_worker->PostRecv(this);
+				ThreadClose(true);
+				break;
+			}
+		}
 	}
 }
 
-void Connection::OnSendBack() {
-	if (RingBufferLength(_base->sendBuff) > 0) {
-		s32 ret = SendBack();
-		if (_closeing) {
-			if (ret != PENDING) {
-				shutdown(_fd, SHUT_RDWR);
+void Connection::ThreadSend(bool reset) {
+	if (_pending && !reset)
+		return;
+	
+	_pending = false;
+	if (_threadStatus == ST_NORMAL || _threadStatus == ST_CLOSING) {
+		while (RingBufferLength(_base->sendBuff) > 0) {
+			s32 dataLen;
+			const void * data = RingBufferRead(_base->sendBuff, &dataLen);
+			if (data == NULL)
+				break;
+
+			int ret = send(_fd, data, dataLen, 0);
+			if (ret > 0) {
+				RingBufferOut(_base->sendBuff, ret);
+			}
+			else if (ret == -1 && EAGAIN == errno) {
+				_pending = true;
+				return;
+			}
+			else  {
+				ThreadClose(true);
 				return;
 			}
 		}
 		
-		if (ret == ERROR)
-			InnerClose();
+		if (_threadStatus == ST_CLOSING)
+			ThreadClose(true);
 	}
 }
 
-s32 Connection::SendBack() {
-	while (RingBufferLength(_base->sendBuff) > 0) {
-		s32 dataLen;
-		const void * data = RingBufferRead(_base->sendBuff, &dataLen);
-		if (data == NULL)
-			break;
-
-		int ret = send(_fd, data, dataLen, 0);
-		if (ret > 0) {
-			RingBufferOut(_base->sendBuff, ret);
+void Connection::ThreadClose(bool force) {
+	if (_threadStatus == ST_NORMAL) {
+		if (force) {
+			_threadStatus = ST_ERROR;
+			_worker->PostError(this);
 		}
-		else if (ret == -1 && EAGAIN == errno) 
-			return PENDING;
-		else 
-			return ERROR;
+		else
+			_threadStatus = ST_CLOSING;
 	}
-	return EMPTY;
+	else if (_threadStatus == ST_ERROR) {
+		if (!force) {
+			_threadStatus = ST_CLOSED;
+			_worker->Remove(this);
+			_worker->PostDone(this);
+		}
+	}
+	else if (_threadStatus == ST_CLOSING) {
+		if (force) {
+			_threadStatus = ST_CLOSED;
+			_worker->Remove(this);
+			_worker->PostDone(this);
+		}
+	}
+	else {
+		OASSERT(false, "wtf");
+	}
 }
-

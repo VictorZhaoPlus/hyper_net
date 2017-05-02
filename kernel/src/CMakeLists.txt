@@ -54,8 +54,8 @@ SET(KERNEL_NET
     "${PROJECT_SOURCE_DIR}/src/net/epoll/NetEngine.cpp"
     "${PROJECT_SOURCE_DIR}/src/net/epoll/Connection.h"
     "${PROJECT_SOURCE_DIR}/src/net/epoll/Connection.cpp"
-	"${PROJECT_SOURCE_DIR}/src/net/epoll/NetLoop.h"
-    "${PROJECT_SOURCE_DIR}/src/net/epoll/NetLoop.c" 
+	"${PROJECT_SOURCE_DIR}/src/net/epoll/NetWorker.h"
+    "${PROJECT_SOURCE_DIR}/src/net/epoll/NetWorker.cpp" 
     )
 ENDIF(UNIX)
 

@@ -6,6 +6,7 @@
 #include "tools.h"
 #include "kernel.h"
 #include <signal.h>
+#include "NetWorker.h"
 
 NetEngine::NetEngine()
 	: _looper(nullptr) {
@@ -22,92 +23,219 @@ bool NetEngine::Ready() {
 }
 
 bool NetEngine::Initialize() {
-	SetMaxOpenFile(ConfigMgr::Instance()->GetMaxOpenFile());
-	SetStackSize(ConfigMgr::Instance()->GetStackSize());
-    s32 size = ConfigMgr::Instance()->GetNetSupportSize();
-	_directSend = ConfigMgr::Instance()->GetNetDirectSend();
-	_looper = MallocLooper(size, OnAccept, OnConnect, OnRecv, OnSend);
+	_acFd = epoll_create(ConfigMgr::Instance()->GetNetSupportSize());
+	_acSize = 0;
+	
+	for (s32 i = 0; i < ConfigMgr::Instance()->GetNetThreadCount(); ++i) {
+		NetWorker * worker = NEW NetWorker;
+		if (!worker->Start())
+			return false;
+		
+		_workers.push_back(worker);
+	}
 	
     return true;
 }
 
 s32 NetEngine::Loop(s64 overtime) {
     s64 tick = tools::GetTimeMillisecond();
+	ProcessAC(ConfigMgr::Instance()->GetNetFrameWaitTick());
+	for (auto * worker : _workers)
+		worker->Process(overtime / _workers.size())
 
-	DispatchLooper(_looper, ConfigMgr::Instance()->GetNetFrameWaitTick());
-	Flush();
 	return tools::GetTimeMillisecond() - tick;
 }
 
 void NetEngine::Destroy() {
-	if (_looper) {
-		FreeLooper(_looper);
-		_looper = nullptr;
+	for (auto * worker : _workers) {
+		worker->Terminate();
+		DEL worker;
 	}
+	_workers.clear();
+	close(_acFd);
 }
 
 bool NetEngine::Listen(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::ISessionFactory * factory) {
-	OASSERT(factory, "wtf");
-	NetBase * acceptor = MallocAcceptor(ip, port, 128);
-	acceptor->context = factory;
-	acceptor->maxRecvSize = recvSize;
-	acceptor->maxSendSize = sendSize;
+	s32 fd;
+	struct sockaddr_in addr;
 
-	return 0 == BindLooper(_looper, acceptor);
+	if ((fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+		KERNEL_LOG("listen[%s:%d] socket create failed, error %d\n", ip, port, errno);
+		return false;
+	}
+
+	if (0 != SetNonBlocking(fd) || 0 != SetReuse(fd)) {
+		KERNEL_LOG("listen[%s:%d] set opt failed, error %d\n", ip, port, errno);
+		return false;
+	}
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(port);
+	inet_pton(AF_INET, ip, &addr.sin_addr);
+
+	if (bind(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+		KERNEL_LOG("listen[%s:%d] bind failed, error %d\n", ip, port, errno);
+		close(fd);
+		return false;
+	}
+
+	if (listen(fd, 128) == -1) {
+		KERNEL_LOG("listen[%s:%d] listen failed, error %d\n", ip, port, errno);
+		close(fd);
+		return false;
+	}
+
+	struct epoll_event ev;
+	ev.data.ptr = NEW ACDealer({ACDT_ACCEPT, fd, sendSize, recvSize});
+	ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;
+	if (epoll_ctl(_acFd, EPOLL_CTL_ADD, fd, &ev) != 0) {
+		KERNEL_LOG("listen[%s:%d] epoll add failed, error %d\n", ip, port, errno);
+		close(fd);
+		return false;
+	}
+
+	KERNEL_LOG("listen[%s:%d] socket create ok\n", ip, port);
+	++_acSize;
+	return true;
 }
 
 bool NetEngine::Connect(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::ISession * session) {
-	OASSERT(session, "wtf");
-	NetBase * connecter = MallocConnector(ip, port);
-	if (connecter) {
-		connecter->maxRecvSize = recvSize;
-		connecter->maxSendSize = sendSize;
-		connecter->context = session;
-		if (0 != BindLooper(_looper, connecter)) {
-			FreeBase(connecter);
-			session->OnConnectFailed(Kernel::Instance());
+	s32 fd;
+	struct sockaddr_in addr;
+
+	memset(&addr, 0, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(port);
+	if (inet_pton(AF_INET, ip, &addr.sin_addr) <= 0) {
+		KERNEL_LOG("inet_pton error %s\n", ip);
+		return false;
+	}
+
+	if (-1 == (fd = socket(AF_INET, SOCK_STREAM, 0))) {
+		KERNEL_LOG("connect[%s:%d] create failed, error %d\n", ip, port, errno);
+		return false;
+	}
+
+	if (0 != SetNonBlocking(fd) || 0 != SetSendBuf(fd, 0) || 0 != SetNonNegal(fd)) {
+		KERNEL_LOG("connect[%s:%d] set opt failed, error %d\n", ip, port, errno);
+		close(fd);
+		return false;
+	}
+
+	s32 ret = connect(fd, (struct sockaddr *) &addr, sizeof(addr));
+	if (ret < 0 && errno != EINPROGRESS) {
+		KERNEL_LOG("connect[%s:%d] connect failed, error %d\n", ip, port, errno);
+		close(fd);
+		return false;
+	}
+	
+	struct epoll_event ev;
+	ev.data.ptr = NEW ACDealer({ACDT_CONNECT, fd, sendSize, recvSize});
+	ev.events = EPOLLOUT | EPOLLET | EPOLLERR | EPOLLHUP;
+	if (epoll_ctl(_acFd, EPOLL_CTL_ADD, fd, &ev) != 0) {
+		KERNEL_LOG("connect[%s:%d] epoll add failed, error %d\n", ip, port, errno);
+		close(fd);
+		return false;
+	}
+	++_acSize;
+	return true;
+}
+
+void NetEngine::ProcessAC(s64 waitTime) {
+	if (_acSize <= 0)
+		return;
+	epoll_event events[_acSize];
+	memset(events, 0, sizeof(events));
+	s32 retCount = epoll_wait(_acFd, events, _acSize, waitTime);
+	if (retCount == -1) {
+		if (errno != EINTR) {
+			KERNEL_LOG("epoll_wait error %d\n", errno);
+		}
+		return;
+	}
+
+	if (retCount == 0)
+		return;
+
+	for (s32 i = 0; i < retCount; i++) {
+		ACDealer * dealer = (ACDealer*)events[i].data.ptr;
+		switch (dealer->type) {
+		case ACDT_ACCEPT: {
+			if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
+				OASSERT(0, "wtf");
+			} 
+			else if (events[i].events & EPOLLIN) {
+				s32 fd;
+				struct sockaddr_in addr;
+				socklen_t len = sizeof(addr);
+				memset(&addr, 0, sizeof(addr));
+				
+				s32 i = 0;
+				while (i++ < 30 && (fd = accept(dealer->fd, (struct sockaddr *)&addr, &len)) >= 0) {
+					if (0 == SetNonBlocking(fd) && 0 == SetSendBuf(fd, 0) && 0 == SetNonNegal(fd))
+						OnAccept(dealer, fd);
+					else
+						close(fd);
+				}
+			}
+			break;
+		}
+		case ACDT_CONNECT: {
+			epoll_ctl(_acFd, EPOLL_CTL_DEL, dealer->fd, &events[i]);
+			if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
+				OnConnect(dealer, false);
+				close(dealer->fd);
+			}
+			else if (events[i].events & EPOLLOUT)
+				OnConnect(dealer, true);
+			DEL dealer;
+			--_acSize;
+			break;
+		}
+		default:
+			OASSERT(0, "wtf");
+			break;
 		}
 	}
-	else
-		session->OnConnectFailed(Kernel::Instance());
-    return true;
 }
 
-s32 NetEngine::OnAccept(NetBase * accepter, struct NetBase * base) {
+void NetEngine::OnAccept(ACDealer * accepter, s32 fd) {
 	core::ISessionFactory * factory = (core::ISessionFactory *)accepter->context;
 	OASSERT(factory, "wtf");
-	
-	if (0 != BindLooper(_looper, base))
-		return -1;
 
 	core::ISession * session = factory->Create();
-	OASSERT(session != nullptr, "wtf");
-	session->SetFactory(factory);
-	base->context = session;
+	if (session) {
+		OASSERT(session != nullptr, "wtf");
+		session->SetFactory(factory);
 
-	Connection * connection = Connection::Create(base, base->fd, accepter->maxSendSize, accepter->maxRecvSize);
-	OASSERT(connection != nullptr, "wtf");
-	connection->SetSession(session);
+		Connection * connection = Connection::Create(fd, accepter->sendSize, accepter->recvSize);
+		OASSERT(connection != nullptr, "wtf");
+		connection->SetSession(session);
 
-	sockaddr_in remote;
-	socklen_t len = sizeof(remote);
-	getpeername(base->fd, (sockaddr*)&remote, &len);
-	connection->SetRemoteIp(inet_ntoa(remote.sin_addr));
-	connection->SetRemotePort(ntohs(remote.sin_port));
+		sockaddr_in remote;
+		socklen_t len = sizeof(remote);
+		getpeername(fd, (sockaddr*)&remote, &len);
+		connection->SetRemoteIp(inet_ntoa(remote.sin_addr));
+		connection->SetRemotePort(ntohs(remote.sin_port));
+		
+		if (!AddToWorker(connection)) {
+			session->OnRelease();
+			connection->OnRelease();
+			close(fd);
+			return;
+		}
 
-	session->OnConnected(Kernel::Instance());
-	return 0;
+		session->OnConnected(Kernel::Instance());
+	}
+	else
+		close(fd);
 }
 
-s32 NetEngine::OnConnect(NetBase * connecter, const int code) {
+void NetEngine::OnConnect(ACDealer * connecter, bool connectSuccess) {
 	core::ISession * session = (core::ISession *)connecter->context;
-	if (0 == code) {
-		if (0 != BindLooper(_looper, base)) {
-			session->OnConnectFailed(Kernel::Instance());
-			return -1;
-		}
-	
-		Connection * connection = Connection::Create(connecter, connecter->fd, connecter->maxSendSize, connecter->maxRecvSize);
+	if (connectSuccess) {
+		Connection * connection = Connection::Create(connecter->fd, connecter->msendSize, connecter->recvSize);
 		OASSERT(connection != nullptr, "wtf");
 		connection->SetSession(session);
 
@@ -116,88 +244,29 @@ s32 NetEngine::OnConnect(NetBase * connecter, const int code) {
 		getpeername(connecter->fd, (sockaddr*)&remote, &len);
 		connection->SetRemoteIp(inet_ntoa(remote.sin_addr));
 		connection->SetRemotePort(ntohs(remote.sin_port));
+		
+		if (!AddToWorker(connection)) {
+			session->SetPipe(nullptr);
+			connection->OnRelease();
+			close(connecter->fd);
+			session->OnConnectFailed(Kernel::Instance());
+			return;
+		}
 
 		session->OnConnected(Kernel::Instance());
 	}
 	else
 		session->OnConnectFailed(Kernel::Instance());
-	return 0;
 }
 
-s32 NetEngine::OnRecv(NetBase * base, const s32 code, const char * buff, const s32 size) {
-	core::ISession * session = (core::ISession *)base->context;
-	Connection * connection = (Connection *)session->GetPipe();
-	if (code != 0 || size == 0) {
-		session->SetPipe(nullptr);
-		session->OnDisconnected(Kernel::Instance());
-		NetEngine::Instance()->RemoveFromChain(connection);
-		connection->OnRelease();
-		return -1;
+bool NetEngine::AddToWorker(Connection * connection) {
+	NetWorker * sel = nullptr;
+	for (auto * worker : _workers) {
+		if (sel == nullptr || sel->Count() > worker->Counter())
+			sel = worker;
 	}
-
-	connection->OnRecv(size);
-	return 0;
-}
-
-
-s32 NetEngine::OnSend(NetBase * base) {
-	core::ISession * session = (core::ISession *)base->context;
-	Connection * connection = (Connection *)session->GetPipe();
-	connection->OnSendBack();
-	return 0;
-}
-
-void NetEngine::Flush() {
-	if (_directSend)
-		return;
 	
-	Connection * connection = _head;
-	while (connection) {
-		connection->OnSendBack();
-		 
-		Connection * next = connection->GetNext();
-		connection->SetNext(nullptr);
-		connection->SetPrev(nullptr);
-		connection->SetNeedSend(false);
-		
-		connection = next;
-	}
-	_head = nullptr;
-}
-
-void NetEngine::InsertIntoChain(Connection * connection) {
-	if (_directSend)
-		return;
-	
-	if (!connection->IsNeedSend()) {
-		if (_head)
-			_head->SetPrev(connection);
-		connection->SetNext(_head);
-		connection->SetPrev(nullptr);
-		connection->SetNeedSend(true);
-		_head = connection;
-	}
-}
-
-void NetEngine::RemoveFromChain(Connection * connection) {
-	if (_directSend)
-		return;
-	
-	if (connection->IsNeedSend()) {
-		Connection * prev = connection->GetPrev();
-		Connection * next = connection->GetNext();
-		
-		if (prev)
-			prev->SetNext(next);
-		
-		if (next)
-			next->SetPrev(prev);
-		
-		if (_head == connection)
-			_head = next;
-		
-		connection->SetNext(nullptr);
-		connection->SetPrev(nullptr);
-		connection->SetNeedSend(false);
-	}
+	OASSERT(sel, "wtf");
+	connection->SetWorker(sel);
+	return sel->Add(connection);
 }
