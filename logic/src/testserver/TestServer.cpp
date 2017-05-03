@@ -30,12 +30,12 @@ bool TestServer::Destroy(IKernel * kernel) {
     return true;
 }
 
-class TestSSession : public ISession, public ITimer {
+class TestSSession : public ISession {
 public:
 	TestSSession() {}
 	virtual ~TestSSession() {}
 
-	virtual void OnConnected(IKernel * kernel) { START_TIMER(this, 0, TIMER_BEAT_FOREVER, 200); }
+	virtual void OnConnected(IKernel * kernel) {}
 	virtual s32 OnRecv(IKernel * kernel, const void * context, const s32 size) {
 		if (size < sizeof(s16))
 			return 0;
@@ -44,25 +44,11 @@ public:
 		if (len > size)
 			return 0;
 
-		s64 tick = tools::GetTimeMillisecond();
-		if (tick - *(s64*)((const char*)context + sizeof(s16)) > 100) {
-			DBG_INFO("over 100ms");
-		}
-
+		Send(context, size);
 		return len;
 	}
-	virtual void OnDisconnected(IKernel * kernel) { kernel->KillTimer(this); }
+	virtual void OnDisconnected(IKernel * kernel) {}
 	virtual void OnConnectFailed(IKernel * kernel) {}
-
-	virtual void OnStart(IKernel * kernel, s64 tick) {}
-	virtual void OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
-		s16 size = 0;
-		const void * context = TestServer::Instance()->GetBuffer(size);
-		*(s64*)((const char*)context + sizeof(s16)) = tools::GetTimeMillisecond();
-
-		Send(context, size);
-	}
-	virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) {}
 };
 
 ISession * TestServer::Create() {
@@ -72,4 +58,3 @@ ISession * TestServer::Create() {
 void TestServer::Recover(ISession * session) {
 	DEL session;
 }
-
