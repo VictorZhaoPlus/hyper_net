@@ -17,6 +17,7 @@ NetWorker::NetWorker()
 	
 bool NetWorker::Start() {
 	_fd = epoll_create(ConfigMgr::Instance()->GetNetSupportSize());
+	_thread = std::thread(&NetWorker::ThreadProc, this);
 	return true;
 }
 
