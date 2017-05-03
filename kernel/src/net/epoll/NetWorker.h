@@ -37,19 +37,24 @@ public:
 	bool Add(Connection * connection);
 	void Remove(Connection * connection);
 	
-	inline void PostSend(Connection * connection) {
+	inline void PostSend(Connection * connection) { _runQueue.Push({NWET_SEND, connection}); }
+	
+	inline void PostClosing(Connection * connection) { _runQueue.Push({NWET_CLOSING, connection}); }
+	
+	inline void PostRecv(Connection * connection) { 
 		std::unique_lock<spin_mutex> guard(_lock);
-		_waitCompleteQueue.push_back({NWET_SEND, connection});
+		_waitCompleteQueue.push_back({NWET_RECV, connection});
 	}
 	
-	inline void PostClosing(Connection * connection) {
+	inline void PostError(Connection * connection) { 
 		std::unique_lock<spin_mutex> guard(_lock);
-		_waitCompleteQueue.push_back({NWET_CLOSING, connection});
+		_waitCompleteQueue.push_back({NWET_ERROR, connection});
 	}
 	
-	inline void PostRecv(Connection * connection) { _runQueue.Push({NWET_RECV, connection}); }
-	inline void PostError(Connection * connection) { _runQueue.Push({NWET_ERROR, connection}); }
-	inline void PostDone(Connection * connection) { _runQueue.Push({NWET_DONE, connection}); }
+	inline void PostDone(Connection * connection) { 
+		std::unique_lock<spin_mutex> guard(_lock);
+		_waitCompleteQueue.push_back({NWET_DONE, connection});
+	}
 
 	inline s32 Count() const { return _count; }
 
