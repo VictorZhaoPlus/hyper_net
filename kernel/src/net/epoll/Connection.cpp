@@ -59,7 +59,7 @@ void Connection::OnRecv() {
 	do {
 		used = _session->OnRecv(Kernel::Instance(), data + totalUsed, (s32)dataLen - totalUsed);
 		if (used > 0) {
-			OASSERT(totalUsed + used < (s32)dataLen, "wtf");
+			OASSERT(totalUsed + used <= (s32)dataLen, "wtf");
 			totalUsed += used;
 		}
 
@@ -84,20 +84,17 @@ void Connection::OnDone() {
 
 bool Connection::ThreadRecv() {
 	if (_threadStatus == ST_NORMAL) {
-		s32 totalRead = 0;
 		while (true) {
 			u32 size = 0;
 			s32 len = 0;
 			char * buf = RingBufferWrite(_recvBuff, &size);
 			if (buf && size > 0) {
 				len = recv(_fd, buf, size, 0);
-				if (len > 0)
-					totalRead += len;
+				if (len > 0) {
+					RingBufferIn(_recvBuff, len);
+					_worker->PostRecv(this);
+				}
 				else if (len < 0 && errno == EAGAIN) {
-					if (totalRead > 0) {
-						RingBufferIn(_recvBuff, totalRead);
-						_worker->PostRecv(this);
-					}
 					break;
 				}
 			}
@@ -105,10 +102,6 @@ bool Connection::ThreadRecv() {
 				len = -1;
 
 			if (len <= 0) {
-				if (totalRead > 0) {
-					RingBufferIn(_recvBuff, totalRead);
-					_worker->PostRecv(this);
-				}
 				ThreadClose(true);
 				return false;
 			}
