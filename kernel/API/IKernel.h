@@ -134,7 +134,7 @@ namespace core {
 
 #define DBG_INFO(format, ...) { \
     char debug[4096] = {0}; \
-    SafeSprintf(debug, sizeof(debug), format, __VA_ARGS__); \
+    SafeSprintf(debug, sizeof(debug), format, ##__VA_ARGS__); \
     printf("%s\n", debug); \
 }
 
