@@ -116,7 +116,7 @@ bool NetEngine::Listen(const char * ip, const s32 port, const s32 sendSize, cons
 	}
 
 	struct epoll_event ev;
-	ev.data.ptr = NEW ACDealer({ACDealerType::ACDT_ACCEPT, fd, sendSize, recvSize});
+	ev.data.ptr = NEW ACDealer({ACDealerType::ACDT_ACCEPT, fd, sendSize, recvSize, factory});
 	ev.events = EPOLLIN | EPOLLERR | EPOLLHUP;
 	if (epoll_ctl(_acFd, EPOLL_CTL_ADD, fd, &ev) != 0) {
 		KERNEL_LOG("listen[%s:%d] epoll add failed, error %d\n", ip, port, errno);
@@ -160,7 +160,7 @@ bool NetEngine::Connect(const char * ip, const s32 port, const s32 sendSize, con
 	}
 	
 	struct epoll_event ev;
-	ev.data.ptr = NEW ACDealer({ACDealerType::ACDT_CONNECT, fd, sendSize, recvSize});
+	ev.data.ptr = NEW ACDealer({ACDealerType::ACDT_CONNECT, fd, sendSize, recvSize, session});
 	ev.events = EPOLLOUT | EPOLLET | EPOLLERR | EPOLLHUP;
 	if (epoll_ctl(_acFd, EPOLL_CTL_ADD, fd, &ev) != 0) {
 		KERNEL_LOG("connect[%s:%d] epoll add failed, error %d\n", ip, port, errno);
@@ -263,6 +263,8 @@ void NetEngine::OnAccept(ACDealer * accepter, s32 fd) {
 
 void NetEngine::OnConnect(ACDealer * connecter, bool connectSuccess) {
 	core::ISession * session = (core::ISession *)connecter->context;
+	OASSERT(session, "wtf");
+	
 	if (connectSuccess) {
 		Connection * connection = Connection::Create(connecter->fd, connecter->sendSize, connecter->recvSize);
 		OASSERT(connection != nullptr, "wtf");
