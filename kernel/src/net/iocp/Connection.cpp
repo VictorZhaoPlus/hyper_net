@@ -6,7 +6,7 @@
 #include <mutex>
 
 #define ERROR_PARSE_FAILED -1
-#define SINGLE_RECV_SIZE 8192
+#define SINGLE_RECV_SIZE 4096
 
 extern LPFN_CONNECTEX g_connect;
 

@@ -6,20 +6,20 @@ INCLUDE_DIRECTORIES(
     "${PROJECT_SOURCE_DIR}/src/interface"
     )
 
-SET(@
-    "${PROJECT_SOURCE_DIR}/src/+/&.h"
-    "${PROJECT_SOURCE_DIR}/src/+/&.cpp"
-    "${PROJECT_SOURCE_DIR}/src/+/main.cpp"
+SET(TESTCLIENT
+    "${PROJECT_SOURCE_DIR}/src/testclient/TestClient.h"
+    "${PROJECT_SOURCE_DIR}/src/testclient/TestClient.cpp"
+    "${PROJECT_SOURCE_DIR}/src/testclient/main.cpp"
     )
 
 SOURCE_GROUP(interface FILES ${LOGIC_INTERFACE})
 SOURCE_GROUP(API FILES ${API})
 SOURCE_GROUP(public\\tinyxml FILES ${PUBLIC_XML})
 SOURCE_GROUP(public FILES ${PUBLIC})
-SOURCE_GROUP(\\ FILES ${@})
+SOURCE_GROUP(\\ FILES ${TESTCLIENT})
 
-ADD_LIBRARY(& SHARED
-	${@}
+ADD_LIBRARY(TestClient SHARED
+	${TESTCLIENT}
 	${API}
 	${LOGIC_INTERFACE}
 	${PUBLIC}
@@ -27,9 +27,9 @@ ADD_LIBRARY(& SHARED
 	)
 
 IF(WIN32)
-TARGET_LINK_LIBRARIES(&
+TARGET_LINK_LIBRARIES(TestClient
 	"${PROJECT_SOURCE_DIR}/thirdlibary/bin/$<CONFIGURATION>/serverd.lib"
 )
 ENDIF(WIN32)
 
-SET_TARGET_PROPERTIES(& PROPERTIES FOLDER "logic")
+SET_TARGET_PROPERTIES(TestClient PROPERTIES FOLDER "logic")

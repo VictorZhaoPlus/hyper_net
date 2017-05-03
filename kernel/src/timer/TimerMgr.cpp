@@ -70,6 +70,7 @@ void TimerMgr::StartTimer(ITimer * timer, s64 delay, s32 count, s64 interval, co
 			delay = JIFFIES_INTERVAL;
 	}
 	base->SetExpire(_jiffies + delay / JIFFIES_INTERVAL);
+	timer->SetBase(base);
 	Schedule(base);
 }
 

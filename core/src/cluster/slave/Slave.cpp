@@ -136,7 +136,7 @@ void Slave::StartNode(IKernel * kernel, const char * cmd) {
 
 	char * p[MAX_CMD_ARGS_COUNT];
 	SafeMemset(p, sizeof(p), 0, sizeof(p));
-	p[0] = EXECUTE_NAME;
+	p[0] = (char*)EXECUTE_NAME;
 	s32 idx = 1;
 	char * checkPtr = args;
 	char * innderPtr = nullptr;

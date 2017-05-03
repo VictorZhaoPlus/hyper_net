@@ -80,7 +80,6 @@ namespace core {
         virtual void OnConnected(IKernel * kernel) = 0;
 #define ON_RECV_FAILED -1
         virtual s32 OnRecv(IKernel * kernel, const void * context, const s32 size) = 0;
-        virtual void OnError(IKernel * kernel, const s32 error) = 0;
         virtual void OnDisconnected(IKernel * kernel) = 0;
         virtual void OnConnectFailed(IKernel * kernel) = 0;
 
