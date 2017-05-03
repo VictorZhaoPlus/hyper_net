@@ -94,8 +94,10 @@ bool Connection::ThreadRecv() {
 				if (len > 0)
 					totalRead += len;
 				else if (len < 0 && errno == EAGAIN) {
-					if (totalRead > 0)
+					if (totalRead > 0) {
+						RingBufferIn(_recvBuff, totalRead);
 						_worker->PostRecv(this);
+					}
 					break;
 				}
 			}
@@ -103,8 +105,10 @@ bool Connection::ThreadRecv() {
 				len = -1;
 
 			if (len <= 0) {
-				if (totalRead > 0)
+				if (totalRead > 0) {
+					RingBufferIn(_recvBuff, totalRead);
 					_worker->PostRecv(this);
+				}
 				ThreadClose(true);
 				return false;
 			}
