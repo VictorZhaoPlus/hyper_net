@@ -3,8 +3,9 @@
 #include "util.h"
 #include "ITestServer.h"
 #include "singleton.h"
+#include <unordered_set>
 
-class TestServer : public ITestServer, public ISessionFactory, public OHolder<TestServer> {
+class TestServer : public ITestServer, public ISessionFactory, public ITimer, public OHolder<TestServer> {
 	struct Buffer {
 		s16 size;
 		void * data;
@@ -17,6 +18,10 @@ public:
 	virtual ISession * Create();
 	virtual void Recover(ISession *);
 
+	virtual void OnStart(IKernel * kernel, s64 tick) {}
+	virtual void OnTimer(IKernel * kernel, s32 beatCount, s64 tick);
+	virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) {}
+
 	inline const void * GetBuffer(s16 & size) const {
 		const Buffer& buf = _buf[rand() % 1024];
 
@@ -24,10 +29,15 @@ public:
 		return buf.data;
 	}
 
+	inline void Active(ISession * session) { _actives.insert(session); }
+
 private:
     IKernel * _kernel;
 
 	Buffer _buf[1024];
+
+	s32 _count;
+	std::unordered_set<ISession *> _actives;
 };
 
 #endif //__TESTSERVER_H__

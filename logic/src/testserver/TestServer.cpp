@@ -19,6 +19,8 @@ bool TestServer::Initialize(IKernel * kernel) {
 bool TestServer::Launched(IKernel * kernel) {
 	s32 port = tools::StringAsInt(kernel->GetCmdArg("port"));
 	kernel->Listen("0.0.0.0", port, 8192, 8192, this);
+
+	START_TIMER(this, 0, TIMER_BEAT_FOREVER, 2000);
     return true;
 }
 
@@ -45,6 +47,7 @@ public:
 			return 0;
 
 		Send(context, size);
+		TestServer::Instance()->Active(this);
 		return len;
 	}
 	virtual void OnDisconnected(IKernel * kernel) {}
@@ -52,9 +55,16 @@ public:
 };
 
 ISession * TestServer::Create() {
+	++_count;
 	return NEW TestSSession;
 }
 
 void TestServer::Recover(ISession * session) {
+	--_count;
 	DEL session;
+}
+
+void TestServer::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
+	DBG_INFO("connection: %d active %d", _count, (s32)_actives.size());
+	_actives.clear();
 }
