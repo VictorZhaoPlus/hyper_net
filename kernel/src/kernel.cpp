@@ -75,8 +75,8 @@ void Kernel::Loop() {
 		Profile::Instance()->Loop();
 
         s64 use = tools::GetTimeMillisecond() - tick;
-        if (use > ConfigMgr::Instance()->GetFrameDuration()) {
-
+        if (use < ConfigMgr::Instance()->GetFrameDuration()) {
+			CSLEEP(1);
         }
     }
 }

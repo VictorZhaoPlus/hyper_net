@@ -23,6 +23,7 @@ extern "C" {
 	inline u32 RingBufferLength(struct RingBuffer * buf) { return buf->in - buf->out; }
 
 	KERNEL_API struct RingBuffer * RingBufferAlloc(u32 size);
+	KERNEL_API void RingBufferRealloc(struct RingBuffer * buf, u32 size);
 	KERNEL_API void RingBufferDestroy(struct RingBuffer * buf);
 
 #ifdef __cplusplus

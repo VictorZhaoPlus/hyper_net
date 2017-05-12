@@ -3,6 +3,7 @@
 #include "kernel.h"
 #include "ConfigMgr.h"
 #include <sys/epoll.h>
+#include <sys/socket.h>
 #include "tools.h"
 
 #define QUEUE_SIZE 8196
@@ -13,6 +14,7 @@ NetWorker::NetWorker()
 	, _runQueue(QUEUE_SIZE)
 	, _terminate(false) {
 	
+	_waitTime = ConfigMgr::Instance()->GetNetFrameWaitTick();
 }
 	
 bool NetWorker::Start() {
@@ -65,7 +67,7 @@ void NetWorker::ThreadProc() {
 			}	
 		}
 		
-		ProcessRS(ConfigMgr::Instance()->GetNetFrameWaitTick());
+		ProcessRS(_waitTime);
 	}
 }
 
@@ -88,6 +90,10 @@ void NetWorker::ProcessRS(s64 waitTime) {
 	for (s32 i = 0; i < retCount; i++) {
 		Connection * connection = (Connection*)events[i].data.ptr;
 		if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
+			s32 error = 0;
+			socklen_t len = sizeof(error);
+			getsockopt(connection->GetFd(), SOL_SOCKET, SO_ERROR, (char*)&error, &len);
+			KERNEL_LOG("connection %s:%d error:%d", connection->GetRemoteIp(), connection->GetRemotePort(), error);
 			connection->ThreadClose(true);
 			continue;
 		}

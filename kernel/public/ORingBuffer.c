@@ -124,6 +124,10 @@ extern "C" {
 		return ret;
 	}
 
+	void RingBufferRealloc(struct RingBuffer * buf, u32 size) {
+
+	}
+
 	void RingBufferDestroy(struct RingBuffer * buf) {
 		FREE(buf->buffer);
 		FREE(buf);

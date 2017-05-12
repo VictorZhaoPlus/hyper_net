@@ -1,8 +1,10 @@
 #include "TestClient.h"
 
+#define ONE_BATCH 1000
+
 class TestCSession : public ISession, public ITimer {
 public:
-	TestCSession() {}
+	TestCSession() : _index(0) {}
 	virtual ~TestCSession() {}
 
 	virtual void OnConnected(IKernel * kernel) { START_TIMER(this, 0, TIMER_BEAT_FOREVER, 200); }
@@ -16,7 +18,7 @@ public:
 
 		s64 tick = tools::GetTimeMillisecond();
 		if (tick - *(s64*)((const char*)context + sizeof(s16)) > 100) {
-			DBG_INFO("over 100ms");
+			DBG_INFO("connection %x over 100ms:%lld[%d, %d]", (s64)this, tick - *(s64*)((const char*)context + sizeof(s16)), len, *(s32*)((const char*)context + sizeof(s16) + sizeof(s64)));
 		}
 
 		return len;
@@ -29,10 +31,14 @@ public:
 		s16 size = 0;
 		const void * context = TestClient::Instance()->GetBuffer(size);
 		*(s64*)((const char*)context + sizeof(s16)) = tools::GetTimeMillisecond();
+		*(s32*)((const char*)context + sizeof(s16) + sizeof(s64)) = _index++;
 
 		Send(context, size);
 	}
 	virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) {}
+
+private:
+	s32 _index;
 };
 
 bool TestClient::Initialize(IKernel * kernel) {
@@ -52,12 +58,11 @@ bool TestClient::Initialize(IKernel * kernel) {
 }
 
 bool TestClient::Launched(IKernel * kernel) {
-	const char * ip = kernel->GetCmdArg("ip");
-	s32 port = tools::StringAsInt(kernel->GetCmdArg("port"));
-	s32 count = tools::StringAsInt(kernel->GetCmdArg("count"));
-	for (s32 i = 0; i < count; ++i) {
-		kernel->Connect(ip, port, 8192, 8192, NEW TestCSession);
-	}
+	_ip = kernel->GetCmdArg("ip");
+	_port = tools::StringAsInt(kernel->GetCmdArg("port"));
+	_count = tools::StringAsInt(kernel->GetCmdArg("count"));
+	START_TIMER(this, 0, (_count / ONE_BATCH + 1), ONE_BATCH);
+
     return true;
 }
 
@@ -69,4 +74,9 @@ bool TestClient::Destroy(IKernel * kernel) {
     return true;
 }
 
-
+void TestClient::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
+	s32 count = _count > ONE_BATCH ? ONE_BATCH : _count;
+	for (s32 i = 0; i < count; ++i)
+		kernel->Connect(_ip.c_str(), _port, 8192, 8192, NEW TestCSession);
+	_count -= count;
+}

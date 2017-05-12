@@ -3,6 +3,7 @@
 #include "TimerGear.h"
 #include "TimerList.h"
 #include "tools.h"
+#include "kernel.h"
 
 bool TimerMgr::Ready() {
 	return true;
@@ -29,6 +30,8 @@ void TimerMgr::Loop() {
 		Update();
 	last += count * JIFFIES_INTERVAL;
 
+	s32 count = 0;
+	s64 tick = tools::GetTimeMillisecond();
 	while (!_running->empty()) {
 		TimerBase * base = _running->PopFront();
 		OASSERT(base, "where is timer base");
@@ -42,6 +45,11 @@ void TimerMgr::Loop() {
 			base->AdjustExpire(_jiffies);
 			Schedule(base);
 		}
+		++count;
+	}
+	s64 used = tools::GetTimeMillisecond() - tick;
+	if (used > 20) {
+		KERNEL_LOG("timer loop use over flow[%d:%lld]", count, used);
 	}
 }
 

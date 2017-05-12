@@ -46,7 +46,7 @@ public:
 		if (len > size)
 			return 0;
 
-		Send(context, size);
+		Send(context, len);
 		TestServer::Instance()->Active(this);
 		return len;
 	}

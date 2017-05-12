@@ -38,7 +38,6 @@ public:
 	void Remove(Connection * connection);
 	
 	inline void PostSend(Connection * connection) { _runQueue.Push({NWET_SEND, connection}); }
-	
 	inline void PostClosing(Connection * connection) { _runQueue.Push({NWET_CLOSING, connection}); }
 	
 	inline void PostRecv(Connection * connection) { 
@@ -67,6 +66,7 @@ private:
 	spin_mutex _lock;
 	std::list<NetEvent> _waitCompleteQueue;
 	std::list<NetEvent> _completeQueue;
+	s32 _waitTime;
 	
 	bool _terminate;
 	std::thread _thread;

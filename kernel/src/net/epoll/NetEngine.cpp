@@ -15,6 +15,7 @@
 #include <sys/ioctl.h>
 #include <netinet/tcp.h>
 
+#define BACKLOG 256
 
 s32 SetNonBlocking(const s32 fd) {
 	if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFD, 0) | O_NONBLOCK) == -1) {
@@ -25,12 +26,16 @@ s32 SetNonBlocking(const s32 fd) {
 }
 	
 s32 SetNonNegal(const s32 fd) {
-	long val = 1l;
+	s32 val = 1;
 	return setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&val, sizeof(val));
 }
 
 s32 SetSendBuf(const s32 fd, const s32 size) {
 	return setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
+}
+
+s32 SetRecvBuf(const s32 fd, const s32 size) {
+	return setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
 }
 
 s32 SetReuse(const s32 fd) {
@@ -109,7 +114,7 @@ bool NetEngine::Listen(const char * ip, const s32 port, const s32 sendSize, cons
 		return false;
 	}
 
-	if (listen(fd, 128) == -1) {
+	if (listen(fd, BACKLOG) == -1) {
 		KERNEL_LOG("listen[%s:%d] listen failed, error %d\n", ip, port, errno);
 		close(fd);
 		return false;
@@ -146,7 +151,7 @@ bool NetEngine::Connect(const char * ip, const s32 port, const s32 sendSize, con
 		return false;
 	}
 
-	if (0 != SetNonBlocking(fd) || 0 != SetSendBuf(fd, 0) || 0 != SetNonNegal(fd)) {
+	if (0 != SetNonBlocking(fd) || 0 != SetSendBuf(fd, 0) || 0 != SetRecvBuf(fd, 0) || 0 != SetNonNegal(fd)) {
 		KERNEL_LOG("connect[%s:%d] set opt failed, error %d\n", ip, port, errno);
 		close(fd);
 		return false;
@@ -184,8 +189,10 @@ void NetEngine::ProcessAC(s64 waitTime) {
 		return;
 	}
 
-	if (retCount == 0)
+	if (retCount == 0) {
+		CSLEEP(1);
 		return;
+	}
 
 	for (s32 i = 0; i < retCount; i++) {
 		ACDealer * dealer = (ACDealer*)events[i].data.ptr;
@@ -201,11 +208,13 @@ void NetEngine::ProcessAC(s64 waitTime) {
 				memset(&addr, 0, sizeof(addr));
 				
 				s32 i = 0;
-				while (i++ < 30 && (fd = accept(dealer->fd, (struct sockaddr *)&addr, &len)) >= 0) {
-					if (0 == SetNonBlocking(fd) && 0 == SetSendBuf(fd, 0) && 0 == SetNonNegal(fd))
+				while (i++ < BACKLOG && (fd = accept(dealer->fd, (struct sockaddr *)&addr, &len)) >= 0) {
+					if (0 == SetNonBlocking(fd) && 0 == SetSendBuf(fd, 0) && 0 == SetRecvBuf(fd, 0) && 0 == SetNonNegal(fd))
 						OnAccept(dealer, fd);
-					else
+					else {
+						KERNEL_LOG("accept set opt failed:%d", errno);
 						close(fd);
+					}
 				}
 			}
 			break;
@@ -214,6 +223,7 @@ void NetEngine::ProcessAC(s64 waitTime) {
 			epoll_ctl(_acFd, EPOLL_CTL_DEL, dealer->fd, &events[i]);
 			if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
 				OnConnect(dealer, false);
+				KERNEL_LOG("connect error:%d", errno);
 				close(dealer->fd);
 			}
 			else if (events[i].events & EPOLLOUT)

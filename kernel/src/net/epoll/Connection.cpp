@@ -30,6 +30,7 @@ void Connection::Send(const void * context, const s32 size) {
 		return;
 
 	if (!RingBufferWriteBlock(_sendBuff, context, size)) {
+		KERNEL_LOG("connection %s:%d send over flow", _remoteIp, _remotePort);
 		Close();
 		return;
 	}
@@ -60,25 +61,24 @@ void Connection::OnRecv() {
 		used = _session->OnRecv(Kernel::Instance(), data + totalUsed, (s32)dataLen - totalUsed);
 		if (used > 0) {
 			OASSERT(totalUsed + used <= (s32)dataLen, "wtf");
+			RingBufferOut(_recvBuff, used);
 			totalUsed += used;
 		}
 
 	} while (used > 0 && totalUsed < (s32)dataLen);
 	
-	if (used >= 0) {
-		if (totalUsed > 0)
-			RingBufferOut(_recvBuff, totalUsed);
-	}
-	else
+	if (used < 0)
 		Close();
 }
 
 void Connection::OnDone() {
 	OASSERT(_closing, "wtf");
 	
+	KERNEL_LOG("connection %s:%d close", _remoteIp, _remotePort);
 	close(_fd);
 	_session->OnDisconnected(Kernel::Instance());
 	_session->SetPipe(nullptr);
+	_session->OnRelease();
 	OnRelease();
 }
 
@@ -102,6 +102,7 @@ bool Connection::ThreadRecv() {
 				len = -1;
 
 			if (len <= 0) {
+				KERNEL_LOG("connection %s:%d close %d %d", _remoteIp, _remotePort, len, errno);
 				ThreadClose(true);
 				return false;
 			}
@@ -145,15 +146,22 @@ void Connection::ThreadClose(bool force) {
 	if (_threadStatus == ST_NORMAL) {
 		if (force) {
 			_threadStatus = ST_ERROR;
+			_worker->Remove(this);
 			_worker->PostError(this);
 		}
-		else
-			_threadStatus = ST_CLOSING;
+		else {
+			if (RingBufferLength(_sendBuff) == 0) {
+				_threadStatus = ST_CLOSED;
+				_worker->Remove(this);
+				_worker->PostDone(this);
+			}
+			else
+				_threadStatus = ST_CLOSING;
+		}
 	}
 	else if (_threadStatus == ST_ERROR) {
 		if (!force) {
 			_threadStatus = ST_CLOSED;
-			_worker->Remove(this);
 			_worker->PostDone(this);
 		}
 	}
