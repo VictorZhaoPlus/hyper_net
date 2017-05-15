@@ -30,8 +30,8 @@ void TimerMgr::Loop() {
 		Update();
 	last += count * JIFFIES_INTERVAL;
 
-	s32 count = 0;
-	s64 tick = tools::GetTimeMillisecond();
+	s32 runCount = 0;
+	s64 checkTick = tools::GetTimeMillisecond();
 	while (!_running->empty()) {
 		TimerBase * base = _running->PopFront();
 		OASSERT(base, "where is timer base");
@@ -45,11 +45,11 @@ void TimerMgr::Loop() {
 			base->AdjustExpire(_jiffies);
 			Schedule(base);
 		}
-		++count;
+		++runCount;
 	}
-	s64 used = tools::GetTimeMillisecond() - tick;
+	s64 used = tools::GetTimeMillisecond() - checkTick;
 	if (used > 20) {
-		KERNEL_LOG("timer loop use over flow[%d:%lld]", count, used);
+		KERNEL_LOG("timer loop use over flow[%d:%lld]", runCount, used);
 	}
 }
 

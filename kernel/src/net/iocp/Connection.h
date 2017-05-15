@@ -24,6 +24,11 @@ public:
     inline void SetRemotePort(const s32 port) { _remotePort = port; }
     virtual s32 GetRemotePort() const { return _remotePort; }
 
+	virtual s32 GetLocalPort() const { return 0; }
+
+	virtual void AdjustSendBuffSize(u32 size) {}
+	virtual void AdjustRecvBuffSize(u32 size) {}
+
     virtual void Send(const void * context, const s32 size);
     virtual void Close();
 	void CloseForce();

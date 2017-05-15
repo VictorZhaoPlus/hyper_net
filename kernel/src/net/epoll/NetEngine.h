@@ -53,6 +53,7 @@ private:
 	s32 _acSize;
 
 	std::vector<NetWorker*> _workers;
+	bool _first;
 };
 
 #endif // __NETENGINE_H__

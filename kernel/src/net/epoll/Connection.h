@@ -39,15 +39,25 @@ public:
     inline void SetRemotePort(const s32 port) { _remotePort = port; }
     virtual s32 GetRemotePort() const { return _remotePort; }
 	
+	inline void SetLocalPort(const s32 port) { _localPort = port; }
+	virtual s32 GetLocalPort() const { return _localPort; }
+	
+	virtual void AdjustSendBuffSize(u32 size);
+	virtual void AdjustRecvBuffSize(u32 size);
+	
+	inline void SetProfile() { _profile = true; }
+	
 	virtual void Send(const void * context, const s32 size);
     virtual void Close();
 
 	void OnRecv();
 	void OnDone();
+	void OnChange();
 	
 	bool ThreadRecv();
 	void ThreadSend(bool inThread);
 	void ThreadClose(bool force);
+	void ThreadChange();
 
 private:
     Connection(const s32 fd, const s32 sendSize, const s32 recvSize);
@@ -59,6 +69,8 @@ private:
 	NetWorker * _worker;
     char _remoteIp[MAX_IP_SIZE];
     s32 _remotePort;
+	s32 _localPort;
+	bool _profile;
 	
 	RingBuffer * _sendBuff;
 	RingBuffer * _recvBuff;
@@ -66,6 +78,10 @@ private:
 	bool _closing;
 	s8 _threadStatus;
 	bool _pending;
+	
+	bool _changing;
+	u32 _adjustSendSize;
+	u32 _adjustRecvSize;
 };
 
 #endif //__CONNECTION_H__

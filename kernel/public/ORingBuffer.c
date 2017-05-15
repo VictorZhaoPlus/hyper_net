@@ -18,6 +18,12 @@ extern "C" {
 		return 1 << Fls(size - 1);
 	}
 
+	u32 RingBufferCalcSize(u32 size) {
+		if (size & (size - 1))
+			return RoundupPowOfTwo(size);
+		return size;
+	}
+
 	char * RingBufferWrite(struct RingBuffer * buf, u32 * size) {
 		u32 freeSize = buf->size - buf->in + buf->out;
 		if (freeSize == 0)
@@ -125,7 +131,34 @@ extern "C" {
 	}
 
 	void RingBufferRealloc(struct RingBuffer * buf, u32 size) {
+		if (size & (size - 1))
+			size = RoundupPowOfTwo(size);
+		
+		u32 usedSize = buf->in - buf->out;
+		if (usedSize > size)
+			return;
 
+		char * buffer = (char *)MALLOC(size);
+		if (!buffer)
+			return;
+
+		if (usedSize > 0) {
+			s32 realIn = buf->in & (buf->size - 1);
+			s32 realOut = buf->out & (buf->size - 1);
+
+			if (realIn > realOut)
+				memcpy(buffer, buf->buffer + realOut, usedSize);
+			else {
+				memcpy(buffer, buf->buffer + realOut, buf->size - realOut);
+				memcpy(buffer + buf->size - realOut, buf->buffer, realIn);
+			}
+		}
+
+		FREE(buf->buffer);
+		buf->buffer = buffer;
+		buf->out = 0;
+		buf->in = 0;
+		buf->size = size;
 	}
 
 	void RingBufferDestroy(struct RingBuffer * buf) {

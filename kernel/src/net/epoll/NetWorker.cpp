@@ -32,6 +32,7 @@ void NetWorker::Terminate() {
 void NetWorker::Process(s64 overtime) {
 	s64 tick = tools::GetTimeMillisecond();
 	
+	s32 count = 0;
 	bool swaped = false;
 	while (true) {
 		if (!swaped && _completeQueue.empty()) {
@@ -46,14 +47,22 @@ void NetWorker::Process(s64 overtime) {
 		NetEvent evt = *_completeQueue.begin();
 		_completeQueue.pop_front();
 		
+		if (tools::GetTimeMillisecond() - evt.tick > 10) {
+			printf("main loop evt over time %lld, [%d]\n", tools::GetTimeMillisecond() - evt.tick, evt.type);
+		}
+		
 		switch (evt.type) {
 		case NWET_RECV: evt.connection->OnRecv(); break;
 		case NWET_ERROR: evt.connection->Close(); break;
+		case NWET_CHANGED: evt.connection->OnChange(); break;
 		case NWET_DONE: evt.connection->OnDone(); break;
 		}
+		++count;
 		
-		if (tools::GetTimeMillisecond() - tick >= overtime)
+		if (tools::GetTimeMillisecond() - tick >= overtime) {
+			printf("use tick %lld/%lld process %d\n", tools::GetTimeMillisecond() - tick, overtime, count);
 			break;
+		}
 	}
 }
 
@@ -61,9 +70,14 @@ void NetWorker::ThreadProc() {
 	while (!_terminate) {
 		NetEvent evt;
 		while (_runQueue.Read(evt)) {
+			if (tools::GetTimeMillisecond() - evt.tick > 10) {
+				printf("thread loop evt over time %lld, [%d]\n", tools::GetTimeMillisecond() - evt.tick, evt.type);
+			}
+			
 			switch (evt.type) {
 			case NWET_SEND: evt.connection->ThreadSend(false); break;
 			case NWET_CLOSING: evt.connection->ThreadClose(false); break;
+			case NWET_CHANGING: evt.connection->ThreadChange(); break;
 			}	
 		}
 		

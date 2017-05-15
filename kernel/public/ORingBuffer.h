@@ -12,6 +12,8 @@ extern "C" {
 		u32 out;
 	};
 
+	KERNEL_API u32 RingBufferCalcSize(u32 size);
+
 	KERNEL_API char * RingBufferWrite(struct RingBuffer * buf, u32 * size);
 	KERNEL_API void RingBufferIn(struct RingBuffer * buf, const u32 size);
 	KERNEL_API s8 RingBufferWriteBlock(struct RingBuffer * buf, const void * content, const u32 size);

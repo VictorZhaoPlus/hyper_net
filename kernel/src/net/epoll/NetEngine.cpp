@@ -59,6 +59,7 @@ bool NetEngine::Ready() {
 bool NetEngine::Initialize() {
 	_acFd = epoll_create(ConfigMgr::Instance()->GetNetSupportSize());
 	_acSize = 0;
+	_first = true;
 	
 	for (s32 i = 0; i < ConfigMgr::Instance()->GetNetThreadCount(); ++i) {
 		NetWorker * worker = NEW NetWorker;
@@ -135,6 +136,8 @@ bool NetEngine::Listen(const char * ip, const s32 port, const s32 sendSize, cons
 }
 
 bool NetEngine::Connect(const char * ip, const s32 port, const s32 sendSize, const s32 recvSize, core::ISession * session) {
+	session->SetFactory(nullptr);
+	
 	s32 fd;
 	struct sockaddr_in addr;
 
@@ -258,6 +261,16 @@ void NetEngine::OnAccept(ACDealer * accepter, s32 fd) {
 		connection->SetRemoteIp(inet_ntoa(remote.sin_addr));
 		connection->SetRemotePort(ntohs(remote.sin_port));
 		
+		sockaddr_in local;
+		len = sizeof(local);
+		getsockname(fd, (sockaddr*)&local, &len);
+		connection->SetLocalPort(ntohs(local.sin_port));
+		
+		if (_first) {
+			connection->SetProfile();
+			_first = false;
+		}
+		
 		if (!AddToWorker(connection)) {
 			session->OnRelease();
 			connection->OnRelease();
@@ -285,6 +298,16 @@ void NetEngine::OnConnect(ACDealer * connecter, bool connectSuccess) {
 		getpeername(connecter->fd, (sockaddr*)&remote, &len);
 		connection->SetRemoteIp(inet_ntoa(remote.sin_addr));
 		connection->SetRemotePort(ntohs(remote.sin_port));
+		
+		sockaddr_in local;
+		len = sizeof(local);
+		getsockname(connecter->fd, (sockaddr*)&local, &len);
+		connection->SetLocalPort(ntohs(local.sin_port));
+		
+		if (_first) {
+			connection->SetProfile();
+			_first = false;
+		}
 		
 		if (!AddToWorker(connection)) {
 			session->SetPipe(nullptr);

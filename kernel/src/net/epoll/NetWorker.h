@@ -16,11 +16,15 @@ class NetWorker {
 		NWET_RECV,
 		NWET_ERROR,
 		NWET_DONE,
+		
+		NWET_CHANGING,
+		NWET_CHANGED,
 	};
 	
 	struct NetEvent {
 		s8 type;
 		Connection * connection;
+		s64 tick;
 	};
 public:
 	NetWorker();
@@ -36,23 +40,30 @@ public:
 	
 	bool Add(Connection * connection);
 	void Remove(Connection * connection);
+	inline void DelCounter(Connection * connection) { --_count; }
 	
-	inline void PostSend(Connection * connection) { _runQueue.Push({NWET_SEND, connection}); }
-	inline void PostClosing(Connection * connection) { _runQueue.Push({NWET_CLOSING, connection}); }
+	inline void PostSend(Connection * connection, s64 tick) { _runQueue.Push({NWET_SEND, connection, tick}); }
+	inline void PostClosing(Connection * connection, s64 tick) { _runQueue.Push({NWET_CLOSING, connection, tick}); }
+	inline void PostChange(Connection * connection, s64 tick) { _runQueue.Push({NWET_CHANGING, connection, tick}); }
 	
-	inline void PostRecv(Connection * connection) { 
+	inline void PostRecv(Connection * connection, s64 tick) { 
 		std::unique_lock<spin_mutex> guard(_lock);
-		_waitCompleteQueue.push_back({NWET_RECV, connection});
+		_waitCompleteQueue.push_back({NWET_RECV, connection, tick});
 	}
 	
-	inline void PostError(Connection * connection) { 
+	inline void PostError(Connection * connection, s64 tick) { 
 		std::unique_lock<spin_mutex> guard(_lock);
-		_waitCompleteQueue.push_back({NWET_ERROR, connection});
+		_waitCompleteQueue.push_back({NWET_ERROR, connection, tick});
 	}
 	
-	inline void PostDone(Connection * connection) { 
+	inline void PostChanged(Connection * connection, s64 tick) { 
 		std::unique_lock<spin_mutex> guard(_lock);
-		_waitCompleteQueue.push_back({NWET_DONE, connection});
+		_waitCompleteQueue.push_back({NWET_CHANGED, connection, tick});
+	}
+	
+	inline void PostDone(Connection * connection, s64 tick) { 
+		std::unique_lock<spin_mutex> guard(_lock);
+		_waitCompleteQueue.push_back({NWET_DONE, connection, tick});
 	}
 
 	inline s32 Count() const { return _count; }

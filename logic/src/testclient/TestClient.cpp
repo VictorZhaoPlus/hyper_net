@@ -4,10 +4,17 @@
 
 class TestCSession : public ISession, public ITimer {
 public:
-	TestCSession() : _index(0) {}
+	TestCSession() : _index(0), _recvIndex(0) {}
 	virtual ~TestCSession() {}
 
-	virtual void OnConnected(IKernel * kernel) { START_TIMER(this, 0, TIMER_BEAT_FOREVER, 200); }
+	virtual void OnConnected(IKernel * kernel) { 
+		//START_TIMER(this, 0, TIMER_BEAT_FOREVER, 200); 
+		SendContext();
+		AdjustSendBuffSize(10240);
+		SendContext();
+		Close();
+	}
+
 	virtual s32 OnRecv(IKernel * kernel, const void * context, const s32 size) {
 		if (size < sizeof(s16))
 			return 0;
@@ -16,10 +23,15 @@ public:
 		if (len > size)
 			return 0;
 
-		s64 tick = tools::GetTimeMillisecond();
-		if (tick - *(s64*)((const char*)context + sizeof(s16)) > 100) {
-			DBG_INFO("connection %x over 100ms:%lld[%d, %d]", (s64)this, tick - *(s64*)((const char*)context + sizeof(s16)), len, *(s32*)((const char*)context + sizeof(s16) + sizeof(s64)));
+		if (*(s32*)((const char*)context + sizeof(s16) + sizeof(s64)) != _recvIndex) {
+			DBG_INFO("connection %x recv sequence error");
 		}
+		_recvIndex = *(s32*)((const char*)context + sizeof(s16) + sizeof(s64)) + 1;
+
+		s64 tick = tools::GetTimeMillisecond();
+		//if (tick - *(s64*)((const char*)context + sizeof(s16)) > 100) {
+			DBG_INFO("connection %x:%d over 100ms:%lld[%d, %d]", (s64)this, GetLocalPort(), tick - *(s64*)((const char*)context + sizeof(s16)), len, *(s32*)((const char*)context + sizeof(s16) + sizeof(s64)));
+		//}
 
 		return len;
 	}
@@ -28,6 +40,11 @@ public:
 
 	virtual void OnStart(IKernel * kernel, s64 tick) {}
 	virtual void OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
+		SendContext();
+	}
+	virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) {}
+
+	inline void SendContext() {
 		s16 size = 0;
 		const void * context = TestClient::Instance()->GetBuffer(size);
 		*(s64*)((const char*)context + sizeof(s16)) = tools::GetTimeMillisecond();
@@ -35,10 +52,10 @@ public:
 
 		Send(context, size);
 	}
-	virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) {}
 
 private:
 	s32 _index;
+	s32 _recvIndex;
 };
 
 bool TestClient::Initialize(IKernel * kernel) {

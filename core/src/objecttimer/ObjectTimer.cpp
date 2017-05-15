@@ -30,6 +30,7 @@ public:
 
 	virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) {
 		OASSERT(ObjectTimer::Instance()->GetObjectMgr()->FindObject(_id) == _object, "wtf");
+		_object->SetPropInt64(_prop, 0);
 		if (_end)
 			_end(kernel, _object, nonviolent, tick);
 

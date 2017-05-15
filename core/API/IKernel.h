@@ -62,6 +62,11 @@ namespace core {
 
         virtual const char * GetRemoteIp() const = 0;
         virtual s32 GetRemotePort() const = 0;
+
+		virtual s32 GetLocalPort() const = 0;
+
+		virtual void AdjustSendBuffSize(u32 size) = 0;
+		virtual void AdjustRecvBuffSize(u32 size) = 0;
     };
 
     class ISession;
@@ -75,6 +80,7 @@ namespace core {
 
     class ISession {
     public:
+		ISession() : _pipe(nullptr), _factory(nullptr) {}
         virtual ~ISession() {}
 
         virtual void OnConnected(IKernel * kernel) = 0;
@@ -100,6 +106,18 @@ namespace core {
 
         inline const char * GetRemoteIp() const { return _pipe ? _pipe->GetRemoteIp() : nullptr; }
         inline s32 GetRemotePort() const { return _pipe ? _pipe->GetRemotePort() : 0; }
+
+		inline s32 GetLocalPort() const { return _pipe ? _pipe->GetLocalPort() : 0; }
+
+		inline void AdjustSendBuffSize(u32 size) {
+			if (_pipe)
+				_pipe->AdjustSendBuffSize(size);
+		}
+
+		inline void AdjustRecvBuffSize(u32 size) {
+			if (_pipe)
+				_pipe->AdjustRecvBuffSize(size);
+		}
 
 		inline void SetPipe(IPipe * pipe) { _pipe = pipe; }
 		inline IPipe * GetPipe() const { return _pipe; }
