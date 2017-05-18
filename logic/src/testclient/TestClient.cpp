@@ -8,11 +8,11 @@ public:
 	virtual ~TestCSession() {}
 
 	virtual void OnConnected(IKernel * kernel) { 
-		//START_TIMER(this, 0, TIMER_BEAT_FOREVER, 200); 
-		SendContext();
-		AdjustSendBuffSize(10240);
-		SendContext();
-		Close();
+		START_TIMER(this, 0, TIMER_BEAT_FOREVER, 200); 
+		//SendContext();
+		//AdjustSendBuffSize(10240);
+		//SendContext();
+		//Close();
 	}
 
 	virtual s32 OnRecv(IKernel * kernel, const void * context, const s32 size) {
@@ -29,9 +29,9 @@ public:
 		_recvIndex = *(s32*)((const char*)context + sizeof(s16) + sizeof(s64)) + 1;
 
 		s64 tick = tools::GetTimeMillisecond();
-		//if (tick - *(s64*)((const char*)context + sizeof(s16)) > 100) {
+		if (tick - *(s64*)((const char*)context + sizeof(s16)) > 100) {
 			DBG_INFO("connection %x:%d over 100ms:%lld[%d, %d]", (s64)this, GetLocalPort(), tick - *(s64*)((const char*)context + sizeof(s16)), len, *(s32*)((const char*)context + sizeof(s16) + sizeof(s64)));
-		//}
+		}
 
 		return len;
 	}

@@ -189,8 +189,9 @@ void Connection::ThreadSend(bool reset) {
 	_pending = false;
 	if (_threadStatus == ST_NORMAL || _threadStatus == ST_CLOSING) {
 		while (RingBufferLength(_sendBuff) > 0) {
-			u32 dataLen;
-			const void * data = RingBufferRead(_sendBuff, &dataLen);
+			char temp[ConfigMgr::Instance()->GetNetMaxPacketSize()];
+			u32 dataLen = 0;
+			char * data = RingBufferReadTemp(_sendBuff, (char*)temp, sizeof(temp), &dataLen);
 			if (data == NULL)
 				break;
 
