@@ -37,5 +37,10 @@
 			<net tick="13" wait="2" support="1024" thread="2" />
 			<async thread="3" tick="10" />
 		</gate>
+		<test>
+			<loop tick="33" />
+			<net tick="13" wait="2" support="1024" thread="2" />
+			<async thread="4" tick="10" />
+		</test>
 	</extend>
 </config>
