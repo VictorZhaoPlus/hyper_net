@@ -146,9 +146,9 @@ public:
     virtual ITableControl * FindTable(const s32 name) const = 0;
 };
 
-#define CREATE_OBJECT(mgr, ...)  mgr->Create(__FILE__, __LINE__, __VA_ARGS__)
-#define CREATE_OBJECT_BYID(mgr, ...) mgr->CreateObjectByID(__FILE__, __LINE__, __VA_ARGS__)
-#define CREATE_STATIC_TABLE(mgr, name, model) mgr->CreateStaticTable(name, model, __FILE__, __LINE__)
+#define CREATE_OBJECT(mgr, ...)  OMODULE(ObjectMgr)->Create(__FILE__, __LINE__, __VA_ARGS__)
+#define CREATE_OBJECT_BYID(mgr, ...) OMODULE(ObjectMgr)->CreateObjectByID(__FILE__, __LINE__, __VA_ARGS__)
+#define CREATE_STATIC_TABLE(mgr, name, model) OMODULE(ObjectMgr)->CreateStaticTable(name, model, __FILE__, __LINE__)
 
 class IObjectMgr : public IModule {
 public:
@@ -170,4 +170,21 @@ public:
     virtual void RecoverStaticTable(ITableControl * table) = 0;
 };
 
+constexpr s32 CalcUniqueId(s32 hash, const char * str) {
+	return *str ? CalcUniqueId(hash * 131 + (*str), str + 1) : hash;
+}
+
+template <s32>
+struct PropGetter {
+	inline static const IProp * Get(const char * name) {
+		const IProp * prop = nullptr;
+		if (!prop) {
+			prop = OMODULE(ObjectMgr)->CalcProp(name);
+			OASSERT(prop, "wtf");
+		}
+		return prop;
+	}
+};
+
+#define OPROP(name) (PropGetter<CalcUniqueId(0, name)>::Get(name))
 #endif //define __IOBJECTMGR_h__

@@ -136,3 +136,6 @@ void Kernel::Log(const char * msg, bool sync) {
 	return Logger::Instance()->Log(msg, sync);
 }
 
+IKernel * GetCore() { 
+	return Kernel::Instance();
+}

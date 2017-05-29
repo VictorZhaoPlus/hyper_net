@@ -150,6 +150,8 @@ namespace core {
     };
 }
 
+KERNEL_API core::IKernel * GetCore();
+
 #define DBG_INFO(format, ...) { \
     char debug[4096] = {0}; \
     SafeSprintf(debug, sizeof(debug), format, ##__VA_ARGS__); \
@@ -163,5 +165,19 @@ namespace core {
 	m = (I##name *)kernel->FindModule(#name);\
 	OASSERT(m, "where is #name");\
 }
+
+template <typename T>
+struct OModule {
+	inline static T * Instance(const char * module) {
+		static T * instance = nullptr;
+		if (instance == nullptr) {
+			instance = (T *)GetCore()->FindModule(module);
+			OASSERT(instance, "where is %s", module);
+		}
+		return instance;
+	}
+};
+
+#define OMODULE(name) (OModule<I##name>::Instance(#name))
 
 #endif // __IKERNEL_H__

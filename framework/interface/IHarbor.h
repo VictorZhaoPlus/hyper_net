@@ -46,7 +46,7 @@ public:
     virtual s32 GetNodeId() const = 0;
 };
 
-#define RGS_HABOR_HANDLER(messageId, handler) _harbor->RegProtocolHandler(messageId, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), #handler)
-#define RGS_HABOR_ARGS_HANDLER(messageId, handler) _harbor->RegProtocolArgsHandler(messageId, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), #handler)
+#define RGS_HABOR_HANDLER(messageId, handler) OMODULE(Harbor)->RegProtocolHandler(messageId, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), #handler)
+#define RGS_HABOR_ARGS_HANDLER(messageId, handler) OMODULE(Harbor)->RegProtocolArgsHandler(messageId, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), #handler)
 
 #endif //__IHARBOR_H__

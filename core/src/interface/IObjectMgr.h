@@ -170,4 +170,21 @@ public:
     virtual void RecoverStaticTable(ITableControl * table) = 0;
 };
 
+constexpr s32 CalcUniqueId(s32 hash, const char * str) {
+	return *str ? CalcUniqueId(hash * 131 + (*str), str + 1) : hash;
+}
+
+template <s32>
+struct PropGetter {
+	inline static const IProp * Get(const char * name) {
+		const IProp * prop = nullptr;
+		if (!prop) {
+			prop = OMODULE(ObjectMgr)->CalcProp(name);
+			OASSERT(prop, "wtf");
+		}
+		return prop;
+	}
+};
+
+#define OPROP(name) (PropGetter<CalcUniqueId(0, name)>::Get(name))
 #endif //define __IOBJECTMGR_h__

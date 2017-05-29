@@ -31,11 +31,13 @@ s32 SetNonNegal(const s32 fd) {
 }
 
 s32 SetSendBuf(const s32 fd, const s32 size) {
-	return setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
+	return 0;
+	//return setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
 }
 
 s32 SetRecvBuf(const s32 fd, const s32 size) {
-	return setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
+	return 0;
+	//return setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
 }
 
 s32 SetReuse(const s32 fd) {
@@ -99,7 +101,7 @@ bool NetEngine::Listen(const char * ip, const s32 port, const s32 sendSize, cons
 		return false;
 	}
 
-	if (0 != SetNonBlocking(fd) || 0 != SetReuse(fd)) {
+	if (0 != SetNonBlocking(fd) || 0 != SetSendBuf(fd, 0) || 0 != SetRecvBuf(fd, 0) || 0 != SetReuse(fd)) {
 		KERNEL_LOG("listen[%s:%d] set opt failed, error %d\n", ip, port, errno);
 		return false;
 	}
@@ -266,11 +268,6 @@ void NetEngine::OnAccept(ACDealer * accepter, s32 fd) {
 		getsockname(fd, (sockaddr*)&local, &len);
 		connection->SetLocalPort(ntohs(local.sin_port));
 		
-		if (_first) {
-			connection->SetProfile();
-			_first = false;
-		}
-		
 		if (!AddToWorker(connection)) {
 			session->OnRelease();
 			connection->OnRelease();
@@ -303,11 +300,6 @@ void NetEngine::OnConnect(ACDealer * connecter, bool connectSuccess) {
 		len = sizeof(local);
 		getsockname(connecter->fd, (sockaddr*)&local, &len);
 		connection->SetLocalPort(ntohs(local.sin_port));
-		
-		if (_first) {
-			connection->SetProfile();
-			_first = false;
-		}
 		
 		if (!AddToWorker(connection)) {
 			session->SetPipe(nullptr);

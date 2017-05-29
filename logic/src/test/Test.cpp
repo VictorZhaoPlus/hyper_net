@@ -65,9 +65,7 @@ bool Test::Initialize(IKernel * kernel) {
 }
 
 bool Test::Launched(IKernel * kernel) {
-	FIND_MODULE(_mapReduce, MapReduce);
-
-	_mapReduce->StartAsyncTask(NEW TestTask, __FILE__, __LINE__);
+	OMODULE(MapReduce)->StartAsyncTask(NEW TestTask, __FILE__, __LINE__);
     return true;
 }
 

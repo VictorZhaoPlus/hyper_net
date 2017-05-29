@@ -8,19 +8,8 @@
 #include <unordered_set>
 #include "OCallback.h"
 
-class IObjectMgr;
-class IProp;
-class IProtocolMgr;
-class IEventEngine;
 class OBuffer;
 class Logic : public ILogic, public INodeListener, public OHolder<Logic> {
-	struct Props {
-		const IProp * account;
-		const IProp * gate;
-		const IProp * logic;
-		const IProp * recoverTimer;
-	};
-
 	struct Proto {
 		s32 bindPlayerReq;
 		s32 bindPlayerAck;
@@ -52,14 +41,9 @@ public:
 private:
     IKernel * _kernel;
 	IRoleMgr * _roleMgr;
-	IHarbor * _harbor;
-	IObjectMgr * _objectMgr;
-	IProtocolMgr * _protocolMgr;
-	IEventEngine * _eventEngine;
 
 	s32 _recoverInverval;
 
-	Props _prop;
 	Proto _proto;
 	
 	s32 _noError;

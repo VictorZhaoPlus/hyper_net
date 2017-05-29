@@ -86,21 +86,12 @@ void NetWorker::ThreadProc() {
 }
 
 void NetWorker::ProcessRS(s64 waitTime) {
-	if (_count <= 0) {
-		CSLEEP(1);
-		return;
-	}
-	
-	epoll_event events[_count];
-	memset(events, 0, sizeof(events));
-	s32 retCount = epoll_wait(_fd, events, _count, waitTime);
+	epoll_event events[1024];
+	s32 retCount = epoll_wait(_fd, events, ConfigMgr::Instance()->GetNetSupportSize(), waitTime);
 	if (retCount == -1) {
 		return;
 	}
-
-	if (retCount == 0)
-		return;
-
+	
 	for (s32 i = 0; i < retCount; i++) {
 		Connection * connection = (Connection*)events[i].data.ptr;
 		if (events[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
