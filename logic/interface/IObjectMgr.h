@@ -176,8 +176,8 @@ constexpr s32 CalcUniqueId(s32 hash, const char * str) {
 
 template <s32>
 struct PropGetter {
-	inline static IProp * Get(const char * name) {
-		IProp * prop = nullptr;
+	inline static const IProp * Get(const char * name) {
+		const IProp * prop = nullptr;
 		if (!prop) {
 			prop = OMODULE(ObjectMgr)->CalcProp(name);
 			OASSERT(prop, "wtf");
