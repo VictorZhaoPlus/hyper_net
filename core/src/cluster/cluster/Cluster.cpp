@@ -23,13 +23,10 @@ bool Cluster::Initialize(IKernel * kernel) {
 }
 
 bool Cluster::Launched(IKernel * kernel) {
-	FIND_MODULE(_harbor, Harbor);
+	if (OMODULE(Harbor)->GetNodeType() != node_type::MASTER) {
+		OMODULE(Harbor)->Connect(_ip.c_str(), _port);
 
-	if (_harbor->GetNodeType() != node_type::MASTER) {
-		FIND_MODULE(_protocolMgr, ProtocolMgr);
-
-		_harbor->Connect(_ip.c_str(), _port);
-		RGS_HABOR_HANDLER(_protocolMgr->GetId("proto_cluster", "new_node"), Cluster::NewNodeComming);
+		RGS_HABOR_HANDLER(PROTOCOL_ID("cluster", "new_node"), Cluster::NewNodeComming);
 	}
     return true;
 }
@@ -48,9 +45,9 @@ void Cluster::NewNodeComming(IKernel * kernel, s32 nodeType, s32 nodeId, const O
     if (_openNode.find(check) != _openNode.end())
         return;
 
-    if (info.nodeType == _harbor->GetNodeType() && info.nodeId <= _harbor->GetNodeId())
+    if (info.nodeType == OMODULE(Harbor)->GetNodeType() && info.nodeId <= OMODULE(Harbor)->GetNodeId())
         return;
 
     _openNode.insert(check);
-    _harbor->Connect(info.ip, info.port);
+    OMODULE(Harbor)->Connect(info.ip, info.port);
 }

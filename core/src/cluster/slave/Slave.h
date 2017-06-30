@@ -34,8 +34,6 @@ private:
 
 private:
     IKernel * _kernel;
-	IHarbor * _harbor;
-	IProtocolMgr * _protocolMgr;
 
 	s32 _startPort;
 	s32 _endPort;

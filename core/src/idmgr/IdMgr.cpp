@@ -39,21 +39,14 @@ bool IdMgr::Initialize(IKernel * kernel) {
 bool IdMgr::Launched(IKernel * kernel) {
 	if (_multiProcess) {
 		_loadFirst = false;
-		FIND_MODULE(_harbor, Harbor);
-		FIND_MODULE(_eventEngine, EventEngine);
-		FIND_MODULE(_protocolMgr, ProtocolMgr);
 
-		_askProtocolId = _protocolMgr->GetId("proto_id", "ask_id");
-		_giveProtocolId = _protocolMgr->GetId("proto_id", "give_id");
-		_eventIdLoaded = _protocolMgr->GetId("event", "id_loaded");
-
-		if (_harbor->GetNodeType() == _nodeType) {
-			RGS_HABOR_ARGS_HANDLER(_askProtocolId, IdMgr::AskId);
+		if (OMODULE(Harbor)->GetNodeType() == _nodeType) {
+			RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("id", "ask"), IdMgr::AskId);
 
 			START_TIMER(this, 0, 1, TIMER_INTERVAL);
 		}
 		else {
-			RGS_HABOR_ARGS_HANDLER(_giveProtocolId, IdMgr::GiveId);
+			RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("id", "give"), IdMgr::GiveId);
 
 			START_TIMER(this, 0, TIMER_BEAT_FOREVER, TIMER_INTERVAL);
 		}
@@ -83,19 +76,19 @@ s64 IdMgr::AllocId() {
 void IdMgr::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
 	
 	if ((s32)_ids.size() < _poolSize) {
-		if (_harbor->GetNodeType() == _nodeType) {
+		if (OMODULE(Harbor)->GetNodeType() == _nodeType) {
 			for (s32 i = 0; i < SINGLE_PATCH; ++i)
 				_ids.push_back(GenerateId());
 
 			if (_loadFirst) {
-				_eventEngine->Exec(_eventIdLoaded, nullptr, 0);
+				OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "id_loaded"), nullptr, 0);
 				_loadFirst = false;
 			}
 		}
 		else {
 			IArgs<1, 32> args;
 			args << 0;
-			_harbor->Send(_nodeType, 1, _askProtocolId, args.Out());
+			OMODULE(Harbor)->Send(_nodeType, 1, PROTOCOL_ID("id", "ask"), args.Out());
 		}
 	}
 }
@@ -123,7 +116,7 @@ void IdMgr::AskId(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args
 	IArgs<SINGLE_PATCH, SINGLE_PATCH_SIZE> ret;
 	for (s32 i = 0; i < SINGLE_PATCH; ++i)
 		ret << GenerateId();
-	_harbor->Send(nodeType, nodeId, _giveProtocolId, ret.Out());
+	OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("id", "give"), ret.Out());
 }
 
 void IdMgr::GiveId(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {
@@ -131,7 +124,7 @@ void IdMgr::GiveId(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & arg
 		_ids.push_back(args.GetDataInt64(i));
 
 	if (_loadFirst) {
-		_eventEngine->Exec(_eventIdLoaded, nullptr, 0);
+		OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "id_loaded"), nullptr, 0);
 		_loadFirst = false;
 	}
 }

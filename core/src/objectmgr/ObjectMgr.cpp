@@ -58,7 +58,6 @@ bool ObjectMgr::Initialize(IKernel * kernel) {
 }
 
 bool ObjectMgr::Launched(IKernel * kernel) {
-	FIND_MODULE(_idMgr, IdMgr);
     return true;
 }
 
@@ -106,6 +105,9 @@ ObjectDescriptor * ObjectMgr::CreateTemplate(IKernel * kernel, const char * name
             return nullptr;
     
 		descriptor = NEW ObjectDescriptor(_nextTypeId++, name, parent);
+
+		_groups[conf.Root().GetAttributeString("parent")].insert(name);
+
     } else {
 		descriptor = NEW ObjectDescriptor(_nextTypeId++, name, nullptr);
     }
@@ -119,6 +121,19 @@ ObjectDescriptor * ObjectMgr::CreateTemplate(IKernel * kernel, const char * name
     return _models[name];
 }
 
+void ObjectMgr::TravelGroup(IKernel * kernel, const char * name, const std::function<void(ObjectDescriptor *, bool)>& f, bool self) {
+	auto itr = _models.find(name);
+	if (itr == _models.end()) {
+		f(itr->second, self);
+
+		auto itrGroup = _groups.find(name);
+		if (itrGroup != _groups.end()) {
+			for (auto& child : itrGroup->second)
+				TravelGroup(kernel, child.c_str(), f, false);
+		}
+	}
+}
+
 IObject * ObjectMgr::FindObject(const s64 id) {
     auto itr = _objects.find(id);
     if (itr == _objects.end())
@@ -128,7 +143,7 @@ IObject * ObjectMgr::FindObject(const s64 id) {
 }
 
 IObject * ObjectMgr::Create(const char * file, const s32 line, const char * name) {
-	return CreateObjectByID(file, line, name, _idMgr->AllocId());
+	return CreateObjectByID(file, line, name, OMODULE(IdMgr)->AllocId());
 }
 
 IObject * ObjectMgr::CreateObjectByID(const char * file, const s32 line, const char * name, const s64 id) {
@@ -196,6 +211,137 @@ const std::vector<const IProp*>* ObjectMgr::GetPropsInfo(const char * type, bool
     return nullptr;
 }
 
+s32 ObjectMgr::ParseSetting(va_list args) {
+	s32 setting = 0;
+	const char * s = nullptr;
+	while ((s = va_arg(args, const char *)) != nullptr){
+		auto itr = _defines.find(s);
+		if (itr != _defines.end())
+			setting |= itr->second;
+	}
+	return setting;
+}
+
+void ObjectMgr::ExtendInt8(const char * type, const char * module, const char * name, ...) {
+	std::string realName = std::string(module) + "." + name;
+
+	va_list args;
+	va_start(args, name);
+	s32 setting = ParseSetting(args);
+	va_end(args);
+
+	TravelGroup(_kernel, type, [&realName, setting](ObjectDescriptor * descriptor, bool self) {
+		descriptor->AddProp(realName.c_str(), DTYPE_INT8, sizeof(s8), setting, self);
+	});
+}
+
+void ObjectMgr::ExtendInt16(const char * type, const char * module, const char * name, ...) {
+	std::string realName = std::string(module) + "." + name;
+
+	va_list args;
+	va_start(args, name);
+	s32 setting = ParseSetting(args);
+	va_end(args);
+
+	TravelGroup(_kernel, type, [&realName, setting](ObjectDescriptor * descriptor, bool self) {
+		descriptor->AddProp(realName.c_str(), DTYPE_INT16, sizeof(s16), setting, self);
+	});
+}
+
+void ObjectMgr::ExtendInt32(const char * type, const char * module, const char * name, ...) {
+	std::string realName = std::string(module) + "." + name;
+
+	va_list args;
+	va_start(args, name);
+	s32 setting = ParseSetting(args);
+	va_end(args);
+
+	TravelGroup(_kernel, type, [&realName, setting](ObjectDescriptor * descriptor, bool self) {
+		descriptor->AddProp(realName.c_str(), DTYPE_INT32, sizeof(s32), setting, self);
+	});
+}
+
+void ObjectMgr::ExtendInt64(const char * type, const char * module, const char * name, ...) {
+	std::string realName = std::string(module) + "." + name;
+
+	va_list args;
+	va_start(args, name);
+	s32 setting = ParseSetting(args);
+	va_end(args);
+
+	TravelGroup(_kernel, type, [&realName, setting](ObjectDescriptor * descriptor, bool self) {
+		descriptor->AddProp(realName.c_str(), DTYPE_INT64, sizeof(s64), setting, self);
+	});
+}
+
+void ObjectMgr::ExtendFloat(const char * type, const char * module, const char * name, ...) {
+	std::string realName = std::string(module) + "." + name;
+
+	va_list args;
+	va_start(args, name);
+	s32 setting = ParseSetting(args);
+	va_end(args);
+
+	TravelGroup(_kernel, type, [&realName, setting](ObjectDescriptor * descriptor, bool self) {
+		descriptor->AddProp(realName.c_str(), DTYPE_FLOAT, sizeof(float), setting, self);
+	});
+}
+
+void ObjectMgr::ExtendString(const char * type, const char * module, const char * name, const s32 size, ...) {
+	std::string realName = std::string(module) + "." + name;
+
+	va_list args;
+	va_start(args, name);
+	s32 setting = ParseSetting(args);
+	va_end(args);
+
+	TravelGroup(_kernel, type, [&realName, setting, size](ObjectDescriptor * descriptor, bool self) {
+		descriptor->AddProp(realName.c_str(), DTYPE_STRING, size, setting, self);
+	});
+}
+
+void ObjectMgr::ExtendStruct(const char * type, const char * module, const char * name, const s32 size, const PropFunc& init, const PropFunc& uninit) {
+	std::string realName = std::string(module) + "." + name;
+
+	TravelGroup(_kernel, type, [&realName, size, &init, &uninit](ObjectDescriptor * descriptor, bool self) {
+		auto * prop = descriptor->AddProp(realName.c_str(), DTYPE_STRUCT, size, 0, self);
+		if (init || uninit)
+			descriptor->SetupInitial(prop, init, uninit);
+	});
+}
+
+TableDescriptor * ObjectMgr::ParseTable(s32 count, va_list args) {
+	TableDescriptor * table = NEW TableDescriptor();
+	for (s32 i = 0; i < count; ++i) {
+		s8 type = va_arg(args, s8);
+		s32 size = 0;
+		switch (type) {
+		case DTYPE_INT8: size = sizeof(s8); break;
+		case DTYPE_INT16: size = sizeof(s16); break;
+		case DTYPE_INT32: size = sizeof(s32); break;
+		case DTYPE_INT64: size = sizeof(s64); break;
+		case DTYPE_FLOAT: size = sizeof(float); break;
+		default: size = va_arg(args, s32); break;
+		}
+		bool key = va_arg(args, bool);
+		
+		table->AddLayout(type, size, key);
+	}
+	return table;
+}
+
+void ObjectMgr::ExtendTable(const char * type, const char * name, s32 count, ...) {
+	va_list args;
+	va_start(args, count);
+	TableDescriptor * table = ParseTable(count, args);
+	va_end(args);
+
+	s32 tableName = CalcTableName(name);
+	TravelGroup(_kernel, type, [tableName, table](ObjectDescriptor * descriptor, bool self) {
+		descriptor->AddTable(tableName, table);
+	});
+}
+
 ITableControl * ObjectMgr::CreateStaticTable(const char * name, const char * model, const char * file, const s32 line) {
 	if (_tableMap.find(tools::CalcStringUniqueId(name)) != _tableMap.end()) {
 		OASSERT(false, "already hsa table %s", name);
@@ -221,6 +367,16 @@ void ObjectMgr::RecoverStaticTable(ITableControl * table) {
 
 s32 ObjectMgr::CalcTableName(const char * table) {
 	return tools::CalcStringUniqueId(table);
+}
+
+void ObjectMgr::RgsObjectCRCB(const char * type, const ObjectCRCB& init, const ObjectCRCB& uninit) {
+	TravelGroup(_kernel, type, [&init, &uninit](ObjectDescriptor * descriptor, bool self) {
+		if (init)
+			descriptor->AddInit(init);
+
+		if (uninit)
+			descriptor->AddDeinit(uninit);
+	});
 }
 
 const IProp* ObjectMgr::SetObjectProp(const char* name, const s32 typeId, ObjectLayout * layout) {

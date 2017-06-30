@@ -11,9 +11,6 @@
 
 class OBuffer;
 class OArgs;
-class IIdMgr;
-class IProtocolMgr;
-class ICacheDB;
 class Gate : public IGate, public IAgentListener, public INodeListener, public OHolder<Gate> {
 	enum {
 		ST_NONE = 0,
@@ -38,22 +35,6 @@ class Gate : public IGate, public IAgentListener, public INodeListener, public O
 		s8 state;
 
 		std::list<Role> roles;
-	};
-
-	struct Proto {
-		s32 bindAccountReq;
-		s32 bindAccountAck;
-		s32 unbindAccountReq;
-		s32 kickFromAccount;
-		s32 distributeLogicReq;
-		s32 distributeLogicAck;
-		s32 bindPlayerReq;
-		s32 bindPlayerAck;
-		s32 unbindPlayerReq;
-		s32 transmitToLogic;
-		s32 kickFromLogic;
-		s32 transmitToActor;
-		s32 brocastToActor;
 	};
 
 	typedef void (Gate::*ProtoHandlerType)(IKernel * kernel, const s64 id, const OBuffer& buf);
@@ -114,35 +95,12 @@ public:
 
 private:
     IKernel * _kernel;
-	IHarbor * _harbor;
-	IAgent * _agent;
 	IRoleMgr * _roleMgr;
-	IIdMgr * _idMgr;
-	IProtocolMgr * _protocolMgr;
-	ICacheDB * _cacheDB;
 
 	bool _singleLogic;
 	s32 _maxRole;
 	std::string _loginKey;
 	std::string _tokenKey;
-
-	Proto _proto;
-
-	s32 _loginAckId;
-	s32 _selectRoleAckId;
-	s32 _createRoleAckId;
-	s32 _deleteRoleAckId;
-	s32 _reselectRoleAckId;
-
-	s32 _noError;
-	s32 _errorInvalidToken;
-	s32 _errorReadAccountFailed;
-	s32 _errorLoadRoleListFailed;
-	s32 _errorDistributeLogicFailed;
-	s32 _errorBindLogicFailed;
-	s32 _errorTooMuchRole;
-	s32 _errorCreateRoleFailed;
-	s32 _errorDeleteRoleFailed;
 
 	std::unordered_map<s64, Player> _players;
 	std::unordered_map<s64, s64> _actors;

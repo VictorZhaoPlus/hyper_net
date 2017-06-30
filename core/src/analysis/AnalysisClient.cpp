@@ -1,7 +1,7 @@
 #include "AnalysisClient.h"
-#include "NodeType.h"
 #include "IHarbor.h"
 #include "OArgs.h"
+#include "IProtocolMgr.h"
 
 bool AnalysisClient::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -10,12 +10,10 @@ bool AnalysisClient::Initialize(IKernel * kernel) {
 }
 
 bool AnalysisClient::Launched(IKernel * kernel) {
-	FIND_MODULE(_harbor, Harbor);
-
-	if (_harbor->GetNodeType() < node_type::USER)
+	if (OMODULE(Harbor)->GetNodeType() < PROTOCOL_ID("node_type", "user"))
 		return true;
 
-	//RGS_HABOR_ARGS_HANDLER(core_proto::TEST_DELAY_RESPONE, AnalysisClient::TestDelay);
+	RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("analysis", "test_delay"), AnalysisClient::TestDelay);
     return true;
 }
 
@@ -25,5 +23,5 @@ bool AnalysisClient::Destroy(IKernel * kernel) {
 }
 
 void AnalysisClient::TestDelay(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args) {
-	//_harbor->Send(nodeType, nodeId, core_proto::TEST_DELAY_RESPONE, args);
+	OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("analysis", "test_delay_respone"), args);
 }

@@ -5,8 +5,6 @@
 #include "singleton.h"
 #include <unordered_map>
 
-class IHarbor;
-class IProtocolMgr;
 class OArgs;
 class ObjectLocator : public IObjectLocator, public OHolder<ObjectLocator> {
 	struct Locator {
@@ -27,10 +25,6 @@ public:
 
 private:
     IKernel * _kernel;
-	IHarbor * _harbor;
-	IProtocolMgr * _protocolMgr;
-
-	s32 _protoReport;
 
 	std::unordered_map<s64, Locator> _objects;
 };

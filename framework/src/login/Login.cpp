@@ -1,5 +1,4 @@
 #include "Login.h"
-#include "UserNodeType.h"
 #include "IProtocolMgr.h"
 #include "OArgs.h"
 
@@ -12,22 +11,10 @@ bool Login::Initialize(IKernel * kernel) {
 }
 
 bool Login::Launched(IKernel * kernel) {
-	FIND_MODULE(_harbor, Harbor);
-	if (_harbor->GetNodeType() == user_node_type::ACCOUNT) {
-		FIND_MODULE(_protocolMgr, ProtocolMgr);
-
-		_proto.bindAccountReq = _protocolMgr->GetId("proto_login", "bind_account_req");
-		_proto.bindAccountAck = _protocolMgr->GetId("proto_login", "bind_account_ack");
-		_proto.unbindAccountReq = _protocolMgr->GetId("proto_login", "unbind_account_req");
-		_proto.kickFromAccount = _protocolMgr->GetId("proto_login", "kick_from_account");
-
-		_harbor->AddNodeListener(this, "Login");
-		RGS_HABOR_ARGS_HANDLER(_proto.bindAccountReq, Login::OnRecvBindAccount);
-		RGS_HABOR_ARGS_HANDLER(_proto.unbindAccountReq, Login::OnRecvUnbindAccount);
-
-		_noError = _protocolMgr->GetId("error", "no_error");
-		_errorTokenCheckFailed = _protocolMgr->GetId("error", "token_check_failed");
-		_errorAuthenFailed = _protocolMgr->GetId("error", "authen_failed");
+	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "account")) {
+		OMODULE(Harbor)->AddNodeListener(this, "Login");
+		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("login", "bind_account_req"), Login::OnRecvBindAccount);
+		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("login", "unbind_account_req"), Login::OnRecvUnbindAccount);
 	}
 
     return true;
@@ -39,7 +26,7 @@ bool Login::Destroy(IKernel * kernel) {
 }
 
 void Login::OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) {
-	if (nodeType == user_node_type::GATE) { 
+	if (nodeType == PROTOCOL_ID("node_type", "gate")) { 
 		{
 			for (auto accountId : _switchGateAccounts[nodeId]) {
 				OASSERT(_accounts.find(accountId) == _accounts.end(), "wtf");
@@ -99,9 +86,9 @@ void Login::OnRecvBindAccount(IKernel * kernel, s32 nodeType, s32 nodeId, const 
 	Account& account = _accounts[accountId];
 	if (tokenCount > 0 && account.tokenCount != tokenCount) {
 		IArgs<3, 128> args;
-		args << agentId << accountId << _errorTokenCheckFailed;
+		args << agentId << accountId << PROTOCOL_ID("error", "token_check_failed");
 		args.Fix();
-		_harbor->Send(nodeType, nodeId, _proto.bindAccountAck, args.Out());
+		OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("login", "bind_account_ack"), args.Out());
 		return;
 	}
 
@@ -127,14 +114,14 @@ void Login::OnRecvBindAccount(IKernel * kernel, s32 nodeType, s32 nodeId, const 
 			IArgs<1, 128> args;
 			args << account.agentId;
 			args.Fix();
-			_harbor->Send(user_node_type::GATE, account.gateId, _proto.kickFromAccount, args.Out());
+			OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "gate"), account.gateId, PROTOCOL_ID("login", "kick_from_account"), args.Out());
 		}
 		break;
 	case ST_SWITCH: {
 			IArgs<3, 128> args;
-			args << account.switchAgentId << accountId << _errorAuthenFailed;
+			args << account.switchAgentId << accountId << PROTOCOL_ID("error", "authen_failed");
 			args.Fix();
-			_harbor->Send(user_node_type::GATE, account.switchGateId, _proto.bindAccountAck, args.Out());
+			OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "gate"), account.switchGateId, PROTOCOL_ID("login", "bind_account_ack"), args.Out());
 
 			_switchGateAccounts[account.switchGateId].erase(accountId);
 
@@ -194,7 +181,7 @@ void Login::OnRecvUnbindAccount(IKernel * kernel, s32 nodeType, s32 nodeId, cons
 
 void Login::BindAccountSuccess(IKernel * kernel, const Account& account) {
 	IArgs<4, 1024> args;
-	args << account.agentId << account.accountId << _noError << account.tokenCount;
+	args << account.agentId << account.accountId << PROTOCOL_ID("error", "no_error") << account.tokenCount;
 	args.Fix();
-	_harbor->Send(user_node_type::GATE, account.gateId, _proto.bindAccountAck, args.Out());
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "gate"), account.gateId, PROTOCOL_ID("login", "bind_account_ack"), args.Out());
 }

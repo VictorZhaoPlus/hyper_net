@@ -3,7 +3,6 @@
 #include "OArgs.h"
 #include "IProtocolMgr.h"
 #include "XmlReader.h"
-#include "NodeType.h"
 #include "proto.h"
 #ifdef WIN32
 #include <process.h>
@@ -28,11 +27,7 @@ bool Slave::Initialize(IKernel * kernel) {
 }
 
 bool Slave::Launched(IKernel * kernel) {
-	FIND_MODULE(_harbor, Harbor);
-
-	if (_harbor->GetNodeType() == node_type::SLAVE) {
-		FIND_MODULE(_protocolMgr, ProtocolMgr);
-
+	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "slave")) {
 		olib::XmlReader conf;
 		std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
 		if (!conf.LoadXml(coreConfigPath.c_str())) {
@@ -45,7 +40,7 @@ bool Slave::Launched(IKernel * kernel) {
 		bool find = false;
 		const olib::IXmlObject& ports = starter["port"];
 		for (s32 i = 0; i < ports.Count(); ++i) {
-			if (ports[i].GetAttributeInt32("node") == _harbor->GetNodeId()) {
+			if (ports[i].GetAttributeInt32("node") == OMODULE(Harbor)->GetNodeId()) {
 				_startPort = ports[i].GetAttributeInt32("start");
 				_endPort = ports[i].GetAttributeInt32("end");
 				find = true;
@@ -55,7 +50,7 @@ bool Slave::Launched(IKernel * kernel) {
 
 		const olib::IXmlObject& outPorts = starter["out_port"];
 		for (s32 i = 0; i < outPorts.Count(); ++i) {
-			if (outPorts[i].GetAttributeInt32("node") == _harbor->GetNodeId()) {
+			if (outPorts[i].GetAttributeInt32("node") == OMODULE(Harbor)->GetNodeId()) {
 				_startOutPort = outPorts[i].GetAttributeInt32("start");
 				_endOutPort = outPorts[i].GetAttributeInt32("end");
 				find = true;
@@ -89,7 +84,7 @@ bool Slave::Launched(IKernel * kernel) {
 			}
 		}
 
-		RGS_HABOR_ARGS_HANDLER(_protocolMgr->GetId("proto_cluster", "start_node"), Slave::OpenNewNode);
+		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("cluster", "start_node"), Slave::OpenNewNode);
 	}
     return true;
 }

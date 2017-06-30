@@ -158,13 +158,8 @@ KERNEL_API core::IKernel * GetCore();
     printf("%s\n", debug); \
 }
 
-#define START_TIMER(timer, delay, count, interval) kernel->StartTimer(timer, delay, count, interval, __FILE__, __LINE__)
-#define START_ASYNC(threadId, handler) kernel->StartAsync(threadId, handler, __FILE__, __LINE__)
-
-#define FIND_MODULE(m, name) {\
-	m = (I##name *)kernel->FindModule(#name);\
-	OASSERT(m, "where is #name");\
-}
+#define START_TIMER(timer, delay, count, interval) GetCore()->StartTimer(timer, delay, count, interval, __FILE__, __LINE__)
+#define START_ASYNC(threadId, handler) GetCore()->StartAsync(threadId, handler, __FILE__, __LINE__)
 
 template <typename T>
 struct OModule {

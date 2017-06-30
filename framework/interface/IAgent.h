@@ -29,10 +29,10 @@ public:
 	virtual void Kick(const s64 id) = 0;
 };
 
-#define RGS_AGENT_LISTENER(agent, listener) { \
+#define RGS_AGENT_LISTENER(listener) { \
     char debug[4096] = {0}; \
     SafeSprintf(debug, sizeof(debug), "%s:%d", __FILE__, __LINE__); \
-    agent->SetListener(listener, debug);\
+    OMODULE(Agent)->SetListener(listener, debug);\
 }
 
 #endif /*__IAGENT_H__ */

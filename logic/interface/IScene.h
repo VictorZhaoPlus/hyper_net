@@ -67,21 +67,18 @@ public:
 	virtual void SetVisibleChecker(IVisibleChecker * checker) = 0;
 };
 
-class ITargetSet {
-public:
-	virtual ~ITargetSet() {}
-
-	virtual s32 Count() const = 0;
-	virtual s64 GetTarget(const s32 idx) const = 0;
-};
-
+typedef std::function<void(IKernel * kernel, IObject * object, const std::multiset<std::tuple<s8, s64>>& targets)> QueryCallback;
+typedef std::function<s8 (IKernel * kernel, IObject * object, const void * context, const s32 size)> QueryFunc;
 class IWatcher : public IModule {
 public:
 	virtual ~IWatcher() {}
 
 	virtual void Brocast(IObject * object, const s32 msgId, const OBuffer& buf, bool self = false) = 0;
 
-	virtual void QueryNeighbor(IObject * object, const s32 cmd, const OArgs& args, const std::function<void(IKernel*, IObject * object, const ITargetSet * targets)>& cb) = 0;
+	virtual s64 QueryInVision(IObject * object, const s32 type, const void * context, const s32 size, s32 wait, const QueryCallback& cb) = 0;
+	virtual void StopQuery(const s64 queryId) = 0;
+
+	virtual void RegQuerior(const s32 type, const QueryFunc& f, const char * info) = 0;
 };
 
 namespace scene_event {

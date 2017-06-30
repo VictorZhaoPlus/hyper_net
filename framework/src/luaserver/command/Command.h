@@ -6,11 +6,9 @@
 #include "singleton.h"
 #include <unordered_map>
 
-class IScriptEngine;
 class IScriptArgumentReader;
 class IScriptResultWriter;
 class IScriptModule;
-class IProtocolMgr;
 class OBuffer;
 class Command : public IModule, public OHolder<Command>{
 	struct ResponeInfo {
@@ -36,16 +34,7 @@ public:
 
 private:
     IKernel * _kernel;
-	IScriptEngine * _scriptEngine;
-	IHarbor * _harbor;
-	IProtocolMgr * _protocolMgr;
-
 	IScriptModule * _module;
-
-	s32 _protoCall;
-	s32 _protoCallNoRet;
-	s32 _protoRespone;
-	s32 _protoCallForward;
 
 	s32 _sequenceId;
 	std::unordered_map<s64, ResponeInfo> _respones;

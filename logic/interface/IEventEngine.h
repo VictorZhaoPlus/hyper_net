@@ -24,7 +24,7 @@ public:
 	virtual bool Judge(const s32 eventId, const void * context, const s32 size) = 0;
 };
 
-#define RGS_EVENT_HANDLER(eventEngine, eventId, cb) eventEngine->RgsEvent(eventId, std::bind(&cb, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), #cb)
-#define RGS_JUDGE_HANDLER(eventEngine, eventId, cb) eventEngine->RgsJudge(eventId, std::bind(&cb, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), #cb)
+#define RGS_EVENT_HANDLER(eventId, cb) OMODULE(EventEngine)->RgsEvent(eventId, std::bind(&cb, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), #cb)
+#define RGS_JUDGE_HANDLER(eventId, cb) OMODULE(EventEngine)->RgsJudge(eventId, std::bind(&cb, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), #cb)
 
 #endif /*__IEVENTENGINE_H__ */

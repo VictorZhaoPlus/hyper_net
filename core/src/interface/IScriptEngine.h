@@ -45,6 +45,6 @@ public:
 	virtual bool Call(const IScriptModule * module, const char * func, const ScriptResultReadFuncType& f, const char * format, ...) = 0;
 };
 
-#define RGS_SCRIPT_FUNC(module, func, handler) _scriptEngine->AddModuleFunction(module, func, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
+#define RGS_SCRIPT_FUNC(module, func, handler) OMODULE(ScriptEngine)->AddModuleFunction(module, func, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3))
 
 #endif //__ISCRIPTENGINE_H__

@@ -220,7 +220,6 @@ bool CacheDB::Initialize(IKernel * kernel) {
 }
 
 bool CacheDB::Launched(IKernel * kernel) {
-	FIND_MODULE(_redis, Redis);
     return true;
 }
 
@@ -254,7 +253,7 @@ bool CacheDB::Read(const char * table, const CacheDBColumnFuncType& cf, const Ca
 
 		OASSERT(reader.Count() > 0, "wtf");
 		args.Fix();
-		return _redis->Call(0, "db_get", reader.Count(), args.Out(), [this, &f](const IKernel * kernel, const IRedisResult * rst) {
+		return OMODULE(Redis)->Call(0, "db_get", reader.Count(), args.Out(), [this, &f](const IKernel * kernel, const IRedisResult * rst) {
 			CacheDBReadResult result(rst);
 			f(_kernel, &result);
 			return true;
@@ -277,7 +276,7 @@ bool CacheDB::ReadByIndex(const char * table, const CacheDBColumnFuncType& cf, c
 			args << tmp;
 
 			args.Fix();
-			return _redis->Call(0, "db_get_index", reader.Count(), args.Out(), [this, &f](const IKernel * kernel, const IRedisResult * rst) {
+			return OMODULE(Redis)->Call(0, "db_get_index", reader.Count(), args.Out(), [this, &f](const IKernel * kernel, const IRedisResult * rst) {
 				CacheDBReadResult result(rst);
 				f(_kernel, &result);
 				return true;
@@ -301,7 +300,7 @@ bool CacheDB::ReadByIndex(const char * table, const CacheDBColumnFuncType& cf, c
 			args << tmp;
 
 			args.Fix();
-			return _redis->Call(0, "db_get_index", reader.Count(), args.Out(), [this, &f](const IKernel * kernel, const IRedisResult * rst) {
+			return OMODULE(Redis)->Call(0, "db_get_index", reader.Count(), args.Out(), [this, &f](const IKernel * kernel, const IRedisResult * rst) {
 				CacheDBReadResult result(rst);
 				f(_kernel, &result);
 				return true;
@@ -342,7 +341,7 @@ bool CacheDB::Write(const char * table, const CacheDBWriteFunc& f, s32 count, ..
 		}
 
 		args.Fix();
-		return _redis->Call(0, "db_set", context.Count() * 2, args.Out());
+		return OMODULE(Redis)->Call(0, "db_set", context.Count() * 2, args.Out());
 	}
 	return false;
 }
@@ -361,7 +360,7 @@ bool CacheDB::WriteByIndex(const char * table, const CacheDBWriteFunc& f, const 
 			args << tmp;
 
 			args.Fix();
-			return _redis->Call(0, "db_set_index", context.Count() * 2, args.Out());
+			return OMODULE(Redis)->Call(0, "db_set_index", context.Count() * 2, args.Out());
 		}
 		else {
 			OASSERT(false, "wtf");
@@ -384,7 +383,7 @@ bool CacheDB::WriteByIndex(const char * table, const CacheDBWriteFunc& f, const 
 			args << tmp;
 
 			args.Fix();
-			return _redis->Call(0, "db_set_index", context.Count() * 2, args.Out());
+			return OMODULE(Redis)->Call(0, "db_set_index", context.Count() * 2, args.Out());
 		}
 		else {
 			OASSERT(false, "wtf");
@@ -415,7 +414,7 @@ bool CacheDB::Destroy(const char * table, s32 count, ...) {
 		va_end(ap);
 
 		args.Fix();
-		return _redis->Call(0, "db_del", 1, args.Out());
+		return OMODULE(Redis)->Call(0, "db_del", 1, args.Out());
 	}
 	return false;
 }
@@ -431,7 +430,7 @@ bool CacheDB::DestroyByIndex(const char * table, const s64 index) {
 			args << tmp << (desc.del ? 1 : 0);
 			args.Fix();
 
-			return _redis->Call(0, "db_del_index", 0, args.Out());
+			return OMODULE(Redis)->Call(0, "db_del_index", 0, args.Out());
 		}
 		else {
 			OASSERT(false, "wtf");
@@ -451,7 +450,7 @@ bool CacheDB::DestroyByIndex(const char * table, const char * index) {
 			args << (desc.del ? 1 : 0) << tmp;
 			args.Fix();
 
-			return _redis->Call(0, "db_del_index", 1, args.Out());
+			return OMODULE(Redis)->Call(0, "db_del_index", 1, args.Out());
 		}
 		else {
 			OASSERT(false, "wtf");

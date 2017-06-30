@@ -46,14 +46,6 @@ public:
 
 private:
     IKernel * _kernel;
-	IHarbor * _harbor;
-	IProtocolMgr * _protocolMgr;
-
-	Proto _proto;
-
-	s32 _noError;
-	s32 _errorTokenCheckFailed;
-	s32 _errorAuthenFailed;
 
 	std::unordered_map<s64, Account> _accounts;
 	std::unordered_map<s32, std::unordered_set<s64>> _gateAccounts;

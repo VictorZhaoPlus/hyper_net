@@ -44,16 +44,6 @@ private:
 
 	s32 _recoverInverval;
 
-	Proto _proto;
-	
-	s32 _noError;
-	s32 _errorLoadPlayerFailed;
-	
-	s32 _eventOnline;
-	s32 _eventReconnect;
-	s32 _eventGateLost;
-	s32 _eventRecover;
-
 	std::unordered_map<s32, std::unordered_set<s64>> _gateActors;
 
 	ProtocolPool _protos;

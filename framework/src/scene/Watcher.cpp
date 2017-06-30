@@ -3,15 +3,18 @@
 #include "IEventEngine.h"
 #include "IProtocolMgr.h"
 #include "ILogin.h"
-#include "UserNodeType.h"
 #include "IOCommand.h"
 #include "IObjectMgr.h"
 #include "OArgs.h"
 #include "OBuffer.h"
+
 #define MAX_ROLE_NOTIFY_PACKET_SIZE 8192
+#define MAX_QUERY_PACKET 8192
+#define SINGLE_PATCH 10
 
 enum InterestTable {
 	IT_COL_ID = 0,
+	IT_COL_LOGIC,
 };
 
 enum WatcherTable {
@@ -20,40 +23,63 @@ enum WatcherTable {
 	WT_COL_LOGIC,
 };
 
+void Watcher::RuningQuery::Awake(IKernel * kernel, s64 target, s8 batch) {
+	if (batch != 0)
+		_ret.insert({ batch, target });
+	_targets.erase(target);
+
+	if (_targets.empty()) {
+		IObject * object = OMODULE(ObjectMgr)->FindObject(_objectId);
+		if (object)
+			_cb(kernel, object, _ret);
+
+		kernel->KillTimer(this);
+	}
+}
+
+void Watcher::RuningQuery::OnEnd(IKernel * kernel, bool nonviolent, s64 tick) {
+	if (nonviolent) {
+		IObject * object = OMODULE(ObjectMgr)->FindObject(_objectId);
+		if (object)
+			_cb(kernel, object, _ret);
+	}
+
+	Watcher::Instance()->FinishQuery(_queryId);
+	DEL this;
+}
+
 bool Watcher::Initialize(IKernel * kernel) {
     _kernel = kernel;
+
+	_nextQueryId = 0;
     return true;
 }
 
 bool Watcher::Launched(IKernel * kernel) {
-	FIND_MODULE(_harbor, Harbor);
-	if (_harbor->GetNodeType() == user_node_type::LOGIC) {
-		FIND_MODULE(_objectMgr, ObjectMgr);
-		_gate = _objectMgr->CalcProp("gate");
-		_logic = _objectMgr->CalcProp("logic");
-		_type = _objectMgr->CalcProp("type");
+	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "logic")) {
+		_settingShare = OMODULE(ObjectMgr)->CalcPropSetting("share");
 
-		_tableInterest = _objectMgr->CalcTableName("interest");
-		_tableWatcher = _objectMgr->CalcTableName("watcher");
+		_tableInterest = OMODULE(ObjectMgr)->CalcTableName("watcher.interest");
+		_tableWatcher = OMODULE(ObjectMgr)->CalcTableName("watcher.watcher");
 
-		_settingShare = _objectMgr->CalcPropSetting("share");
+		OMODULE(ObjectMgr)->ExtendTable("SceneObject", "watcher.interest", 2,
+			DTYPE_INT64, sizeof(s64), true,
+			DTYPE_INT32, sizeof(s32), false
+		);
 
-		FIND_MODULE(_protocolMgr, ProtocolMgr);
+		OMODULE(ObjectMgr)->ExtendTable("SceneObject", "watcher.watcher", 3,
+			DTYPE_INT64, sizeof(s64), true,
+			DTYPE_INT32, sizeof(s32), false,
+			DTYPE_INT32, sizeof(s32), false
+		);
 
-		_protoDealInterest = _protocolMgr->GetId("proto_scene", "deal_interest");
-		_protoDealWatcher = _protocolMgr->GetId("proto_scene", "deal_watcher");
-		RGS_HABOR_HANDLER(_protoDealInterest, Watcher::DealInterest);
-		RGS_HABOR_HANDLER(_protoDealWatcher, Watcher::DealWatcher);
+		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "deal_interest"), Watcher::DealInterest);
+		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "deal_watcher"), Watcher::DealWatcher);
+		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "query"), Watcher::Query);
+		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "query_ack"), Watcher::QueryAck);
 
-		_eventSceneObjectDestroy = _protocolMgr->GetId("event", "scene_object_destroy");
 
-		_appearId = _protocolMgr->GetId("proto", "role_appear");
-		_disappearId = _protocolMgr->GetId("proto", "role_disappear");
-
-		FIND_MODULE(_eventEngine, EventEngine);
-		RGS_EVENT_HANDLER(_eventEngine, _eventSceneObjectDestroy, Watcher::DisapperWhenDestroy);
-
-		FIND_MODULE(_packetSender, PacketSender);
+		RGS_EVENT_HANDLER(PROTOCOL_ID("event", "scene_object_destroy"), Watcher::DisapperWhenDestroy);
 	}
 
     return true;
@@ -70,7 +96,7 @@ void Watcher::Brocast(IObject * object, const s32 msgId, const OBuffer& buf, boo
 
 	std::unordered_map<s32, std::vector<s64>> actors;
 	if (self) {
-		s32 gate = object->GetPropInt32(_gate);
+		s32 gate = object->GetPropInt32(OPROP("gate"));
 		OASSERT(gate != 0, "wtf");
 		if (gate != 0)
 			actors[gate].push_back(object->GetID());
@@ -86,19 +112,115 @@ void Watcher::Brocast(IObject * object, const s32 msgId, const OBuffer& buf, boo
 			actors[gate].push_back(id);
 	}
 
-	_packetSender->Brocast(actors, msgId, buf);
+	OMODULE(PacketSender)->Brocast(actors, msgId, buf);
 }
 
-void Watcher::QueryNeighbor(IObject * object, const s32 cmd, const OArgs& args, const std::function<void(IKernel*, IObject * object, const ITargetSet * targets)>& cb) {
+s64 Watcher::QueryInVision(IObject * object, const s32 type, const void * context, const s32 size, s32 wait, const QueryCallback& cb) {
+	ITableControl * interest = object->FindTable(_tableInterest);
+	OASSERT(interest, "wtf");
 
+	RuningQuery * query = NEW RuningQuery(_nextQueryId++, object->GetID(), cb);
+	std::map<s32, std::vector<s64>> ids;
+	for (s32 i = 0; i < interest->RowCount(); ++i) {
+		IRow * row = interest->GetRow(i);
+		OASSERT(row, "wtf");
+
+		ids[row->GetDataInt32(InterestTable::IT_COL_LOGIC)].push_back(row->GetDataInt64(InterestTable::IT_COL_ID));
+		query->Wait(row->GetDataInt64(InterestTable::IT_COL_ID));
+	}
+
+	olib::Buffer<MAX_QUERY_PACKET> buf;
+	buf << query->GetQueryId() << type;
+	buf.WriteBuffer(context, size);
+	auto mark = buf.Mark();
+	
+	for (auto itr = ids.begin(); itr != ids.end(); ++itr) {
+		buf.Back(mark);
+
+		s32 count = 0;
+		for (auto id : itr->second) {
+			buf << id;
+			++count;
+			if (count >= SINGLE_PATCH) {
+				count = 0;
+				OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "logic"), itr->first, PROTOCOL_ID("scene", "query"), buf.Out());
+
+				buf.Back(mark);
+			}
+		}
+		
+		if (count > 0)
+			OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "logic"), itr->first, PROTOCOL_ID("scene", "query"), buf.Out());
+	}
+
+	START_TIMER(query, 0, 1, wait);
+	return query->GetQueryId();
 }
 
+void Watcher::StopQuery(const s64 queryId) {
+	auto itr = _queries.find(queryId);
+	if (itr != _queries.end()) {
+		OASSERT(itr->second, "wtf");
+
+		_kernel->KillTimer(itr->second);
+	}
+}
+
+void Watcher::Query(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args) {
+	s64 queryId;
+	s32 type;
+	const void * context;
+	s32 size;
+
+	args.ReadMulti(queryId, type);
+	args.Read(context, size);
+
+	auto itr = _queriors.find(type);
+	if (itr == _queriors.end())
+		return;
+
+	olib::Buffer<MAX_QUERY_PACKET> buf;
+	buf << queryId;
+
+	s32 count = args.Left().GetSize() / sizeof(s64);
+	for (s32 i = 0; i < count; ++i) {
+		s64 id;
+		args.Read(id);
+
+		s8 batch = 0;
+		IObject * object = OMODULE(ObjectMgr)->FindObject(id);
+		if (object)
+			batch = itr->second(kernel, object, context, size);
+
+		buf << id << batch;
+	}
+	
+	OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("scene", "query_ack"), buf.Out());
+}
+
+void Watcher::QueryAck(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args) {
+	s64 queryId;
+	args.Read(queryId);
+
+	auto itr = _queries.find(queryId);
+	if (itr == _queries.end())
+		return;
+
+	s32 count = args.Left().GetSize() / (sizeof(s64) + sizeof(s8));
+	for (s32 i = 0; i < count; ++i) {
+		s64 id;
+		s8 batch;
+		args.ReadMulti(id, batch);
+
+		itr->second->Awake(kernel, id, batch);
+	}
+}
 
 void Watcher::DealInterest(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args) {
 	s64 id = 0;
 	args.Read(id);
 
-	IObject * reciever = _objectMgr->FindObject(id);
+	IObject * reciever = OMODULE(ObjectMgr)->FindObject(id);
 	if (reciever) {
 		ITableControl * interest = reciever->FindTable(_tableInterest);
 		OASSERT(interest, "wtf");
@@ -107,8 +229,10 @@ void Watcher::DealInterest(IKernel * kernel, s32 nodeType, s32 nodeId, const OBu
 		args.Read(count);
 		for (s32 i = 0; i < count; ++i) {
 			s64 interestId;
-			args.Read(interestId);
-			interest->AddRowKeyInt64(id);
+			s32 logic;
+			args.ReadMulti(interestId, logic);
+			IRow * row = interest->AddRowKeyInt64(id);
+			row->SetDataInt32(InterestTable::IT_COL_LOGIC, logic);
 		}
 
 		args.Read(count);
@@ -125,7 +249,7 @@ void Watcher::DealWatcher(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuf
 	s64 id = 0;
 	args.Read(id);
 
-	IObject * reciever = _objectMgr->FindObject(id);
+	IObject * reciever = OMODULE(ObjectMgr)->FindObject(id);
 	if (reciever) {
 		ITableControl * watcher = reciever->FindTable(_tableWatcher);
 		OASSERT(watcher, "wtf");
@@ -149,7 +273,7 @@ void Watcher::DealWatcher(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuf
 			}
 			if (!actors.empty()) {
 				olib::Buffer<MAX_ROLE_NOTIFY_PACKET_SIZE> buf;
-				buf << reciever->GetID() << reciever->GetPropInt32(_type);
+				buf << reciever->GetID() << reciever->GetPropInt32(OPROP("type"));
 				s16 * propCount = buf.Reserve<s16>();
 				for (auto * prop : reciever->GetPropsInfo()) {
 					if (prop->GetSetting(reciever) & _settingShare) {
@@ -173,7 +297,7 @@ void Watcher::DealWatcher(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuf
 					}
 				}
 
-				_packetSender->Brocast(actors, _appearId, buf.Out());
+				OMODULE(PacketSender)->Brocast(actors, PROTOCOL_ID("proto", "role_appear"), buf.Out());
 			}
 		}
 
@@ -195,7 +319,7 @@ void Watcher::DealWatcher(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuf
 			olib::Buffer<64> buf;
 			buf << reciever->GetID();
 
-			_packetSender->Brocast(actors, _disappearId, buf.Out());
+			OMODULE(PacketSender)->Brocast(actors, PROTOCOL_ID("proto", "role_disappear"), buf.Out());
 		}
 	}
 }
@@ -207,5 +331,5 @@ void Watcher::DisapperWhenDestroy(IKernel * kernel, const void * context, const 
 	olib::Buffer<64> buf;
 	buf << object->GetID();
 
-	Brocast(object, _disappearId, buf.Out());
+	Brocast(object, PROTOCOL_ID("proto", "role_disappear"), buf.Out());
 }

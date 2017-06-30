@@ -1,10 +1,9 @@
 #include "StartNodeStrategy.h"
-#include "UserNodeType.h"
 #include "XmlReader.h"
+#include "IProtocolMgr.h"
 
 StartNodeStrategy * StartNodeStrategy::s_self = nullptr;
 IKernel * StartNodeStrategy::s_kernel = nullptr;
-IStarter * StartNodeStrategy::s_starter = nullptr;
 
 std::unordered_map<s32, StartNodeStrategy::Score> StartNodeStrategy::s_scores;
 std::unordered_map<s32, StartNodeStrategy::Score> StartNodeStrategy::s_slaves;
@@ -33,9 +32,7 @@ bool StartNodeStrategy::Initialize(IKernel * kernel) {
 }
 
 bool StartNodeStrategy::Launched(IKernel * kernel) {
-	s_starter = (IStarter *)kernel->FindModule("Starter");
-	OASSERT(s_starter, "where is Starter");
-	s_starter->SetStrategy(this);
+	OMODULE(Starter)->SetStrategy(this);
 
     return true;
 }
@@ -51,7 +48,7 @@ s32 StartNodeStrategy::ChooseNode(const s32 nodeType) {
 	if (s_slaves.empty())
 		return 0;
 
-	if (nodeType == user_node_type::GATE)
+	if (nodeType == PROTOCOL_ID("node_type", "gate"))
 		return Choose(s_kernel, BANDWIDTH, OVERLOAD);
 	else
 		return Choose(s_kernel, OVERLOAD, BANDWIDTH);

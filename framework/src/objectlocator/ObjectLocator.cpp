@@ -1,7 +1,6 @@
 #include "ObjectLocator.h"
 #include "IHarbor.h"
 #include "IProtocolMgr.h"
-#include "UserNodeType.h"
 #include "OArgs.h"
 
 bool ObjectLocator::Initialize(IKernel * kernel) {
@@ -11,13 +10,8 @@ bool ObjectLocator::Initialize(IKernel * kernel) {
 }
 
 bool ObjectLocator::Launched(IKernel * kernel) {
-	FIND_MODULE(_harbor, Harbor);
-	FIND_MODULE(_protocolMgr, ProtocolMgr);
-
-	_protoReport = _protocolMgr->GetId("proto_object_locator", "report");
-
-	if (_harbor->GetNodeType() == user_node_type::RELATION) {
-		RGS_HABOR_ARGS_HANDLER(_protoReport, ObjectLocator::OnReport);
+	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "relation")) {
+		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("object_locator", "report"), ObjectLocator::OnReport);
 	}
 
     return true;
@@ -33,7 +27,7 @@ void ObjectLocator::Report(s64 id, s32 gate, s32 logic) {
 	args << id << gate << logic;
 	args.Fix();
 
-	_harbor->Send(user_node_type::RELATION, 1, _protoReport, args.Out());
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "relation"), 1, PROTOCOL_ID("object_locator", "report"), args.Out());
 }
 
 void ObjectLocator::Erase(s64 id) {
@@ -41,7 +35,7 @@ void ObjectLocator::Erase(s64 id) {
 	args << id << 0 << 0;
 	args.Fix();
 
-	_harbor->Send(user_node_type::RELATION, 1, _protoReport, args.Out());
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "relation"), 1, PROTOCOL_ID("object_locator", "report"), args.Out());
 }
 
 void ObjectLocator::OnReport(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args) {

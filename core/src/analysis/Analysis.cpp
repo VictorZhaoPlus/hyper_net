@@ -11,17 +11,10 @@ bool Analysis::Initialize(IKernel * kernel) {
 }
 
 bool Analysis::Launched(IKernel * kernel) {
-	FIND_MODULE(_harbor, Harbor);
+	if (OMODULE(Harbor)->GetNodeType() < PROTOCOL_ID("node_type", "user")) {
+		OMODULE(Harbor)->AddNodeListener(this, "Analysis");
 
-	if (_harbor->GetNodeType() < node_type::USER) {
-		_harbor->AddNodeListener(this, "Analysis");
-		FIND_MODULE(_protocolMgr, ProtocolMgr);
-		FIND_MODULE(_capacitySubscriber, CapacitySubscriber);
-
-		_protpTestDelay = _protocolMgr->GetId("proto_analysis", "test_delay");
-		_protoTestDelayRespone = _protocolMgr->GetId("proto_analysis", "test_delay_respone");
-
-		RGS_HABOR_ARGS_HANDLER(_protoTestDelayRespone, Analysis::TestDelayRespone);
+		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("analysis", "test_delay_respone"), Analysis::TestDelayRespone);
 	}
 
     return true;
@@ -39,7 +32,7 @@ void Analysis::OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, con
 }
 
 void Analysis::TestDelayRespone(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs& args) {
-	DBG_INFO("%d-%d:%lld=>%lld,%d", nodeType, nodeId, args.GetDataInt64(0), tools::GetTimeMillisecond() - args.GetDataInt64(0), _capacitySubscriber->GetOverLoad(nodeType, nodeId));
+	DBG_INFO("%d-%d:%lld=>%lld,%d", nodeType, nodeId, args.GetDataInt64(0), tools::GetTimeMillisecond() - args.GetDataInt64(0), OMODULE(CapacitySubscriber)->GetOverLoad(nodeType, nodeId));
 }
 
 void Analysis::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
@@ -49,6 +42,6 @@ void Analysis::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
 
 	for (auto itr = _nodes.begin(); itr != _nodes.end(); ++itr) {
 		for (auto itrType = itr->second.begin(); itrType != itr->second.end(); ++itrType)
-			_harbor->Send(itr->first, itrType->first, _protpTestDelay, args.Out());
+			OMODULE(Harbor)->Send(itr->first, itrType->first, PROTOCOL_ID("analysis", "test_delay"), args.Out());
 	}
 }

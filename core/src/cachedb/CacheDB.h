@@ -54,7 +54,6 @@ public:
 
 private:
     IKernel * _kernel;
-	IRedis * _redis;
 
 	std::unordered_map<std::string, CacheTable> _tables;
 };

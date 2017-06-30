@@ -13,11 +13,7 @@ bool CapacityPublisher::Initialize(IKernel * kernel) {
 }
 
 bool CapacityPublisher::Launched(IKernel * kernel) {
-	FIND_MODULE(_harbor, Harbor);
-	_harbor->AddNodeListener(this, "CapacityPublisher");
-
-	FIND_MODULE(_protocolMgr, ProtocolMgr);
-	_protoOverLoad = _protocolMgr->GetId("proto_capacity", "over_load");
+	OMODULE(Harbor)->AddNodeListener(this, "CapacityPublisher");
     return true;
 }
 
@@ -41,7 +37,7 @@ void CapacityPublisher::OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool 
 	args << _load;
 	args.Fix();
 
-	_harbor->Send(nodeType, nodeId, _protoOverLoad, args.Out());
+	OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("capacity", "over_load"), args.Out());
 }
 
 void CapacityPublisher::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
@@ -50,7 +46,7 @@ void CapacityPublisher::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
 		args << _load;
 		args.Fix();
 
-		_harbor->Brocast(_protoOverLoad, args.Out());
+		OMODULE(Harbor)->Brocast(PROTOCOL_ID("capacity", "over_load"), args.Out());
 		_changed = false;
 	}
 }

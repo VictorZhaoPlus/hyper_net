@@ -140,16 +140,21 @@ public:
     virtual const char * GetPropString(const IProp * prop) const = 0;
     virtual const void * GetPropStruct(const IProp * prop, const s32 len) const = 0;
 	virtual const void * GetPropBlob(const IProp * prop, s32& len) const = 0;
+	
+	template <typename T>
+	T& GetPropT(const IProp * prop) { return *(T*)GetPropStruct(prop, sizeof(T)); }
 
     virtual void RgsPropChangeCB(const IProp * prop, const PropCallback& cb, const char * debug_info) = 0;
 
     virtual ITableControl * FindTable(const s32 name) const = 0;
 };
 
-#define CREATE_OBJECT(mgr, ...)  mgr->Create(__FILE__, __LINE__, __VA_ARGS__)
-#define CREATE_OBJECT_BYID(mgr, ...) mgr->CreateObjectByID(__FILE__, __LINE__, __VA_ARGS__)
-#define CREATE_STATIC_TABLE(mgr, name, model) mgr->CreateStaticTable(name, model, __FILE__, __LINE__)
+#define CREATE_OBJECT(...)  OMODULE(ObjectMgr)->Create(__FILE__, __LINE__, __VA_ARGS__)
+#define CREATE_OBJECT_BYID(...) OMODULE(ObjectMgr)->CreateObjectByID(__FILE__, __LINE__, __VA_ARGS__)
+#define CREATE_STATIC_TABLE(name, model) OMODULE(ObjectMgr)->CreateStaticTable(name, model, __FILE__, __LINE__)
 
+typedef std::function<void(void * p, s32 size)> PropFunc;
+typedef std::function<void(IObject*)> ObjectCRCB;
 class IObjectMgr : public IModule {
 public:
     virtual ~IObjectMgr() {}
@@ -162,22 +167,44 @@ public:
 	virtual const IProp * CalcProp(const char * name) = 0;
 	virtual const IProp * CalcProp(const s32 name) = 0;
 	virtual s32 CalcPropSetting(const char * setting) = 0;
+
+	virtual void ExtendInt8(const char * type, const char * module, const char * name, ...) = 0;
+	virtual void ExtendInt16(const char * type, const char * module, const char * name, ...) = 0;
+	virtual void ExtendInt32(const char * type, const char * module, const char * name, ...) = 0;
+	virtual void ExtendInt64(const char * type, const char * module, const char * name, ...) = 0;
+	virtual void ExtendFloat(const char * type, const char * module, const char * name, ...) = 0;
+	virtual void ExtendString(const char * type, const char * module, const char * name, const s32 size, ...) = 0;
+	virtual void ExtendStruct(const char * type, const char * module, const char * name, const s32 size, const PropFunc& init = nullptr, const PropFunc& uninit = nullptr) = 0;
+	virtual void ExtendTable(const char * type, const char * name, s32 count, ...) = 0;
+
+	template <typename T>
+	inline void ExtendT(const char * type, const char * module, const char * name) {
+		ExtendStruct(type, module, name, sizeof(T), [](void * p, s32 size) {
+			new (p) T;
+		}, [](void * p, s32 size) {
+			T * t = (T*)p;
+			t->~T();
+		});
+	}
+
 	virtual s32 CalcTableName(const char * table) = 0;
 
     virtual const std::vector<const IProp*>* GetPropsInfo(const char * type, bool noFather = false) const = 0;
 
     virtual ITableControl * CreateStaticTable(const char * name, const char * model, const char * file, const s32 line) = 0;
     virtual void RecoverStaticTable(ITableControl * table) = 0;
+
+	virtual void RgsObjectCRCB(const char * type, const ObjectCRCB& init, const ObjectCRCB& uninit) = 0;
 };
 
-constexpr s32 CalcUniqueId(s32 hash, const char * str) {
-	return *str ? CalcUniqueId(hash * 131 + (*str), str + 1) : hash;
+constexpr s64 CalcUniqueId(s64 hash, const char * str) {
+	return *str ? CalcUniqueId((hash * 131 + (*str)) % 4294967295, str + 1) : hash;
 }
 
-template <s32>
+template <s64...>
 struct PropGetter {
 	inline static const IProp * Get(const char * name) {
-		const IProp * prop = nullptr;
+		static const IProp * prop = nullptr;
 		if (!prop) {
 			prop = OMODULE(ObjectMgr)->CalcProp(name);
 			OASSERT(prop, "wtf");
@@ -187,4 +214,5 @@ struct PropGetter {
 };
 
 #define OPROP(name) (PropGetter<CalcUniqueId(0, name)>::Get(name))
+#define OMPROP(module, name) (PropGetter<CalcUniqueId(0, module), CalcUniqueId(0, name)>::Get(#module"."#name))
 #endif //define __IOBJECTMGR_h__

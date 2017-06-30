@@ -4,7 +4,6 @@
 #include "IMonitor.h"
 #include "IHarbor.h"
 
-class IProtocolMgr;
 class CapacityPublisher : public ICapacityPublisher, public ITimer, public INodeListener {
 public:
     virtual bool Initialize(IKernel * kernel);
@@ -23,13 +22,9 @@ public:
 
 private:
     IKernel * _kernel;
-	IHarbor * _harbor;
-	IProtocolMgr * _protocolMgr;
 
 	s32 _load;
 	bool _changed;
-
-	s32 _protoOverLoad;
 };
 
 #endif //__CAPACITYPUBLISHER_H__

@@ -30,7 +30,7 @@ bool HttpBase::OnExecute(IKernel * kernel) {
 }
 
 void HttpBase::OnSuccess(IKernel * kernel) {
-	_handler->OnSuccess(kernel, _content.data(), _content.size());
+	_handler->OnSuccess(kernel, _content.data(), (s32)_content.size());
 	_handler->SetBase(nullptr);
 	_handler = nullptr;
 }

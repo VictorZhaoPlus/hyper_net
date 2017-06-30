@@ -3,9 +3,9 @@
 #include "XmlReader.h"
 #include "tools.h"
 #include <algorithm>
-#include "NodeType.h"
 #include "OArgs.h"
 #include "OBuffer.h"
+#include "IProtocolMgr.h"
 
 Harbor * Harbor::s_harbor = nullptr;
 IKernel * Harbor::s_kernel = nullptr;
@@ -40,7 +40,7 @@ private:
 bool Harbor::Initialize(IKernel * kernel) {
     s_harbor = this;
     s_kernel = kernel;
-	_nodeType = node_type::INVALID;
+	_nodeType = PROTOCOL_ID("node_type", "invalid");
 
     const char * name = kernel->GetCmdArg("name");
     OASSERT(name, "invalid command args, there is no name");
@@ -70,7 +70,7 @@ bool Harbor::Initialize(IKernel * kernel) {
 		_nodeNames[type] = nodeName;
 	}
 
-    OASSERT(_nodeType != node_type::INVALID, "invalid node type");
+    OASSERT(_nodeType != PROTOCOL_ID("node_type", "invalid"), "invalid node type");
 
     _nodeId = tools::StringAsInt(kernel->GetCmdArg("node"));
     const char * port = kernel->GetCmdArg("port");

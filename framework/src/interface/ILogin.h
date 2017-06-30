@@ -67,7 +67,7 @@ public:
 
 	virtual void RegProtocolHandler(s32 messageId, const ProtocolCB& handler, const char * debug) = 0;
 };
-#define RGS_PROTOCOL_HANDLER(messageId, handler) _logic->RegProtocolHandler(messageId, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), #handler)
+#define RGS_PROTOCOL_HANDLER(messageId, handler) OMODULE(Logic)->RegProtocolHandler(messageId, std::bind(&handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3), #handler)
 
 class IPacketSender : public IModule {
 public:

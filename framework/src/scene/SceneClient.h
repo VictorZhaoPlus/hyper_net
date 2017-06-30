@@ -7,14 +7,6 @@
 
 #define MAX_SCENE_LEN 32
 
-class IEventEngine;
-class IHarbor;
-class IProp;
-class IProtocolMgr;
-class IObjectMgr;
-class IObjectTimer;
-class IPacketSender;
-class ILogic;
 class OBuffer;
 class SceneClient : public ISceneClient, public OHolder<SceneClient> {
 	struct Area {
@@ -28,25 +20,6 @@ class SceneClient : public ISceneClient, public OHolder<SceneClient> {
 	struct Scene {
 		bool isWild;
 		std::unordered_map<s32, Area> areas;
-	};
-
-	struct Property {
-		const IProp * sceneId;
-		const IProp * sceneCopyId;
-		const IProp * x;
-		const IProp * y;
-		const IProp * z;
-		const IProp * appeared;
-		const IProp * syncTimer;
-		const IProp * sync;
-		const IProp * gate;
-		const IProp * firstAppear;
-	};
-
-	struct Proto {
-		s32 appear;
-		s32 disappear;
-		s32 update;
 	};
 
 public:
@@ -85,34 +58,13 @@ public:
 
 private:
     IKernel * _kernel;
-	IEventEngine * _eventEngine;
-	IHarbor * _harbor;
-	IProtocolMgr * _protocolMgr;
-	IObjectMgr * _objectMgr;
-	IObjectTimer * _objectTimer;
-	IPacketSender * _packetSender;
-	ILogic * _logic;
 
 	s32 _nextAreaId;
 	std::unordered_map<std::string, Scene> _scenes;
 	s32 _syncInterval;
 	s16 _areaCorrect;
 
-	Property _props;
-	Proto _proto;
-
-	s32 _clientSceneInfo;
-	s32 _clientEnterScene;
-	s32 _clientEnterArea;
-
-	s32 _eventAppearOnMap;
-	s32 _eventDisappearOnMap;
-	s32 _eventPrepareSwitchScene;
-	s32 _eventSwitchScene;
-	s32 _eventPlayerAppear;
-	s32 _eventPlayerFirstAppear;
-
-	std::vector<const IProp *> _syncProps;
+	s32 _syncSceneSetting;
 };
 
 #endif //__SCENE_H__

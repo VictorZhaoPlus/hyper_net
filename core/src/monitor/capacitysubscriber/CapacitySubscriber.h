@@ -23,8 +23,6 @@ public:
 
 private:
     IKernel * _kernel;
-	IHarbor * _harbor;
-	IProtocolMgr * _protocolMgr;
 
 	std::unordered_map<s32, std::unordered_map<s32, s32>> _servers;
 };

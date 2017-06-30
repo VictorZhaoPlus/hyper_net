@@ -27,6 +27,7 @@ public:
 	inline s32 GetKeyCol() const { return _keyCol; }
 
 	bool LoadFrom(const olib::IXmlObject& root);
+	inline void AddLayout(s8 type, s32 size, bool key) { AddLayout(type, _size, size, key); }
 
 	const TableLayout * Query(s32 col, s32 type, s32 size) const {
 		OASSERT(col >= 0 && col < (s32)_layouts.size(), "wtf");

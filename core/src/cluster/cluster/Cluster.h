@@ -18,8 +18,6 @@ private:
 
 private:
     IKernel * _kernel;
-    IHarbor * _harbor;
-	IProtocolMgr * _protocolMgr;
 
     std::unordered_set<s64> _openNode;
     std::string _ip;

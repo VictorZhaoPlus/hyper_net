@@ -9,13 +9,9 @@ bool CapacitySubscriber::Initialize(IKernel * kernel) {
 }
 
 bool CapacitySubscriber::Launched(IKernel * kernel) {
-	FIND_MODULE(_harbor, Harbor);
-	_harbor->AddNodeListener(this, "CapacitySubscriber");
+	OMODULE(Harbor)->AddNodeListener(this, "CapacitySubscriber");
 
-	FIND_MODULE(_protocolMgr, ProtocolMgr);
-
-	RGS_HABOR_ARGS_HANDLER(_protocolMgr->GetId("proto_capacity", "over_load"), CapacitySubscriber::ReadLoad);
-
+	RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("capacity", "over_load"), CapacitySubscriber::ReadLoad);
     return true;
 }
 

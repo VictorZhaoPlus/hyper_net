@@ -6,8 +6,6 @@
 #include <unordered_map>
 #include "singleton.h"
 
-class ICapacitySubscriber;
-class IProtocolMgr;
 class Analysis : public IAnalysis, public INodeListener, public ITimer, public OHolder<Analysis> {
 	struct DataSample {
 
@@ -31,14 +29,8 @@ public:
 
 private:
     IKernel * _kernel;
-	IHarbor * _harbor;
-	ICapacitySubscriber * _capacitySubscriber;
-	IProtocolMgr * _protocolMgr;
 
 	std::unordered_map<s32, std::unordered_map<s32, DataSample>> _nodes;
-
-	s32 _protoTestDelayRespone;
-	s32 _protpTestDelay;
 };
 
 #endif //__ANALYSIS_H__

@@ -1,11 +1,10 @@
 #include "Scene.h"
 #include "IHarbor.h"
-#include "UserNodeType.h"
 #include "OArgs.h"
 #include "OBuffer.h"
 #include "IObjectMgr.h"
-#include "Vision.h"
 #include "IProtocolMgr.h"
+#include "IVisionController.h"
 
 bool Scene::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -15,31 +14,14 @@ bool Scene::Initialize(IKernel * kernel) {
 }
 
 bool Scene::Launched(IKernel * kernel) {
-	FIND_MODULE(_harbor, Harbor);
-	if (_harbor->GetNodeType() == user_node_type::SCENE) {
-		FIND_MODULE(_objectMgr, ObjectMgr);
-		FIND_MODULE(_protocolMgr, ProtocolMgr);
+	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "scene")) {
+		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("scene", "create_scene"), Scene::CreateScene);
+		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "appear"), Scene::EnterScene);
+		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "disappear"), Scene::LeaveScene);
+		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "update"), Scene::UpdateObject);
 
-		_prop.sceneId = _objectMgr->CalcProp("scene_id");
-		_prop.copyId = _objectMgr->CalcProp("copy_id");
-		_prop.controller = _objectMgr->CalcProp("controller");
-		_prop.x = _objectMgr->CalcProp("x");
-		_prop.y = _objectMgr->CalcProp("y");
-		_prop.z = _objectMgr->CalcProp("z");
-		
-		_proto.createScene = _protocolMgr->GetId("proto_scene", "create_scene");
-		_proto.appear = _protocolMgr->GetId("proto_scene", "appear");
-		_proto.disappear = _protocolMgr->GetId("proto_scene", "disappear");
-		_proto.update = _protocolMgr->GetId("proto_scene", "update");
-		_proto.confirmScene = _protocolMgr->GetId("proto_scene", "comfirm_scene");
-		_proto.recoverScene = _protocolMgr->GetId("proto_scene", "recover_scene");
-		_proto.dealInterest = _protocolMgr->GetId("proto_scene", "deal_interest");
-		_proto.dealWatcher = _protocolMgr->GetId("proto_scene", "deal_watcher");
-
-		RGS_HABOR_ARGS_HANDLER(_proto.createScene, Scene::CreateScene);
-		RGS_HABOR_HANDLER(_proto.appear, Scene::EnterScene);
-		RGS_HABOR_HANDLER(_proto.disappear, Scene::LeaveScene);
-		RGS_HABOR_HANDLER(_proto.update, Scene::UpdateObject);
+		OMODULE(ObjectMgr)->ExtendT<std::set<s64>>("SceneUnit", "scene", "interest");
+		OMODULE(ObjectMgr)->ExtendT<std::set<s64>>("SceneUnit", "scene", "watcher");
 	}
     return true;
 }
@@ -57,20 +39,20 @@ void Scene::CreateScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs&
 	IArgs<2, 64> ntf;
 	ntf << sceneId << copyId;
 	ntf.Fix();
-	_harbor->Send(nodeType, nodeId, _proto.confirmScene, ntf.Out());
+	OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("scene", "comfirm_scene"), ntf.Out());
 
 
-	if (_objectMgr->FindObject(id))
+	if (OMODULE(ObjectMgr)->FindObject(id))
 		return;
 
-	IObject * scene = CREATE_OBJECT_BYID(_objectMgr, "Scene", id);
+	IObject * scene = CREATE_OBJECT_BYID("Scene", id);
 	OASSERT(scene, "wtf");
 
-	scene->SetPropString(_prop.sceneId, sceneId);
-	scene->SetPropInt32(_prop.copyId, copyId);
+	scene->SetPropString(OPROP("sceneId"), sceneId);
+	scene->SetPropInt32(OPROP("copyId"), copyId);
 
-	Vision * controller = NEW Vision();
-	scene->SetPropInt64(_prop.controller, (s64)controller);
+	IVisionController * controller = CreateVisionController("simple");
+	scene->SetPropInt64(OPROP("controller"), (s64)controller);
 	controller->OnCreate(scene);
 
 	START_TIMER(controller, 0, TIMER_BEAT_FOREVER, _updateInterval);
@@ -84,14 +66,15 @@ void Scene::EnterScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer
 		return;
 	}
 
-	IObject * scene = _objectMgr->FindObject(sceneId);
+	IObject * scene = OMODULE(ObjectMgr)->FindObject(sceneId);
 	OASSERT(scene, "wtf");
 	if (scene) {
-		Vision * controller = (Vision *)scene->GetPropInt64(_prop.controller);
+		IVisionController * controller = (IVisionController *)scene->GetPropInt64(OPROP("controller"));
 		OASSERT(controller, "wtf");
 
 		IObject * object = controller->FindOrCreate(objectId);
 		OASSERT(object, "wtf");
+		object->SetPropInt32(OPROP("logic"), nodeId);
 
 		ReadProps(_kernel, object, args);
 		controller->OnObjectEnter(kernel, object);
@@ -106,10 +89,10 @@ void Scene::LeaveScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer
 		return;
 	}
 
-	IObject * scene = _objectMgr->FindObject(sceneId);
+	IObject * scene = OMODULE(ObjectMgr)->FindObject(sceneId);
 	OASSERT(scene, "wtf");
 	if (scene) {
-		Vision * controller = (Vision *)scene->GetPropInt64(_prop.controller);
+		IVisionController * controller = (IVisionController *)scene->GetPropInt64(OPROP("controller"));
 		OASSERT(controller, "wtf");
 
 		controller->OnObjectLeave(kernel, objectId);
@@ -124,10 +107,10 @@ void Scene::UpdateObject(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuff
 		return;
 	}
 
-	IObject * scene = _objectMgr->FindObject(sceneId);
+	IObject * scene = OMODULE(ObjectMgr)->FindObject(sceneId);
 	OASSERT(scene, "wtf");
 	if (scene) {
-		Vision * controller = (Vision *)scene->GetPropInt64(_prop.controller);
+		IVisionController * controller = (IVisionController *)scene->GetPropInt64(OPROP("controller"));
 		IObject * object = controller->Find(objectId);
 		OASSERT(object, "wtf");
 
@@ -143,9 +126,9 @@ void Scene::ReadProps(IKernel * kernel, IObject * object, const OBuffer& args) {
 		return;
 	}
 
-	object->SetPropInt16(_prop.x, x);
-	object->SetPropInt16(_prop.y, y);
-	object->SetPropInt16(_prop.z, z);
+	object->SetPropInt16(OPROP("x"), x);
+	object->SetPropInt16(OPROP("y"), y);
+	object->SetPropInt16(OPROP("z"), z);
 
 	s8 count = 0;
 	if (!args.Read(count)) {
@@ -160,7 +143,7 @@ void Scene::ReadProps(IKernel * kernel, IObject * object, const OBuffer& args) {
 			return;
 		}
 
-		const IProp * prop = _objectMgr->CalcProp(name);
+		const IProp * prop = OMODULE(ObjectMgr)->CalcProp(name);
 		OASSERT(prop, "wtf");
 
 		switch (prop->GetType(object)) {
@@ -211,5 +194,33 @@ void Scene::ReadProps(IKernel * kernel, IObject * object, const OBuffer& args) {
 			break;
 		}
 	}
+}
+
+void Scene::DealInterest(s64 id, s32 logic, const std::vector<IObject*>& interest, const std::vector<IObject*>& notInterest) {
+	olib::Buffer<4096> buf;
+
+	buf << id << (s32)interest.size();
+	for (auto * b : interest)
+		buf << b->GetPropInt64(OPROP("objectId")) << b->GetPropInt32(OPROP("logic"));
+
+	buf << (s32)notInterest.size();
+	for (auto * b : interest)
+		buf << b->GetPropInt64(OPROP("objectId"));
+
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "logic"), logic, PROTOCOL_ID("scene", "deal_interest"), buf.Out());
+}
+
+void Scene::DealWatcher(s64 id, s32 logic, const std::vector<IObject*>& interest, const std::vector<IObject*>& notInterest) {
+	olib::Buffer<4096> buf;
+
+	buf << id << (s32)interest.size();
+	for (auto * b : interest)
+		buf << b->GetPropInt64(OPROP("objectId")) << b->GetPropInt32(OPROP("gate")) << b->GetPropInt32(OPROP("logic"));
+
+	buf << (s32)notInterest.size();
+	for (auto * b : interest) 
+		buf << b->GetPropInt64(OPROP("objectId"));
+
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "logic"), logic, PROTOCOL_ID("scene", "deal_watcher"), buf.Out());
 }
 

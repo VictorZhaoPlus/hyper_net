@@ -30,7 +30,6 @@ public:
 private:
 	static StartNodeStrategy * s_self;
     static IKernel * s_kernel;
-	static IStarter * s_starter;
 
 	static std::unordered_map<s32, Score> s_scores;
 	static std::unordered_map<s32, Score> s_slaves;

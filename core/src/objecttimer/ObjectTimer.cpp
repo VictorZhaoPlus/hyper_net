@@ -17,19 +17,19 @@ public:
 	inline void SetEnd(const EndFunc& f) { _end = f; }
 
 	virtual void OnStart(IKernel * kernel, s64 tick) {
-		OASSERT(ObjectTimer::Instance()->GetObjectMgr()->FindObject(_id) == _object, "wtf");
+		OASSERT(OMODULE(ObjectMgr)->FindObject(_id) == _object, "wtf");
 		if (_start)
 			_start(kernel, _object, tick);
 	}
 
 	virtual void OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
-		OASSERT(ObjectTimer::Instance()->GetObjectMgr()->FindObject(_id) == _object, "wtf");
+		OASSERT(OMODULE(ObjectMgr)->FindObject(_id) == _object, "wtf");
 		if (_tick)
 			_tick(kernel, _object, beatCount, tick);
 	}
 
 	virtual void OnEnd(IKernel * kernel, bool nonviolent, s64 tick) {
-		OASSERT(ObjectTimer::Instance()->GetObjectMgr()->FindObject(_id) == _object, "wtf");
+		OASSERT(OMODULE(ObjectMgr)->FindObject(_id) == _object, "wtf");
 		_object->SetPropInt64(_prop, 0);
 		if (_end)
 			_end(kernel, _object, nonviolent, tick);
@@ -61,7 +61,6 @@ bool ObjectTimer::Initialize(IKernel * kernel) {
 }
 
 bool ObjectTimer::Launched(IKernel * kernel) {
-	FIND_MODULE(_objectMgr, ObjectMgr);
     return true;
 }
 

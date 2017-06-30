@@ -15,10 +15,14 @@ MMObject::MMObject(const char * type, ObjectDescriptor * descriptor)
 		TableControl * table = MemoryPool::Instance()->Create<TableControl>(__FILE__, __LINE__, name, model, this);
 		_tables[name] = table;
 	});
+
+	descriptor->InitObject(_memory, this);
 }
 
 MMObject::~MMObject() {
 	_propCBPool.Clear();
+
+	_descriptor->DeInitObject(_memory, this);
 
 	MemoryPool::Instance()->Recover(_memory);
 

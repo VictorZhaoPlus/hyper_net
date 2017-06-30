@@ -24,8 +24,6 @@ public:
 	bool EntryStatus(IObject * object, s32 status, const void * context, const s32 size);
 
 private:
-	s32 _status;
-
 	STATUS_JUDEGCB_POOL _entryJudge;
 	STATUS_JUDEGCHANGECB_POOL _changeJudge;
 	STATUS_JUDEGCB_POOL _leaveJudge;

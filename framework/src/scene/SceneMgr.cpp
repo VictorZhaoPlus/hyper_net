@@ -1,6 +1,5 @@
 #include "SceneMgr.h"
 #include "OBuffer.h"
-#include "UserNodeType.h"
 #include "OArgs.h"
 #include "IIdMgr.h"
 #include "IProtocolMgr.h"
@@ -12,23 +11,12 @@ bool SceneMgr::Initialize(IKernel * kernel) {
 }
 
 bool SceneMgr::Launched(IKernel * kernel) {
-	FIND_MODULE(_harbor, Harbor);
-	if (_harbor->GetNodeType() == user_node_type::SCENEMGR) {
-		FIND_MODULE(_protocolMgr, ProtocolMgr);
-		FIND_MODULE(_idMgr, IdMgr);
-
-		_proto.createScene = _protocolMgr->GetId("proto_scene", "create_scene");
-		_proto.appear = _protocolMgr->GetId("proto_scene", "appear");
-		_proto.disappear = _protocolMgr->GetId("proto_scene", "disappear");
-		_proto.update = _protocolMgr->GetId("proto_scene", "update");
-		_proto.confirmScene = _protocolMgr->GetId("proto_scene", "comfirm_scene");
-		_proto.recoverScene = _protocolMgr->GetId("proto_scene", "recover_scene");
-
-		RGS_HABOR_HANDLER(_proto.appear, SceneMgr::OnRecvAppear);
-		RGS_HABOR_HANDLER(_proto.disappear, SceneMgr::OnRecvDisappear);
-		RGS_HABOR_HANDLER(_proto.update, SceneMgr::OnRecvUpdate);
-		RGS_HABOR_ARGS_HANDLER(_proto.update, SceneMgr::OnRecvConfirm);
-		RGS_HABOR_ARGS_HANDLER(_proto.update, SceneMgr::OnRecvRecover);
+	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "scenemgr")) {
+		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "appear"), SceneMgr::OnRecvAppear);
+		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "disappear"), SceneMgr::OnRecvDisappear);
+		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "update"), SceneMgr::OnRecvUpdate);
+		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("scene", "confirmScene"), SceneMgr::OnRecvConfirm);
+		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("scene", "recoverScene"), SceneMgr::OnRecvRecover);
 	}
     return true;
 }
@@ -39,7 +27,7 @@ bool SceneMgr::Destroy(IKernel * kernel) {
 }
 
 void SceneMgr::OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port) {
-	if (nodeType == user_node_type::SCENE) {
+	if (nodeType == PROTOCOL_ID("node_type", "scene")) {
 		auto itr = std::find(_nodes.begin(), _nodes.end(), nodeId);
 		if (itr == _nodes.end())
 			_nodes.push_back(nodeId);
@@ -60,12 +48,12 @@ void SceneMgr::OnRecvAppear(IKernel * kernel, s32 nodeType, s32 nodeId, const OB
 	IArgs<3, 64> ntf;
 	ntf << rst.second << scene << copyId;
 	ntf.Fix();
-	_harbor->Send(user_node_type::SCENE, rst.first, _proto.createScene, ntf.Out());
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, PROTOCOL_ID("scene", "create_scene"), ntf.Out());
 
 	OBuffer left = args.Left();
-	_harbor->PrepareSend(user_node_type::SCENE, rst.first, _proto.appear, sizeof(rst.second) + left.GetSize());
-	_harbor->Send(user_node_type::SCENE, rst.first, &rst.second, sizeof(rst.second));
-	_harbor->Send(user_node_type::SCENE, rst.first, left.GetContext(), left.GetSize());
+	OMODULE(Harbor)->PrepareSend(PROTOCOL_ID("node_type", "scene"), rst.first, PROTOCOL_ID("scene", "appear"), sizeof(rst.second) + left.GetSize());
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, &rst.second, sizeof(rst.second));
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, left.GetContext(), left.GetSize());
 }
 
 void SceneMgr::OnRecvDisappear(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer & args) {
@@ -80,9 +68,9 @@ void SceneMgr::OnRecvDisappear(IKernel * kernel, s32 nodeType, s32 nodeId, const
 	OASSERT(rst.first > 0, "wtf");
 
 	OBuffer left = args.Left();
-	_harbor->PrepareSend(user_node_type::SCENE, rst.first, _proto.disappear, sizeof(rst.second) + left.GetSize());
-	_harbor->Send(user_node_type::SCENE, rst.first, &rst.second, sizeof(rst.second));
-	_harbor->Send(user_node_type::SCENE, rst.first, left.GetContext(), left.GetSize());
+	OMODULE(Harbor)->PrepareSend(PROTOCOL_ID("node_type", "scene"), rst.first, PROTOCOL_ID("scene", "disappear"), sizeof(rst.second) + left.GetSize());
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, &rst.second, sizeof(rst.second));
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, left.GetContext(), left.GetSize());
 }
 
 void SceneMgr::OnRecvUpdate(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer & args) {
@@ -97,9 +85,9 @@ void SceneMgr::OnRecvUpdate(IKernel * kernel, s32 nodeType, s32 nodeId, const OB
 	OASSERT(rst.first > 0, "wtf");
 
 	OBuffer left = args.Left();
-	_harbor->PrepareSend(user_node_type::SCENE, rst.first, _proto.update, sizeof(rst.second) + left.GetSize());
-	_harbor->Send(user_node_type::SCENE, rst.first, &rst.second, sizeof(rst.second));
-	_harbor->Send(user_node_type::SCENE, rst.first, left.GetContext(), left.GetSize());
+	OMODULE(Harbor)->PrepareSend(PROTOCOL_ID("node_type", "scene"), rst.first, PROTOCOL_ID("scene", "update"), sizeof(rst.second) + left.GetSize());
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, &rst.second, sizeof(rst.second));
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, left.GetContext(), left.GetSize());
 }
 
 void SceneMgr::OnRecvConfirm(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {
@@ -124,7 +112,7 @@ std::pair<s32, s64> SceneMgr::FindOrCreate(IKernel * kernel, const char * scene,
 	else {
 		if (info.distribute == 0) {
 			if (info.id == 0)
-				info.id = _idMgr->AllocId();
+				info.id = OMODULE(IdMgr)->AllocId();
 			if (_distributor)
 				info.distribute = _distributor->ChooseSceneNode();
 			else {

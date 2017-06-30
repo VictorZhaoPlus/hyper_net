@@ -105,6 +105,9 @@ namespace olib {
 		Buffer() {}
 		virtual ~Buffer() {}
 
+		const s32 Mark() { return _offset; }
+		void Back(s32 mark) { _offset = mark; }
+
 		virtual IBuffer& operator<<(const s8& t) { return Write(t); }
 		virtual IBuffer& operator<<(const s16& t) { return Write(t); }
 		virtual IBuffer& operator<<(const s32& t) { return Write(t); }

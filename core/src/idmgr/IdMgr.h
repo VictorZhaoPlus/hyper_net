@@ -31,15 +31,9 @@ public:
 
 private:
     IKernel * _kernel;
-	IHarbor * _harbor;
-	IEventEngine * _eventEngine;
-	IProtocolMgr * _protocolMgr;
 
 	bool _multiProcess;
 	s32 _nodeType;
-	s32 _askProtocolId;
-	s32 _giveProtocolId;
-	s32 _eventIdLoaded;
 	u32 _areaId;
 	s32 _poolSize;
 	bool _loadFirst;

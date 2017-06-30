@@ -11,7 +11,7 @@ ObjectDescriptor::ObjectDescriptor(s32 typeId, const char * name, ObjectDescript
 	if (parent) {
 		_layouts = parent->_layouts;
 		for (auto& layout : _layouts) {
-			const IProp * prop = ObjectMgr::Instance()->SetObjectProp(layout->name.c_str(), _typeId, layout);
+			const IProp * prop = ObjectMgr::Instance()->SetObjectProp(layout->name.c_str(), _typeId, NEW ObjectLayout(*layout));
 			_props.push_back(prop);
 		}
 		_size = parent->_size;
@@ -91,6 +91,28 @@ bool ObjectDescriptor::LoadProps(const olib::IXmlObject& props, const std::unord
 	}
 
 	return true;
+}
+
+const IProp * ObjectDescriptor::AddProp(const char * name, s8 type, s32 size, s32 setting, bool self) {
+	ObjectLayout * layout = NEW ObjectLayout;
+	layout->offset = _size;
+	layout->name = name;
+	layout->size = size;
+	layout->type = type;
+	layout->setting = setting;
+
+	const IProp * prop = ObjectMgr::Instance()->SetObjectProp(name, _typeId, layout);
+	_props.push_back(prop);
+	if (self)
+		_selfProps.push_back(prop);
+
+	return prop;
+}
+
+void ObjectDescriptor::SetupInitial(const IProp * prop, const PropFunc& init, const PropFunc& uninit) {
+	const ObjectLayout * layout = ((ObjectProp*)prop)->GetLayout(_typeId);
+
+	_propInits.push_back({ layout, init, uninit });
 }
 
 bool ObjectDescriptor::LoadTables(const olib::IXmlObject& tables) {

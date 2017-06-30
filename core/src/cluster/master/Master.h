@@ -28,10 +28,6 @@ private:
 
 private:
     IKernel * _kernel;
-    IHarbor * _harbor;
-	IProtocolMgr * _protocolMgr;
-
-	s32 _protoNewNode;
 
     std::unordered_map<s64, NodeInfo> _nodes;
 };

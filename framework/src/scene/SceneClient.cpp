@@ -1,7 +1,6 @@
 #include "SceneClient.h"
 #include "IHarbor.h"
 #include "IEventEngine.h"
-#include "UserNodeType.h"
 #include "IObjectMgr.h"
 #include "IProtocolMgr.h"
 #include "IObjectTimer.h"
@@ -18,43 +17,11 @@ bool SceneClient::Initialize(IKernel * kernel) {
 }
 
 bool SceneClient::Launched(IKernel * kernel) {
-	FIND_MODULE(_harbor, Harbor);
-	if (_harbor->GetNodeType() == user_node_type::LOGIC) {
-		FIND_MODULE(_eventEngine, EventEngine);
-		FIND_MODULE(_protocolMgr, ProtocolMgr);
-		FIND_MODULE(_objectMgr, ObjectMgr);
-		FIND_MODULE(_objectTimer, ObjectTimer);
-		FIND_MODULE(_packetSender, PacketSender);
-		FIND_MODULE(_logic, Logic);
+	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "logic")) {
+		RGS_PROTOCOL_HANDLER(PROTOCOL_ID("proto", "enter_scene"), SceneClient::OnRecvEnterScene);
+		RGS_PROTOCOL_HANDLER(PROTOCOL_ID("proto", "enter_area"), SceneClient::OnRecvEnterArea);
 
-		_props.sceneId = _objectMgr->CalcProp("sceneId");
-		_props.sceneCopyId = _objectMgr->CalcProp("sceneCopyId");
-		_props.x = _objectMgr->CalcProp("x");
-		_props.y = _objectMgr->CalcProp("y");
-		_props.z = _objectMgr->CalcProp("z");
-		_props.appeared = _objectMgr->CalcProp("appeared");
-		_props.syncTimer = _objectMgr->CalcProp("syncTimer");
-		_props.sync = _objectMgr->CalcProp("sync");
-		_props.gate = _objectMgr->CalcProp("gate");
-		_props.firstAppear = _objectMgr->CalcProp("firstAppear");
-
-		_proto.appear = _protocolMgr->GetId("proto_scene", "appear");
-		_proto.disappear = _protocolMgr->GetId("proto_scene", "disappear");
-		_proto.update = _protocolMgr->GetId("proto_scene", "update");
-
-		_clientSceneInfo = _protocolMgr->GetId("proto", "scene_info");
-		_clientEnterScene = _protocolMgr->GetId("proto", "enter_scene");
-		_clientEnterArea = _protocolMgr->GetId("proto", "enter_area");
-
-		_eventAppearOnMap = _protocolMgr->GetId("event", "appear_on_map");
-		_eventDisappearOnMap = _protocolMgr->GetId("event", "disappear_from_map");
-		_eventPrepareSwitchScene = _protocolMgr->GetId("event", "prepare_switch_scene");
-		_eventSwitchScene = _protocolMgr->GetId("event", "switch_scene");
-		_eventPlayerAppear = _protocolMgr->GetId("event", "player_appear");
-		_eventPlayerFirstAppear = _protocolMgr->GetId("event", "player_first_appear");
-
-		RGS_PROTOCOL_HANDLER(_clientEnterScene, SceneClient::OnRecvEnterScene);
-		RGS_PROTOCOL_HANDLER(_clientEnterArea, SceneClient::OnRecvEnterArea);
+		_syncSceneSetting = OMODULE(ObjectMgr)->CalcPropSetting("scene");
 	}
     return true;
 }
@@ -77,24 +44,24 @@ s64 SceneClient::RegisterArea(s8 type, const char * scene, s16 x, s16 y, s16 z, 
 void SceneClient::AppearOn(IObject * object, const char * scene, const Position& pos, const s64 copyId, const bool appear) {
 	auto itr = _scenes.find(scene);
 	OASSERT(itr != _scenes.end(), "wtf");
-	OASSERT(object->GetPropInt8(_props.appeared) == 0, "wtf");
+	OASSERT(object->GetPropInt8(OPROP("appeared")) == 0, "wtf");
 
-	object->SetPropString(_props.sceneId, scene);
-	object->SetPropInt16(_props.x, pos.x);
-	object->SetPropInt16(_props.y, pos.y);
-	object->SetPropInt16(_props.z, pos.z);
+	object->SetPropString(OPROP("sceneId"), scene);
+	object->SetPropInt16(OPROP("x"), pos.x);
+	object->SetPropInt16(OPROP("y"), pos.y);
+	object->SetPropInt16(OPROP("z"), pos.z);
 	
 	if (copyId == 0) {
 		OASSERT(itr->second.isWild, "wtf");
-		object->SetPropInt64(_props.sceneCopyId, DistributeSceneCopy(_kernel, scene));
+		object->SetPropInt64(OPROP("sceneCopyId"), DistributeSceneCopy(_kernel, scene));
 	}
 	else
-		object->SetPropInt64(_props.sceneCopyId, copyId);
+		object->SetPropInt64(OPROP("sceneCopyId"), copyId);
 
-	_eventEngine->Exec(_eventAppearOnMap, &object, sizeof(object));
+	OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "appear_on_map"), &object, sizeof(object));
 
 	SendSceneInfo(_kernel, object);
-	object->SetPropInt8(_props.appeared, 1);
+	object->SetPropInt8(OPROP("appeared"), 1);
 	StartSync(_kernel, object);
 
 	if (appear)
@@ -102,48 +69,48 @@ void SceneClient::AppearOn(IObject * object, const char * scene, const Position&
 }
 
 void SceneClient::Disappear(IObject * object) {
-	if (object->GetPropInt8(_props.appeared)) {
+	if (object->GetPropInt8(OPROP("appeared"))) {
 		StopSync(_kernel, object);
-		if (object->GetPropInt8(_props.appeared) == 1)
+		if (object->GetPropInt8(OPROP("appeared")) == 1)
 			SendDisappearScene(_kernel, object);
 
-		_eventEngine->Exec(_eventDisappearOnMap, &object, sizeof(object));
+		OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "disappear_from_map"), &object, sizeof(object));
 	}
 }
 
 void SceneClient::SwitchTo(IObject * object, const char * scene, const Position& pos, const s64 copyId) {
-	std::string oldScene = object->GetPropString(_props.sceneId);
+	std::string oldScene = object->GetPropString(OPROP("sceneId"));
 	auto itrPrev = _scenes.find(oldScene.c_str());
 	auto itr = _scenes.find(scene);
 	OASSERT(itrPrev != _scenes.end() && itr != _scenes.end(), "wtf");
 
 	scene_event::SwitchScene info;
 	info.object = object;
-	info.from = { oldScene.c_str(), { object->GetPropInt16(_props.x), object->GetPropInt16(_props.y), object->GetPropInt16(_props.z) } };
+	info.from = { oldScene.c_str(), { object->GetPropInt16(OPROP("x")), object->GetPropInt16(OPROP("y")), object->GetPropInt16(OPROP("z")) } };
 	info.to = { scene, pos };
 
-	_eventEngine->Exec(_eventPrepareSwitchScene, &info, sizeof(info));
+	OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "prepare_switch_scene"), &info, sizeof(info));
 
-	if (object->GetPropInt8(_props.appeared) == 1)
+	if (object->GetPropInt8(OPROP("appeared")) == 1)
 		SendDisappearScene(_kernel, object);
 	if (itrPrev->second.isWild)
-		LeaveSceneCopy(_kernel, oldScene.c_str(), object->GetPropInt64(_props.sceneCopyId));
+		LeaveSceneCopy(_kernel, oldScene.c_str(), object->GetPropInt64(OPROP("sceneCopyId")));
 
-	object->SetPropString(_props.sceneId, scene);
-	object->SetPropInt16(_props.x, pos.x);
-	object->SetPropInt16(_props.y, pos.y);
-	object->SetPropInt16(_props.z, pos.z);
+	object->SetPropString(OPROP("sceneId"), scene);
+	object->SetPropInt16(OPROP("x"), pos.x);
+	object->SetPropInt16(OPROP("y"), pos.y);
+	object->SetPropInt16(OPROP("z"), pos.z);
 
 	if (copyId == 0) {
 		OASSERT(itr->second.isWild, "wtf");
-		object->SetPropInt64(_props.sceneCopyId, DistributeSceneCopy(_kernel, scene));
+		object->SetPropInt64(OPROP("sceneCopyId"), DistributeSceneCopy(_kernel, scene));
 	}
 	else
-		object->SetPropInt64(_props.sceneCopyId, copyId);
+		object->SetPropInt64(OPROP("sceneCopyId"), copyId);
 
 	SendSceneInfo(_kernel, object);
 
-	_eventEngine->Exec(_eventSwitchScene, &info, sizeof(info));
+	OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "switch_scene"), &info, sizeof(info));
 }
 
 Position SceneClient::RandomInRange(const char * scene, const s32 copyId, const Position& start, float radius) {
@@ -156,6 +123,8 @@ Position SceneClient::Random(const char * scene, const s32 copyId) {
 
 std::vector<Position> SceneClient::FindPath(const char * scene, const s32 copyId, const Position& start, const Position& end, float radius) {
 	std::vector<Position> ret;
+	ret.push_back(start);
+	ret.push_back(end);
 	return std::move(ret);
 }
 
@@ -168,14 +137,14 @@ s32 SceneClient::GetAreaType(IObject * object) {
 }
 
 bool SceneClient::OnRecvEnterScene(IKernel * kernel, IObject * object, const OBuffer& buf) {
-	if (object->GetPropInt8(_props.appeared) == 0) {
+	if (object->GetPropInt8(OPROP("appeared")) == 0) {
 		SendAppearScene(kernel, object);
-		object->SetPropInt8(_props.appeared, 1);
+		object->SetPropInt8(OPROP("appeared"), 1);
 
-		_eventEngine->Exec(_eventPlayerAppear, &object, sizeof(object));
-		if (object->GetPropInt8(_props.firstAppear) == 0) {
-			object->SetPropInt8(_props.firstAppear, 1);
-			_eventEngine->Exec(_eventPlayerFirstAppear, &object, sizeof(object));
+		OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "player_appear"), &object, sizeof(object));
+		if (object->GetPropInt8(OPROP("firstAppear")) == 0) {
+			object->SetPropInt8(OPROP("firstAppear"), 1);
+			OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "player_first_appear"), &object, sizeof(object));
 		}
 	}
 	return true;
@@ -186,12 +155,12 @@ bool SceneClient::OnRecvEnterArea(IKernel * kernel, IObject * object, const OBuf
 	if (!buf.Read(idx))
 		return false;
 
-	auto itr = _scenes.find(object->GetPropString(_props.sceneId));
+	auto itr = _scenes.find(object->GetPropString(OPROP("sceneId")));
 	OASSERT(itr != _scenes.end(), "wtf");
 	if (itr != _scenes.end()) {
 		auto itrArea = itr->second.areas.find(idx);
 		if (itrArea != itr->second.areas.end()) {
-			//if (math::CalcDistance(object->GetPropInt16(_props.x), object->GetPropInt16(_props.y), object->GetPropInt16(_props.z)
+			//if (math::CalcDistance(object->GetPropInt16(OPROP("x")), object->GetPropInt16(OPROP("y")), object->GetPropInt16(OPROP("z))
 			//	, itrArea->second.center.x, itrArea->second.center.y, itrArea->second.center.z) < itrArea->second.range + _areaCorrect) {
 			//	itrArea->second.cb(kernel, object);
 			//}
@@ -202,57 +171,65 @@ bool SceneClient::OnRecvEnterArea(IKernel * kernel, IObject * object, const OBuf
 
 void SceneClient::SendAppearScene(IKernel * kernel, IObject * object) {
 	olib::Buffer<MAX_SYNC_SCENE_PACKET_LEN> buf;
-	buf << object->GetPropString(_props.sceneId) << object->GetPropInt64(_props.sceneCopyId) << object->GetID();
-
-	for (const auto * prop : _syncProps) {
-		switch (prop->GetType(object)) {
+	buf << object->GetPropString(OPROP("sceneId")) << object->GetPropInt64(OPROP("sceneCopyId")) << object->GetID() 
+		<< object->GetPropInt16(OPROP("x")) << object->GetPropInt16(OPROP("y")) << object->GetPropInt16(OPROP("z"));
+	s8& count = *buf.Reserve<s8>();
+	for (auto * prop : object->GetPropsInfo()) {
+		if (prop->GetSetting(object) & _syncSceneSetting) {
+			switch (prop->GetType(object)) {
 			case DTYPE_INT8: buf << object->GetPropInt8(prop); break;
 			case DTYPE_INT16: buf << object->GetPropInt16(prop); break;
 			case DTYPE_INT32: buf << object->GetPropInt32(prop); break;
 			case DTYPE_INT64: buf << object->GetPropInt64(prop); break;
 			case DTYPE_FLOAT: buf << object->GetPropFloat(prop); break;
+			}
+			++count;
 		}
 	}
 
 	OBuffer out = buf.Out();
-	_harbor->PrepareSend(user_node_type::SCENEMGR, 1, _proto.appear, out.GetSize());
-	_harbor->Send(user_node_type::SCENEMGR, 1, out.GetContext(), out.GetSize());
+	OMODULE(Harbor)->PrepareSend(PROTOCOL_ID("node_type", "scenemgr"), 1, PROTOCOL_ID("scene", "appear"), out.GetSize());
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scenemgr"), 1, out.GetContext(), out.GetSize());
 }
 
 void SceneClient::SendDisappearScene(IKernel * kernel, IObject * object) {
 	olib::Buffer<MAX_SYNC_SCENE_PACKET_LEN> buf;
-	buf << object->GetPropString(_props.sceneId) << object->GetPropInt64(_props.sceneCopyId) << object->GetID();
+	buf << object->GetPropString(OPROP("sceneId")) << object->GetPropInt64(OPROP("sceneCopyId")) << object->GetID();
 
 	OBuffer out = buf.Out();
-	_harbor->PrepareSend(user_node_type::SCENEMGR, 1, _proto.disappear, out.GetSize());
-	_harbor->Send(user_node_type::SCENEMGR, 1, out.GetContext(), out.GetSize());
+	OMODULE(Harbor)->PrepareSend(PROTOCOL_ID("node_type", "scenemgr"), 1, PROTOCOL_ID("scene", "disappear"), out.GetSize());
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scenemgr"), 1, out.GetContext(), out.GetSize());
 }
 
 void SceneClient::SendUpdateObject(IKernel * kernel, IObject * object) {
 	olib::Buffer<MAX_SYNC_SCENE_PACKET_LEN> buf;
-	buf << object->GetPropString(_props.sceneId) << object->GetPropInt64(_props.sceneCopyId) << object->GetID();
-
-	for (const auto * prop : _syncProps) {
-		switch (prop->GetType(object)) {
-		case DTYPE_INT8: buf << object->GetPropInt8(prop); break;
-		case DTYPE_INT16: buf << object->GetPropInt16(prop); break;
-		case DTYPE_INT32: buf << object->GetPropInt32(prop); break;
-		case DTYPE_INT64: buf << object->GetPropInt64(prop); break;
-		case DTYPE_FLOAT: buf << object->GetPropFloat(prop); break;
+	buf << object->GetPropString(OPROP("sceneId")) << object->GetPropInt64(OPROP("sceneCopyId")) << object->GetID()
+		<< object->GetPropInt16(OPROP("x")) << object->GetPropInt16(OPROP("y")) << object->GetPropInt16(OPROP("z"));
+	s8& count = *buf.Reserve<s8>();
+	for (auto * prop : object->GetPropsInfo()) {
+		if (prop->GetSetting(object) & _syncSceneSetting) {
+			switch (prop->GetType(object)) {
+			case DTYPE_INT8: buf << object->GetPropInt8(prop); break;
+			case DTYPE_INT16: buf << object->GetPropInt16(prop); break;
+			case DTYPE_INT32: buf << object->GetPropInt32(prop); break;
+			case DTYPE_INT64: buf << object->GetPropInt64(prop); break;
+			case DTYPE_FLOAT: buf << object->GetPropFloat(prop); break;
+			}
+			++count;
 		}
 	}
 
 	OBuffer out = buf.Out();
-	_harbor->PrepareSend(user_node_type::SCENEMGR, 1, _proto.update, out.GetSize());
-	_harbor->Send(user_node_type::SCENEMGR, 1, out.GetContext(), out.GetSize());
+	OMODULE(Harbor)->PrepareSend(PROTOCOL_ID("node_type", "scenemgr"), 1, PROTOCOL_ID("scene", "update"), out.GetSize());
+	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scenemgr"), 1, out.GetContext(), out.GetSize());
 }
 
 void SceneClient::SendSceneInfo(IKernel * kernel, IObject * object) {
 	olib::Buffer<MAX_SYNC_SCENE_PACKET_LEN> buf;
-	buf << object->GetPropString(_props.sceneId) << object->GetPropInt64(_props.sceneCopyId);
-	buf << object->GetPropInt16(_props.x) << object->GetPropInt16(_props.y) << object->GetPropInt16(_props.z);
+	buf << object->GetPropString(OPROP("sceneId")) << object->GetPropInt64(OPROP("sceneCopyId"));
+	buf << object->GetPropInt16(OPROP("x")) << object->GetPropInt16(OPROP("y")) << object->GetPropInt16(OPROP("z"));
 
-	_packetSender->Send(object->GetPropInt32(_props.gate), object->GetID(), _clientSceneInfo, buf.Out());
+	OMODULE(PacketSender)->Send(object->GetPropInt32(OPROP("gate")), object->GetID(), PROTOCOL_ID("proto", "scene_info"), buf.Out());
 }
 
 s32 SceneClient::DistributeSceneCopy(IKernel * kernel, const char * scene) {
@@ -264,16 +241,16 @@ void SceneClient::LeaveSceneCopy(IKernel * kernel, const char * scene, s64 copyI
 }
 
 void SceneClient::StartSync(IKernel * kernel, IObject * object) {
-	_objectTimer->Start(object, _props.syncTimer, 0, TIMER_BEAT_FOREVER, _syncInterval, __FILE__, __LINE__, nullptr, std::bind(&SceneClient::OnSyncTick, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), nullptr);
+	OMODULE(ObjectTimer)->Start(object, OPROP("syncTimer"), 0, TIMER_BEAT_FOREVER, _syncInterval, __FILE__, __LINE__, nullptr, std::bind(&SceneClient::OnSyncTick, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4), nullptr);
 }
 
 void SceneClient::StopSync(IKernel * kernel, IObject * object) {
-	_objectTimer->Stop(object, _props.syncTimer);
+	OMODULE(ObjectTimer)->Stop(object, OPROP("syncTimer"));
 }
 
 void SceneClient::OnSyncTick(IKernel * kernel, IObject * object, s32 beatCount, s64 tick) {
-	if (object->GetPropInt8(_props.sync)) {
-		object->SetPropInt8(_props.sync, 0);
+	if (object->GetPropInt8(OPROP("sync"))) {
+		object->SetPropInt8(OPROP("sync"), 0);
 
 		SendUpdateObject(kernel, object);
 	}

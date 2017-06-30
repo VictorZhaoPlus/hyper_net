@@ -9,18 +9,7 @@
 #include <unordered_set>
 
 class OBuffer;
-class IProtocolMgr;
-class IIdMgr;
 class SceneMgr : public ISceneMgr, public INodeListener, public OHolder<SceneMgr> {
-	struct Proto {
-		s32 createScene;
-		s32 appear;
-		s32 disappear;
-		s32 update;
-		s32 confirmScene;
-		s32 recoverScene;
-	};
-
 	struct SceneInfo {
 		s32 distribute;
 		s32 real;
@@ -50,12 +39,8 @@ public:
 
 private:
     IKernel * _kernel;
-	IProtocolMgr * _protocolMgr;
-	IHarbor * _harbor;
-	IIdMgr * _idMgr;
 	ISceneDistributor * _distributor;
 
-	Proto _proto;
 	std::map<std::string, std::map<s64, SceneInfo>> _scenes;
 	std::vector<s32> _nodes;
 };

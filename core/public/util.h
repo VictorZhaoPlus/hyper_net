@@ -110,5 +110,11 @@ extern "C" {
 #include <functional>
 #include <algorithm>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include <list>
+#include <set>
+#include <map>
 #endif
 #endif //__util_h__

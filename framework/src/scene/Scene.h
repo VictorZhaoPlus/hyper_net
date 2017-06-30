@@ -6,34 +6,8 @@
 #include <unordered_map>
 
 class OArgs;
-class IHarbor;
-class IObjectMgr;
 class IObject;
-class ICapacityPublisher;
-class IProp;
-class SceneController;
-class IProtocolMgr;
 class Scene : public IScene, public OHolder<Scene> {
-	struct Property {
-		const IProp * sceneId;
-		const IProp * copyId;
-		const IProp * controller;
-		const IProp * x;
-		const IProp * y;
-		const IProp * z;
-	};
-
-	struct Proto {
-		s32 createScene;
-		s32 appear;
-		s32 disappear;
-		s32 update;
-		s32 confirmScene;
-		s32 recoverScene;
-		s32 dealInterest;
-		s32 dealWatcher;
-	};
-
 public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);
@@ -56,15 +30,12 @@ public:
 
 	void ReadProps(IKernel * kernel, IObject * object, const OBuffer& args);
 
+	void DealInterest(s64 id, s32 logic, const std::vector<IObject*>& interest, const std::vector<IObject*>& notInterest);
+	void DealWatcher(s64 id, s32 logic, const std::vector<IObject*>& interest, const std::vector<IObject*>& notInterest);
+
 private:
     IKernel * _kernel;
-	IHarbor * _harbor;
-	IObjectMgr * _objectMgr;
 	IVisibleChecker * _visibleChecker;
-	IProtocolMgr * _protocolMgr;
-
-	Property _prop;
-	Proto _proto;
 
 	s32 _updateInterval;
 };
