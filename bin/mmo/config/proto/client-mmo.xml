@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+	<cli_login name="login_req" type="client_proto" />
+	<cli_login name="login_ack" type="client_proto" />
+	<cli_login name="reconect_req" type="client_proto" />
+	<cli_login name="select_role_req" type="client_proto" />
+	<cli_login name="select_role_ack" type="client_proto" />
+	<cli_login name="create_role_req" type="client_proto" />
+	<cli_login name="create_role_ack" type="client_proto" />
+	<cli_login name="delete_role_req" type="client_proto" />
+	<cli_login name="delete_role_ack" type="client_proto" />
+	<cli_login name="reselect_role_req" type="client_proto" />
+	<cli_login name="reselect_role_ack" type="client_proto" />
+</config>

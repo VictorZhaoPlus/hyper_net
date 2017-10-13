@@ -5,12 +5,13 @@
 #include "IProtocolMgr.h"
 #include "StartNodeTimer.h"
 #include "OArgs.h"
+#include "IProtocolMgr.h"
 
 bool Starter::Initialize(IKernel * kernel) {
     _kernel = kernel;
 
 	olib::XmlReader conf;
-	std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
+	std::string coreConfigPath = std::string(tools::GetWorkPath()) + "/config/server_conf.xml";
 	if (!conf.LoadXml(coreConfigPath.c_str())) {
 		OASSERT(false, "wtf");
 		return false;
@@ -28,7 +29,7 @@ bool Starter::Initialize(IKernel * kernel) {
 			info.min = nodes[i].GetAttributeInt32("min");
 			info.max = nodes[i].GetAttributeInt32("max");
 			info.score = nodes[i].GetAttributeInt32("score");
-			info.delay = nodes[i].GetAttributeInt32("delay");
+			info.delay = nodes[i].GetAttributeInt32("delay") * 1000;
 			info.timer = nullptr;
 
 			_executes[info.type] = info;
@@ -130,7 +131,7 @@ void Starter::OnNodeTimerEnd(IKernel * kernel, s32 type, s64 tick) {
 void Starter::StartNode(IKernel * kernel, s32 nodeType, s32 nodeId) {
 	OASSERT(_strategy, "miss start strategy");
 	s32 slave = _strategy->ChooseNode(nodeType);
-	OASSERT(slave != IStartStrategy::INVALID_NODE, "where is slave");
+	OASSERT(slave != PROTOCOL_ID("node_type", "invalid"), "where is slave");
 
 	IArgs<2, 64> args;
 	args << nodeType << nodeId;

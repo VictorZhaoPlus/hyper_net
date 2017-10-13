@@ -1,7 +1,6 @@
 #include "Distribution.h"
 #include "OArgs.h"
 #include "IProtocolMgr.h"
-#include "UserNodeType.h"
 
 bool Distribution::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -10,19 +9,12 @@ bool Distribution::Initialize(IKernel * kernel) {
 }
 
 bool Distribution::Launched(IKernel * kernel) {
-	FIND_MODULE(_harbor, Harbor);
-	if (_harbor->GetNodeType() == user_node_type::SCENEMGR) {
-		FIND_MODULE(_protocolMgr, ProtocolMgr);
-
+	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "scenemgr")) {
 		_harbor->AddNodeListener(this, "Distribution");
-		_proto.distributeLogicReq = _protocolMgr->GetId("proto_login", "distribute_logic_req");
-		_proto.distributeLogicAck = _protocolMgr->GetId("proto_login", "distribute_logic_ack");
-		_proto.addPlayer = _protocolMgr->GetId("proto_login", "add_player");
-		_proto.removePlayer = _protocolMgr->GetId("proto_login", "remove_player");
 
-		RGS_HABOR_ARGS_HANDLER(_proto.distributeLogicReq, Distribution::OnRecvDistributeLogic);
-		RGS_HABOR_ARGS_HANDLER(_proto.addPlayer, Distribution::OnRecvAddPlayer);
-		RGS_HABOR_ARGS_HANDLER(_proto.removePlayer, Distribution::OnRecvRemovePlayer);
+		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("login", "distribute_logic_req"), Distribution::OnRecvDistributeLogic);
+		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("login", "add_player"), Distribution::OnRecvAddPlayer);
+		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("login", "remove_player"), Distribution::OnRecvRemovePlayer);
 	}
     return true;
 }
@@ -40,7 +32,7 @@ s32 Distribution::ChooseLogic(s64 actorId) {
 }
 
 void Distribution::OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port) {
-	if (nodeType == user_node_type::LOGIC) {
+	if (nodeType == PROTOCOL_ID("node_type", "logic")) {
 		auto itr = std::find(_logices.begin(), _logices.end(), nodeId);
 		if (itr == _logices.end())
 			_logices.push_back(nodeId);
@@ -70,7 +62,7 @@ void Distribution::OnRecvDistributeLogic(IKernel * kernel, s32 nodeType, s32 nod
 	ret << agentId << actorId << logic;
 	ret.Fix();
 
-	_harbor->Send(nodeType, nodeId, _proto.distributeLogicAck, ret.Out());
+	_harbor->Send(nodeType, nodeId, PROTOCOL_ID("login", "distribute_logic_ack"), ret.Out());
 }
 
 void Distribution::OnRecvAddPlayer(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {

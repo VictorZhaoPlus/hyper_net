@@ -11,34 +11,67 @@ ObjectDescriptor::ObjectDescriptor(s32 typeId, const char * name, ObjectDescript
 	if (parent) {
 		_layouts = parent->_layouts;
 		for (auto& layout : _layouts) {
-			const IProp * prop = ObjectMgr::Instance()->SetObjectProp(layout->name.c_str(), _typeId, NEW ObjectLayout(*layout));
+			const IProp * prop = ObjectMgr::Instance()->SetObjectProp(layout->module.c_str(), layout->name.c_str(), _typeId, NEW ObjectLayout(*layout));
 			_props.push_back(prop);
 		}
 		_size = parent->_size;
 		_tables = parent->_tables;
+		for (s32 i = 0; i < (s32)_tables.size(); ++i) {
+			ITable * table = ObjectMgr::Instance()->SetTableProp(_tables[i].module.c_str(), _tables[i].name.c_str(), _typeId, i);
+			_tables[i].tableModel->SetupColumn(table, _typeId);
+		}
 	}
 	else
 		_size = 0;
 }
 
 bool ObjectDescriptor::LoadFrom(const olib::IXmlObject& root, const std::unordered_map<std::string, s32>& defines) {
-	if (!LoadProps(root["prop"], defines))
-		return false;
+	if (root.IsExist("prop")) {
+		if (!LoadProps("", root["prop"], defines)) {
+			return false;
+		}
+	}
 
 	if (root.IsExist("table")) {
-		if (!LoadTables(root["table"]))
+		if (!LoadTables("", root["table"])) {
 			return false;
+		}
 	}
-	return true;
+
+	bool ret = true;
+	root.ForEach([this, &defines, &ret](const char * module, const olib::IXmlObject& unit) {
+		if (strcmp(module, "prop") == 0)
+			return;
+
+		if (strcmp(module, "table") == 0)
+			return;
+
+		if (unit[0].IsExist("prop")) {
+			if (!LoadProps(module, unit[0]["prop"], defines)) {
+				ret = false;
+				return;
+			}
+		}
+
+		if (unit[0].IsExist("table")) {
+			if (!LoadTables(module, unit[0]["table"])) {
+				ret = false;
+				return;
+			}
+		}
+	});
+
+	return ret;
 }
 
-bool ObjectDescriptor::LoadProps(const olib::IXmlObject& props, const std::unordered_map<std::string, s32>& defines) {
+bool ObjectDescriptor::LoadProps(const char * module, const olib::IXmlObject& props, const std::unordered_map<std::string, s32>& defines) {
 	for (s32 i = 0; i < props.Count(); ++i) {
 		const char * name = props[i].GetAttributeString("name");
 		const char * typeStr = props[i].GetAttributeString("type");
 
 		ObjectLayout * layout = NEW ObjectLayout;
 		layout->offset = _size;
+		layout->module = module;
 		layout->name = name;
 		if (!strcmp(typeStr, "s8")) {
 			layout->size = sizeof(s8);
@@ -85,7 +118,7 @@ bool ObjectDescriptor::LoadProps(const olib::IXmlObject& props, const std::unord
 		_layouts.push_back(layout);
 		_size += layout->size;
 
-		const IProp * prop = ObjectMgr::Instance()->SetObjectProp(name, _typeId, layout);
+		const IProp * prop = ObjectMgr::Instance()->SetObjectProp(module, name, _typeId, layout);
 		_props.push_back(prop);
 		_selfProps.push_back(prop);
 	}
@@ -93,15 +126,16 @@ bool ObjectDescriptor::LoadProps(const olib::IXmlObject& props, const std::unord
 	return true;
 }
 
-const IProp * ObjectDescriptor::AddProp(const char * name, s8 type, s32 size, s32 setting, bool self) {
+const IProp * ObjectDescriptor::AddProp(const char * module, const char * name, s8 type, s32 size, s32 setting, bool self) {
 	ObjectLayout * layout = NEW ObjectLayout;
 	layout->offset = _size;
+	layout->module = module ? module : "";
 	layout->name = name;
 	layout->size = size;
 	layout->type = type;
 	layout->setting = setting;
 
-	const IProp * prop = ObjectMgr::Instance()->SetObjectProp(name, _typeId, layout);
+	const IProp * prop = ObjectMgr::Instance()->SetObjectProp(module, name, _typeId, layout);
 	_props.push_back(prop);
 	if (self)
 		_selfProps.push_back(prop);
@@ -109,21 +143,25 @@ const IProp * ObjectDescriptor::AddProp(const char * name, s8 type, s32 size, s3
 	return prop;
 }
 
-void ObjectDescriptor::SetupInitial(const IProp * prop, const PropFunc& init, const PropFunc& uninit) {
+void ObjectDescriptor::SetupInitial(const IProp * prop, const PropFunc& init, const PropFunc& reset, const PropFunc& uninit) {
 	const ObjectLayout * layout = ((ObjectProp*)prop)->GetLayout(_typeId);
 
-	_propInits.push_back({ layout, init, uninit });
+	_propInits.push_back({ layout, init, reset, uninit });
 }
 
-bool ObjectDescriptor::LoadTables(const olib::IXmlObject& tables) {
+bool ObjectDescriptor::LoadTables(const char * module, const olib::IXmlObject& tables) {
 	for (s32 i = 0; i < tables.Count(); ++i) {
 		TableDescriptor * tableModel = NEW TableDescriptor();
 		const char * name = tables[i].GetAttributeString("name");
 		if (!tableModel->LoadFrom(tables[i]))
 			return false;
 
-		TableInfo info = { tools::CalcStringUniqueId(name), tableModel };
+		s64 nameId = (((s64)tools::CalcStringUniqueId(module)) << 32) | tools::CalcStringUniqueId(name);
+		TableInfo info = { nameId, module, name, tableModel };
+		ITable * table = ObjectMgr::Instance()->SetTableProp(module, name, _typeId, (s32)_tables.size());
 		_tables.push_back(info);
+
+		tableModel->SetupColumn(table, _typeId);
 	}
 	return true;
 }

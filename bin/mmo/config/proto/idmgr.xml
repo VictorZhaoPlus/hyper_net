@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+	<id name="ask" type="node_proto" />
+	<id name="give" type="node_proto" />
+	
+	<evt_id name="id_loaded" type="event" />
+</config>

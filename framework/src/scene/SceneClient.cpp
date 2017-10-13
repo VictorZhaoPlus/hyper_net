@@ -18,8 +18,8 @@ bool SceneClient::Initialize(IKernel * kernel) {
 
 bool SceneClient::Launched(IKernel * kernel) {
 	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "logic")) {
-		RGS_PROTOCOL_HANDLER(PROTOCOL_ID("proto", "enter_scene"), SceneClient::OnRecvEnterScene);
-		RGS_PROTOCOL_HANDLER(PROTOCOL_ID("proto", "enter_area"), SceneClient::OnRecvEnterArea);
+		RGS_PROTOCOL_HANDLER(PROTOCOL_ID("cli_scene", "enter_scene"), SceneClient::OnRecvEnterScene);
+		RGS_PROTOCOL_HANDLER(PROTOCOL_ID("cli_scene", "enter_area"), SceneClient::OnRecvEnterArea);
 
 		_syncSceneSetting = OMODULE(ObjectMgr)->CalcPropSetting("scene");
 	}
@@ -58,7 +58,7 @@ void SceneClient::AppearOn(IObject * object, const char * scene, const Position&
 	else
 		object->SetPropInt64(OPROP("sceneCopyId"), copyId);
 
-	OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "appear_on_map"), &object, sizeof(object));
+	OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_scene", "appear_on_map"), &object, sizeof(object));
 
 	SendSceneInfo(_kernel, object);
 	object->SetPropInt8(OPROP("appeared"), 1);
@@ -74,7 +74,7 @@ void SceneClient::Disappear(IObject * object) {
 		if (object->GetPropInt8(OPROP("appeared")) == 1)
 			SendDisappearScene(_kernel, object);
 
-		OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "disappear_from_map"), &object, sizeof(object));
+		OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_scene", "disappear_from_map"), &object, sizeof(object));
 	}
 }
 
@@ -89,7 +89,7 @@ void SceneClient::SwitchTo(IObject * object, const char * scene, const Position&
 	info.from = { oldScene.c_str(), { object->GetPropInt16(OPROP("x")), object->GetPropInt16(OPROP("y")), object->GetPropInt16(OPROP("z")) } };
 	info.to = { scene, pos };
 
-	OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "prepare_switch_scene"), &info, sizeof(info));
+	OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_scene", "prepare_switch_scene"), &info, sizeof(info));
 
 	if (object->GetPropInt8(OPROP("appeared")) == 1)
 		SendDisappearScene(_kernel, object);
@@ -110,7 +110,7 @@ void SceneClient::SwitchTo(IObject * object, const char * scene, const Position&
 
 	SendSceneInfo(_kernel, object);
 
-	OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "switch_scene"), &info, sizeof(info));
+	OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_scene", "switch_scene"), &info, sizeof(info));
 }
 
 Position SceneClient::RandomInRange(const char * scene, const s32 copyId, const Position& start, float radius) {
@@ -141,10 +141,10 @@ bool SceneClient::OnRecvEnterScene(IKernel * kernel, IObject * object, const OBu
 		SendAppearScene(kernel, object);
 		object->SetPropInt8(OPROP("appeared"), 1);
 
-		OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "player_appear"), &object, sizeof(object));
+		OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_scene", "player_appear"), &object, sizeof(object));
 		if (object->GetPropInt8(OPROP("firstAppear")) == 0) {
 			object->SetPropInt8(OPROP("firstAppear"), 1);
-			OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "player_first_appear"), &object, sizeof(object));
+			OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_scene", "player_first_appear"), &object, sizeof(object));
 		}
 	}
 	return true;
@@ -229,7 +229,7 @@ void SceneClient::SendSceneInfo(IKernel * kernel, IObject * object) {
 	buf << object->GetPropString(OPROP("sceneId")) << object->GetPropInt64(OPROP("sceneCopyId"));
 	buf << object->GetPropInt16(OPROP("x")) << object->GetPropInt16(OPROP("y")) << object->GetPropInt16(OPROP("z"));
 
-	OMODULE(PacketSender)->Send(object->GetPropInt32(OPROP("gate")), object->GetID(), PROTOCOL_ID("proto", "scene_info"), buf.Out());
+	OMODULE(PacketSender)->Send(object->GetPropInt32(OPROP("gate")), object->GetID(), PROTOCOL_ID("cli_scene", "scene_info"), buf.Out());
 }
 
 s32 SceneClient::DistributeSceneCopy(IKernel * kernel, const char * scene) {

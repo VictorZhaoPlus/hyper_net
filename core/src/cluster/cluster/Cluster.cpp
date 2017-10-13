@@ -2,7 +2,6 @@
 #include "IHarbor.h"
 #include "XmlReader.h"
 #include "IProtocolMgr.h"
-#include "NodeType.h"
 #include "OBuffer.h"
 #include "proto.h"
 
@@ -10,7 +9,7 @@ bool Cluster::Initialize(IKernel * kernel) {
     _kernel = kernel;
 
 	olib::XmlReader reader;
-    std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
+    std::string coreConfigPath = std::string(tools::GetWorkPath()) + "/config/server_conf.xml";
     if (!reader.LoadXml(coreConfigPath.c_str())) {
         OASSERT(false, "can't find core file : %s", coreConfigPath.c_str());
         return false;
@@ -23,7 +22,7 @@ bool Cluster::Initialize(IKernel * kernel) {
 }
 
 bool Cluster::Launched(IKernel * kernel) {
-	if (OMODULE(Harbor)->GetNodeType() != node_type::MASTER) {
+	if (OMODULE(Harbor)->GetNodeType() != PROTOCOL_ID("node_type", "master")) {
 		OMODULE(Harbor)->Connect(_ip.c_str(), _port);
 
 		RGS_HABOR_HANDLER(PROTOCOL_ID("cluster", "new_node"), Cluster::NewNodeComming);

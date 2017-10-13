@@ -9,12 +9,6 @@
 
 class IProtocolMgr;
 class Distribution : public IModule, public INodeListener, public OHolder<Distribution> {
-	struct Proto {
-		s32 distributeLogicReq;
-		s32 distributeLogicAck;
-		s32 addPlayer;
-		s32 removePlayer;
-	};
 public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);
@@ -34,9 +28,6 @@ private:
     IKernel * _kernel;
 	IHarbor * _harbor;
 	IDistributionStrategy * _strategy;
-	IProtocolMgr * _protocolMgr;
-
-	Proto _proto;
 
 	std::unordered_map<s64, s32> _distributes;
 	std::unordered_map<s64, s32> _players;

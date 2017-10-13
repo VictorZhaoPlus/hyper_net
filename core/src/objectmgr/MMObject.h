@@ -78,7 +78,7 @@ public:
 
     virtual void RgsPropChangeCB(const IProp * prop, const PropCallback& cb, const char * info) { _propCBPool.Register(prop, cb, info); }
 
-    virtual ITableControl * FindTable(const s32 name) const ;
+	virtual ITableControl * FindTable(const ITable * table) const;
 
 private:
 	inline void PropCall(const IProp * prop, const bool sync) {
@@ -92,7 +92,7 @@ private:
 
 	Memory * _memory;
 	ObjectDescriptor * _descriptor;
-	std::unordered_map<s32, TableControl*> _tables;
+	TableControl** _tables;
 
 	olib::CallbackType<const IProp *, PropCallback>::type _propCBPool;
 };

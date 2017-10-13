@@ -29,7 +29,7 @@ bool Slave::Initialize(IKernel * kernel) {
 bool Slave::Launched(IKernel * kernel) {
 	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "slave")) {
 		olib::XmlReader conf;
-		std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
+		std::string coreConfigPath = std::string(tools::GetWorkPath()) + "/config/server_conf.xml";
 		if (!conf.LoadXml(coreConfigPath.c_str())) {
 			OASSERT(false, "wtf");
 			return false;
@@ -59,9 +59,11 @@ bool Slave::Launched(IKernel * kernel) {
 		OASSERT(find, "wtf");
 
 		std::unordered_map<std::string, std::string> defines;
-		const olib::IXmlObject& defs = starter["define"];
-		for (s32 i = 0; i < defs.Count(); ++i)
-			defines[defs[i].GetAttributeString("name")] = defs[i].GetAttributeString("value");
+		if (starter.IsExist("define")) {
+			const olib::IXmlObject& defs = starter["define"];
+			for (s32 i = 0; i < defs.Count(); ++i)
+				defines[defs[i].GetAttributeString("name")] = defs[i].GetAttributeString("value");
+		}
 
 		if (starter.IsExist("node")) {
 			const olib::IXmlObject& nodes = starter["node"];

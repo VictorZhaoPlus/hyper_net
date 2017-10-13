@@ -17,7 +17,7 @@ namespace tools {
 		char tmp[512] = { 0 };
 		SafeSprintf(tmp, sizeof(tmp), "%s/*.*", path);
 
-		HANDLE handle = FindFirstFile(path, &finder);
+		HANDLE handle = FindFirstFile(tmp, &finder);
 		if (INVALID_HANDLE_VALUE == handle)
 			return;
 

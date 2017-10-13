@@ -25,9 +25,26 @@ enum {
     DTYPE_BLOB
 };
 
+class IColumn {
+public:
+	virtual ~IColumn() {};
+
+	virtual const char * GetRealName() const = 0;
+};
+
+class ITable {
+public:
+	virtual ~ITable() {};
+
+	virtual const char * GetRealName() const = 0;
+
+	virtual const IColumn * GetCol(const char *) const = 0;
+};
+
+
 class ITableControl;
 class IRow;
-typedef std::function<void (IKernel * kernel, ITableControl * table, IRow * row, const s32 col, const s8 type)> TableUpdateCallback;
+typedef std::function<void (IKernel * kernel, ITableControl * table, IRow * row, const IColumn * col, const s8 type)> TableUpdateCallback;
 typedef std::function<void (IKernel * kernel, ITableControl * table, IRow * row, const void * key, const s32 size, const s8 type)> TableAddCallback;
 typedef std::function<void (IKernel * kernel, ITableControl * table, IRow * row)> TableDeleteCallback;
 typedef std::function<void (IKernel * kernel, ITableControl * table, IRow * src, IRow * dst)> TableSwapCallback;
@@ -43,23 +60,23 @@ public:
 
 	virtual s32 GetRowIndex() const = 0;
 
-	virtual s8 GetDataInt8(const s32 col) const = 0;
-	virtual s16 GetDataInt16(const s32 col) const = 0;
-	virtual s32 GetDataInt32(const s32 col) const = 0;
-	virtual s64 GetDataInt64(const s32 col) const = 0;
-	virtual float GetDataFloat(const s32 col) const = 0;
-	virtual const char * GetDataString(const s32 col) const = 0;
-	virtual const void * GetDataStruct(const s32 col, const s32 size) const = 0;
-	virtual const void * GetDataBlob(const s32 col, s32& size) const = 0;
+	virtual s8 GetDataInt8(const IColumn * col) const = 0;
+	virtual s16 GetDataInt16(const IColumn * col) const = 0;
+	virtual s32 GetDataInt32(const IColumn * col) const = 0;
+	virtual s64 GetDataInt64(const IColumn * col) const = 0;
+	virtual float GetDataFloat(const IColumn * col) const = 0;
+	virtual const char * GetDataString(const IColumn * col) const = 0;
+	virtual const void * GetDataStruct(const IColumn * col, const s32 size) const = 0;
+	virtual const void * GetDataBlob(const IColumn * col, s32& size) const = 0;
 
-	virtual void SetDataInt8(const s32 col, const s8 value) = 0;
-	virtual void SetDataInt16(const s32 col, const s16 value) = 0;
-	virtual void SetDataInt32(const s32 col, const s32 value) = 0;
-	virtual void SetDataInt64(const s32 col, const s64 value) = 0;
-	virtual void SetDataFloat(const s32 col, const float value) = 0;
-	virtual void SetDataString(const s32 col, const char * value) = 0;
-	virtual void SetDataStruct(const s32 col, const void * value, const s32 size) = 0;
-	virtual void SetDataBlob(const s32 col, const void * value, const s32 size) = 0;
+	virtual void SetDataInt8(const IColumn * col, const s8 value) = 0;
+	virtual void SetDataInt16(const IColumn * col, const s16 value) = 0;
+	virtual void SetDataInt32(const IColumn * col, const s32 value) = 0;
+	virtual void SetDataInt64(const IColumn * col, const s64 value) = 0;
+	virtual void SetDataFloat(const IColumn * col, const float value) = 0;
+	virtual void SetDataString(const IColumn * col, const char * value) = 0;
+	virtual void SetDataStruct(const IColumn * col, const void * value, const s32 size) = 0;
+	virtual void SetDataBlob(const IColumn * col, const void * value, const s32 size) = 0;
 };
 
 class IObject;
@@ -106,7 +123,7 @@ class IProp {
 public:
 	virtual ~IProp() {}
 
-	virtual const s32 GetName() const = 0;
+	virtual const s64 GetName() const = 0;
 	virtual const char * GetRealName() const = 0;
 	virtual const s8 GetType(IObject * object) const = 0;
 	virtual const s32 GetSetting(IObject * object) const = 0;
@@ -146,7 +163,7 @@ public:
 
     virtual void RgsPropChangeCB(const IProp * prop, const PropCallback& cb, const char * debug_info) = 0;
 
-    virtual ITableControl * FindTable(const s32 name) const = 0;
+    virtual ITableControl * FindTable(const ITable * table) const = 0;
 };
 
 #define CREATE_OBJECT(...)  OMODULE(ObjectMgr)->Create(__FILE__, __LINE__, __VA_ARGS__)
@@ -154,7 +171,7 @@ public:
 #define CREATE_STATIC_TABLE(name, model) OMODULE(ObjectMgr)->CreateStaticTable(name, model, __FILE__, __LINE__)
 
 typedef std::function<void(void * p, s32 size)> PropFunc;
-typedef std::function<void(IObject*)> ObjectCRCB;
+typedef std::function<void(IKernel * kernel, IObject*)> ObjectCRCB;
 class IObjectMgr : public IModule {
 public:
     virtual ~IObjectMgr() {}
@@ -164,55 +181,96 @@ public:
     virtual IObject * FindObject(const s64 id) = 0;
     virtual void Recove(IObject * pObject) = 0;
 
-	virtual const IProp * CalcProp(const char * name) = 0;
-	virtual const IProp * CalcProp(const s32 name) = 0;
+	virtual const IProp * CalcProp(const char * name, const char * module = "") = 0;
+	virtual const IProp * CalcProp(const s64 name) = 0;
 	virtual s32 CalcPropSetting(const char * setting) = 0;
+	virtual const ITable * CalcTable(const char * name, const char * module = "") = 0;
 
-	virtual void ExtendInt8(const char * type, const char * module, const char * name, ...) = 0;
-	virtual void ExtendInt16(const char * type, const char * module, const char * name, ...) = 0;
-	virtual void ExtendInt32(const char * type, const char * module, const char * name, ...) = 0;
-	virtual void ExtendInt64(const char * type, const char * module, const char * name, ...) = 0;
-	virtual void ExtendFloat(const char * type, const char * module, const char * name, ...) = 0;
-	virtual void ExtendString(const char * type, const char * module, const char * name, const s32 size, ...) = 0;
-	virtual void ExtendStruct(const char * type, const char * module, const char * name, const s32 size, const PropFunc& init = nullptr, const PropFunc& uninit = nullptr) = 0;
-	virtual void ExtendTable(const char * type, const char * name, s32 count, ...) = 0;
+	inline void ExtendInt8(const char * type, const char * name, const char * module = "") { ExtendData(type, module, name, DTYPE_INT8, sizeof(s8)); }
+	inline void ExtendInt16(const char * type, const char * name, const char * module = "") { ExtendData(type, module, name, DTYPE_INT16, sizeof(s16)); }
+	inline void ExtendInt32(const char * type, const char * name, const char * module = "") { ExtendData(type, module, name, DTYPE_INT32, sizeof(s32)); }
+	inline void ExtendInt64(const char * type, const char * name, const char * module = "") { ExtendData(type, module, name, DTYPE_INT64, sizeof(s64)); }
+	inline void ExtendFloat(const char * type, const char * name, const char * module = "") { ExtendData(type, module, name, DTYPE_FLOAT, sizeof(float)); }
+	inline void ExtendString(const char * type, const char * name, const s32 size, const char * module = "") { ExtendData(type, module, name, DTYPE_STRING, size); }
+	inline void ExtendBlob(const char * type, const char * name, const s32 size, const char * module = "") { ExtendData(type, module, name, DTYPE_BLOB, size); }
 
 	template <typename T>
-	inline void ExtendT(const char * type, const char * module, const char * name) {
-		ExtendStruct(type, module, name, sizeof(T), [](void * p, s32 size) {
+	inline void ExtendT(const char * type, const char * name, const char * module = "") {
+		ExtendData(type, module, name, DTYPE_STRUCT, sizeof(T), [](void * p, s32 size) {
 			new (p) T;
+		}, [](void * p, s32 size) {
+			T * t = (T*)p;
+			t->clear();
 		}, [](void * p, s32 size) {
 			T * t = (T*)p;
 			t->~T();
 		});
 	}
 
-	virtual s32 CalcTableName(const char * table) = 0;
+	//virtual void ExtendSetting(const char * type, const char * name, const char * module, s32 count, ...) = 0;
 
     virtual const std::vector<const IProp*>* GetPropsInfo(const char * type, bool noFather = false) const = 0;
 
-    virtual ITableControl * CreateStaticTable(const char * name, const char * model, const char * file, const s32 line) = 0;
+    virtual ITableControl * CreateStaticTable(const char * name, const ITable * model, const char * file, const s32 line) = 0;
     virtual void RecoverStaticTable(ITableControl * table) = 0;
 
 	virtual void RgsObjectCRCB(const char * type, const ObjectCRCB& init, const ObjectCRCB& uninit) = 0;
+
+protected:
+	virtual void ExtendData(const char * type, const char * module, const char * name, const s32 dataType, const s32 size, const PropFunc& init = nullptr, const PropFunc& reset = nullptr, const PropFunc& uninit = nullptr) = 0;
 };
 
-constexpr s64 CalcUniqueId(s64 hash, const char * str) {
-	return *str ? CalcUniqueId((hash * 131 + (*str)) % 4294967295, str + 1) : hash;
-}
-
-template <s64...>
+template <s64, s64>
 struct PropGetter {
-	inline static const IProp * Get(const char * name) {
+	inline static const IProp * Get(const char * module, const char * name) {
 		static const IProp * prop = nullptr;
 		if (!prop) {
-			prop = OMODULE(ObjectMgr)->CalcProp(name);
+			prop = OMODULE(ObjectMgr)->CalcProp(name, module);
 			OASSERT(prop, "wtf");
 		}
 		return prop;
 	}
 };
 
-#define OPROP(name) (PropGetter<CalcUniqueId(0, name)>::Get(name))
-#define OMPROP(module, name) (PropGetter<CalcUniqueId(0, module), CalcUniqueId(0, name)>::Get(#module"."#name))
+#define OMPROP(module, name) (PropGetter<CalcUniqueId(0, module), CalcUniqueId(0, name)>::Get(module, name))
+#define OPROP(name) OMPROP("", name)
+
+template <s64>
+struct SettingGetter {
+	inline static s32 Get(const char * name) {
+		static const s32 prop = OMODULE(ObjectMgr)->CalcPropSetting(name);
+		return prop;
+	}
+};
+#define OSETTING(name) (SettingGetter<CalcUniqueId(0, name)>::Get(name))
+
+template <s64, s64> 
+struct TableGetter{
+	inline static const ITable * Get(const char * module, const char * name) {
+		static const ITable * table = nullptr;
+		if (!table) {
+			table = OMODULE(ObjectMgr)->CalcTable(name, module);
+			OASSERT(table, "wtf");
+		}
+		return table;
+	}
+
+	template <s64>
+	struct ColumnGetter {
+		inline static const IColumn * Get(const char * module, const char * name, const char * column) {
+			static const IColumn * col = nullptr;
+			if (!col) {
+				col = TableGetter::Get(name, module)->GetCol(column);
+				OASSERT(col, "wtf");
+			}
+			return col;
+		}
+	};
+};
+
+#define OMTABLE(module, name) (TableGetter<CalcUniqueId(0, module), CalcUniqueId(0, name)>::Get(module, name))
+#define OTABLE(name) OMTABLE("", name)
+#define OMCOLUMN(module, name, col) (TableGetter<CalcUniqueId(0, module), CalcUniqueId(0, name)>::ColumnGetter<CalcUniqueId(0, col)>::Get(module, name, col))
+#define OCOLUMN(name, col) OMCOLUMN("", name, col)
+
 #endif //define __IOBJECTMGR_h__

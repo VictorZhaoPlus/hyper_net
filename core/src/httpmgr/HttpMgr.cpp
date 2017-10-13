@@ -14,7 +14,7 @@ bool HttpMgr::Initialize(IKernel * kernel) {
     s_kernel = kernel;
 
 	olib::XmlReader reader;
-	std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
+	std::string coreConfigPath = std::string(tools::GetWorkPath()) + "/config/server_conf.xml";
 	if (!reader.LoadXml(coreConfigPath.c_str())) {
 		OASSERT(false, "can't find core file : %s", coreConfigPath.c_str());
 		return false;

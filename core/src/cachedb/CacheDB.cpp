@@ -145,7 +145,7 @@ bool CacheDB::Initialize(IKernel * kernel) {
     _kernel = kernel;
 
 	char path[512] = { 0 };
-	SafeSprintf(path, sizeof(path), "%s/config/cache_db.xml", tools::GetAppPath());
+	SafeSprintf(path, sizeof(path), "%s/config/cache_db.xml", tools::GetWorkPath());
 	olib::XmlReader conf;
 	if (!conf.LoadXml(path)) {
 		OASSERT(false, "load object.xml failed");
@@ -212,7 +212,10 @@ bool CacheDB::Initialize(IKernel * kernel) {
 						OASSERT(false, "wtf");
 					}
 				}
+
+				_tables[tables[j].GetAttributeString("name")] = desc;
 			}
+			
 		}
 	});
 

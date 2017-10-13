@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+    <node_type name="master" id="-1" />
+	<node_type name="slave" id="-2" />
+	<node_type name="invalid" id="0" />
+	<node_type name="user" id="1" />
+	
+	<cluster name="new_node" type="node_proto" />
+	<cluster name="start_node" type="node_proto" />
+</config>

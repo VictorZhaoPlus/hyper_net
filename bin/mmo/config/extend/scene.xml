@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config path="./">
+	<module name="ProtocolMgr" />
+    <module name="Harbor" />
+	<module name="Monitor" />
+	
+    <module name="Cluster" />
+	<module name="IdMgr" />
+	<module name="EventEngine" />
+	<module name="ObjectMgr" />
+	<module name="ObjectTimer" />
+	<module name="FSM" />
+	<module name="Login" />
+	<module name="Scene" />
+</config>

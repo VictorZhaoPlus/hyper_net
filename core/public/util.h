@@ -116,5 +116,9 @@ extern "C" {
 #include <list>
 #include <set>
 #include <map>
+
+constexpr s64 CalcUniqueId(s64 hash, const char * str) {
+	return *str ? CalcUniqueId((hash * 131 + (*str)) % 4294967295, str + 1) : hash;
+}
 #endif
 #endif //__util_h__

@@ -13,6 +13,15 @@ public:
 	ObjectFsm();
 	~ObjectFsm();
 
+	inline void clear() {
+		_entryJudge.Clear();
+		_changeJudge.Clear();
+		_leaveJudge.Clear();
+		_entryStatus.Clear();
+		_changeStatus.Clear();
+		_leaveStatus.Clear();
+	}
+
 	void RgsEntryJudgeCB(s32 status, const StatusJudgeCallback& f, const char * debug) { _entryJudge.Register(status, f, debug); }
 	void RgsChangeJudgeCB(s32 from, s32 to, const StatusJudgeCallback& f, const char * debug) { _changeJudge.Register(((((s64)from) << 32) | (s64)to), f, debug); }
 	void RgsLeaveJudgeCB(s32 status, const StatusJudgeCallback& f, const char * debug) { _leaveJudge.Register(status, f, debug); }

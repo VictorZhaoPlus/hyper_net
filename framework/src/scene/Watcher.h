@@ -53,12 +53,7 @@ public:
 private:
     IKernel * _kernel;
 
-	s32 _tableInterest;
-	s32 _tableWatcher;
-	s32 _settingShare;
-
 	std::unordered_map<s32, QueryFunc> _queriors;
-
 	std::unordered_map<s64, RuningQuery *> _queries;
 	s32 _nextQueryId;
 };

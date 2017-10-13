@@ -41,7 +41,7 @@ bool Gate::Initialize(IKernel * kernel) {
     _kernel = kernel;
 
 	olib::XmlReader reader;
-	std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
+	std::string coreConfigPath = std::string(tools::GetWorkPath()) + "/config/server_conf.xml";
 	if (!reader.LoadXml(coreConfigPath.c_str())) {
 		OASSERT(false, "can't find core file : %s", coreConfigPath.c_str());
 		return false;
@@ -67,12 +67,12 @@ bool Gate::Launched(IKernel * kernel) {
 		RGS_HABOR_HANDLER(PROTOCOL_ID("login", "transmit_to_actor"), Gate::OnTransMsgToActor);
 		RGS_HABOR_HANDLER(PROTOCOL_ID("login", "brocast_to_actor"), Gate::OnBrocastMsgToActor);
 
-		_protos[PROTOCOL_ID("proto", "login_req")] = &Gate::OnRecvLoginReq;
-		_protos[PROTOCOL_ID("proto", "reconect_req")] = &Gate::OnRecvReconnectReq;
-		_protos[PROTOCOL_ID("proto", "select_role_req")] = &Gate::OnRecvSelectRoleReq;
-		_protos[PROTOCOL_ID("proto", "create_role_req")] = &Gate::OnRecvCreateRoleReq;
-		_protos[PROTOCOL_ID("proto", "delete_role_req")] = &Gate::OnRecvDeleteRoleReq;
-		_protos[PROTOCOL_ID("proto", "reselect_role_req")] = &Gate::OnRecvReselectRole;
+		_protos[PROTOCOL_ID("cli_login", "login_req")] = &Gate::OnRecvLoginReq;
+		_protos[PROTOCOL_ID("cli_login", "reconect_req")] = &Gate::OnRecvReconnectReq;
+		_protos[PROTOCOL_ID("cli_login", "select_role_req")] = &Gate::OnRecvSelectRoleReq;
+		_protos[PROTOCOL_ID("cli_login", "create_role_req")] = &Gate::OnRecvCreateRoleReq;
+		_protos[PROTOCOL_ID("cli_login", "delete_role_req")] = &Gate::OnRecvDeleteRoleReq;
+		_protos[PROTOCOL_ID("cli_login", "reselect_role_req")] = &Gate::OnRecvReselectRole;
 
 	}
 
@@ -146,8 +146,8 @@ void Gate::OnRecvLoginReq(IKernel * kernel, const s64 id, const OBuffer& buf) {
 		TokenData data;
 		if (strlen(token) > MAX_TOKEN_SIZE || !CheckToken(token, data, true)) {
 			olib::Buffer<128> buf;
-			buf << PROTOCOL_ID("error", "invalid_token");
-			SendToClient(kernel, player.agentId, PROTOCOL_ID("proto", "login_ack"), buf.Out());
+			buf << PROTOCOL_ID("err_mmo", "invalid_token");
+			SendToClient(kernel, player.agentId, PROTOCOL_ID("cli_login", "login_ack"), buf.Out());
 			return;
 		}
 
@@ -184,8 +184,8 @@ void Gate::OnRecvLoginReq(IKernel * kernel, const s64 id, const OBuffer& buf) {
 		}
 		else {
 			olib::Buffer<128> buf;
-			buf << PROTOCOL_ID("error", "read_account_failed");
-			SendToClient(kernel, player.agentId, PROTOCOL_ID("proto", "login_ack"), buf.Out());
+			buf << PROTOCOL_ID("err_mmo", "read_account_failed");
+			SendToClient(kernel, player.agentId, PROTOCOL_ID("cli_login", "login_ack"), buf.Out());
 		}
 	}
 }
@@ -202,8 +202,8 @@ void Gate::OnRecvReconnectReq(IKernel * kernel, const s64 id, const OBuffer& buf
 		TokenData data;
 		if (strlen(token) > MAX_TOKEN_SIZE || !CheckToken(token, data, false) || data.count <= 0) {
 			olib::Buffer<128> buf;
-			buf << PROTOCOL_ID("error", "invalid_token");
-			SendToClient(kernel, player.agentId, PROTOCOL_ID("proto", "login_ack"), buf.Out());
+			buf << PROTOCOL_ID("err_mmo", "invalid_token");
+			SendToClient(kernel, player.agentId, PROTOCOL_ID("cli_login", "login_ack"), buf.Out());
 			return;
 		}
 
@@ -234,8 +234,8 @@ void Gate::OnRecvReconnectReq(IKernel * kernel, const s64 id, const OBuffer& buf
 		}
 		else {
 			olib::Buffer<128> buf;
-			buf << PROTOCOL_ID("error", "read_account_failed");
-			SendToClient(kernel, player.agentId, PROTOCOL_ID("proto", "login_ack"), buf.Out());
+			buf << PROTOCOL_ID("err_mmo", "read_account_failed");
+			SendToClient(kernel, player.agentId, PROTOCOL_ID("cli_login", "login_ack"), buf.Out());
 		}
 	}
 }
@@ -269,20 +269,20 @@ void Gate::OnRecvBindAccountAck(IKernel * kernel, s32 nodeType, s32 nodeId, cons
 					role.role->Pack(buf);
 				}
 
-				SendToClient(kernel, player.agentId, PROTOCOL_ID("proto", "login_ack"), buf.Out());
+				SendToClient(kernel, player.agentId, PROTOCOL_ID("cli_login", "login_ack"), buf.Out());
 			}
 			else {
 				Reset(kernel, agentId, ST_NONE, PROTOCOL_ID("node_type", "user"));
 
 				olib::Buffer<128> buf;
-				buf << PROTOCOL_ID("error", "load_role_failed");
-				SendToClient(kernel, player.agentId, PROTOCOL_ID("proto", "login_ack"), buf.Out());
+				buf << PROTOCOL_ID("err_mmo", "load_role_failed");
+				SendToClient(kernel, player.agentId, PROTOCOL_ID("cli_login", "login_ack"), buf.Out());
 			}
 		}
 		else {
 			olib::Buffer<128> buf;
 			buf << errorCode;
-			SendToClient(kernel, player.agentId, PROTOCOL_ID("proto", "login_ack"), buf.Out());
+			SendToClient(kernel, player.agentId, PROTOCOL_ID("cli_login", "login_ack"), buf.Out());
 		}
 	}
 }
@@ -355,8 +355,8 @@ void Gate::OnRecvDistributeAck(IKernel * kernel, s32 nodeType, s32 nodeId, const
 			Reset(kernel, agentId, ST_ROLELOADED, PROTOCOL_ID("node_type", "user"));
 
 			olib::Buffer<128> buf;
-			buf << PROTOCOL_ID("error", "distribute_role_failed");
-			SendToClient(kernel, agentId, PROTOCOL_ID("proto", "select_role_ack"), buf.Out());
+			buf << PROTOCOL_ID("err_mmo", "distribute_role_failed");
+			SendToClient(kernel, agentId, PROTOCOL_ID("cli_login", "select_role_ack"), buf.Out());
 		}
 	}
 }
@@ -385,8 +385,8 @@ void Gate::OnBindLogicAck(IKernel * kernel, s32 nodeType, s32 nodeId, const OArg
 			Reset(kernel, _actors[actorId], ST_ROLELOADED, PROTOCOL_ID("node_type", "user"));
 
 			olib::Buffer<128> buf;
-			buf << PROTOCOL_ID("error", "bind_logic_failed");
-			SendToClient(kernel, _actors[actorId], PROTOCOL_ID("proto", "select_role_ack"), buf.Out());
+			buf << PROTOCOL_ID("err_mmo", "bind_logic_failed");
+			SendToClient(kernel, _actors[actorId], PROTOCOL_ID("cli_login", "select_role_ack"), buf.Out());
 		}
 	}
 }
@@ -421,7 +421,7 @@ void Gate::OnRecvReselectRole(IKernel * kernel, const s64 id, const OBuffer& buf
 			role.role->Pack(buf);
 		}
 
-		SendToClient(kernel, player.agentId, PROTOCOL_ID("proto", "reselect_role_ack"), buf.Out());
+		SendToClient(kernel, player.agentId, PROTOCOL_ID("cli_login", "reselect_role_ack"), buf.Out());
 	}
 }
 
@@ -431,8 +431,8 @@ void Gate::OnRecvCreateRoleReq(IKernel * kernel, const s64 id, const OBuffer& bu
 	if (player.state == ST_ROLELOADED) {
 		if (player.roles.size() >= _maxRole) {
 			olib::Buffer<128> buf;
-			buf << PROTOCOL_ID("error", "too_much_role");
-			SendToClient(kernel, id, PROTOCOL_ID("proto", "create_role_ack"), buf.Out());
+			buf << PROTOCOL_ID("err_mmo", "too_much_role");
+			SendToClient(kernel, id, PROTOCOL_ID("cli_login", "create_role_ack"), buf.Out());
 			return;
 		}
 
@@ -444,12 +444,12 @@ void Gate::OnRecvCreateRoleReq(IKernel * kernel, const s64 id, const OBuffer& bu
 			olib::Buffer<128> buf;
 			buf << PROTOCOL_ID("error", "no_error");
 			role->Pack(buf);
-			SendToClient(kernel, id, PROTOCOL_ID("proto", "create_role_ack"), buf.Out());
+			SendToClient(kernel, id, PROTOCOL_ID("cli_login", "create_role_ack"), buf.Out());
 		}
 		else {
 			olib::Buffer<128> buf;
-			buf << PROTOCOL_ID("error", "create_role_failed");
-			SendToClient(kernel, id, PROTOCOL_ID("proto", "create_role_ack"), buf.Out());
+			buf << PROTOCOL_ID("err_mmo", "create_role_failed");
+			SendToClient(kernel, id, PROTOCOL_ID("cli_login", "create_role_ack"), buf.Out());
 		}
 	}
 }
@@ -472,12 +472,12 @@ void Gate::OnRecvDeleteRoleReq(IKernel * kernel, const s64 id, const OBuffer& bu
 				
 				olib::Buffer<128> buf;
 				buf << PROTOCOL_ID("error", "no_error") << actorId;
-				SendToClient(kernel, id, PROTOCOL_ID("proto", "delete_role_ack"), buf.Out());
+				SendToClient(kernel, id, PROTOCOL_ID("cli_login", "delete_role_ack"), buf.Out());
 			}
 			else {
 				olib::Buffer<128> buf;
-				buf << PROTOCOL_ID("error", "delete_role_failed");
-				SendToClient(kernel, id, PROTOCOL_ID("proto", "delete_role_ack"), buf.Out());
+				buf << PROTOCOL_ID("err_mmo", "delete_role_failed");
+				SendToClient(kernel, id, PROTOCOL_ID("cli_login", "delete_role_ack"), buf.Out());
 			}
 		}
 	}

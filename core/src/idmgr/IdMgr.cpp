@@ -19,17 +19,18 @@ bool IdMgr::Initialize(IKernel * kernel) {
     _kernel = kernel;
 
 	olib::XmlReader reader;
-	std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
+	std::string coreConfigPath = std::string(tools::GetWorkPath()) + "/config/server_conf.xml";
 	if (!reader.LoadXml(coreConfigPath.c_str())) {
 		OASSERT(false, "can't find core file : %s", coreConfigPath.c_str());
 		return false;
 	}
 
 	const olib::IXmlObject& id = reader.Root()["id"][0];
+	_areaId = reader.Root()["app"][0].GetAttributeInt32("area");
+
 	_multiProcess = id.GetAttributeBoolean("multi");
 	if (_multiProcess) {
 		_nodeType = id.GetAttributeInt32("server");
-		_areaId = reader.Root()["app"][0].GetAttributeInt32("area");
 		_poolSize = id.GetAttributeInt32("pool_size");
 	}
 
@@ -65,10 +66,14 @@ s64 IdMgr::AllocId() {
 	if (!_multiProcess)
 		return GenerateId();
 	else {
-		OASSERT(!_ids.empty(), "wtf");
-		s64 ret = *_ids.rbegin();
-		_ids.pop_back();
-		return ret;
+		if (OMODULE(Harbor)->GetNodeType() == _nodeType)
+			return GenerateId();
+		else {
+			OASSERT(!_ids.empty(), "wtf");
+			s64 ret = *_ids.rbegin();
+			_ids.pop_back();
+			return ret;
+		}
 	}
 	return 0;
 }
@@ -81,13 +86,14 @@ void IdMgr::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
 				_ids.push_back(GenerateId());
 
 			if (_loadFirst) {
-				OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "id_loaded"), nullptr, 0);
+				OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_id", "id_loaded"), nullptr, 0);
 				_loadFirst = false;
 			}
 		}
 		else {
 			IArgs<1, 32> args;
 			args << 0;
+			args.Fix();
 			OMODULE(Harbor)->Send(_nodeType, 1, PROTOCOL_ID("id", "ask"), args.Out());
 		}
 	}
@@ -124,7 +130,7 @@ void IdMgr::GiveId(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & arg
 		_ids.push_back(args.GetDataInt64(i));
 
 	if (_loadFirst) {
-		OMODULE(EventEngine)->Exec(PROTOCOL_ID("event", "id_loaded"), nullptr, 0);
+		OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_id", "id_loaded"), nullptr, 0);
 		_loadFirst = false;
 	}
 }

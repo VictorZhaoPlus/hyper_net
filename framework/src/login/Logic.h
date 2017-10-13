@@ -10,15 +10,6 @@
 
 class OBuffer;
 class Logic : public ILogic, public INodeListener, public OHolder<Logic> {
-	struct Proto {
-		s32 bindPlayerReq;
-		s32 bindPlayerAck;
-		s32 unbindPlayerReq;
-		s32 transmitToLogic;
-		s32 addPlayer;
-		s32 removePlayer;
-	};
-
 	typedef olib::CallbackType<s32, ProtocolCB>::type ProtocolPool;
 public:
     virtual bool Initialize(IKernel * kernel);

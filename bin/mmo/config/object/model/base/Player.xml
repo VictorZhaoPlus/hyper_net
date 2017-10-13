@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config parent="Biology">
+	<prop name="account" type="s64" />
+	<prop name="gate" type="s32" />
+	<prop name="logic" type="s32" />
+	<prop name="recoverTimer" type="s64" />
+</config>

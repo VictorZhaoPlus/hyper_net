@@ -25,7 +25,7 @@ class TableControl : public ITableControl{
     typedef std::list<TableSwapCallback> SWP_CB_POOL;
 
 public:
-	TableControl(s32 name, const TableDescriptor * descriptor, IObject * host = nullptr);
+	TableControl(s64 name, const TableDescriptor * descriptor, IObject * host = nullptr);
 	~TableControl();
 
 	virtual void RgsUpdate(TableUpdateCallback cb, const char * debug) { _updateCallPool.push_back(cb); }
@@ -34,7 +34,7 @@ public:
 	virtual void RgsChange(TableSwapCallback cb, const char * debug) { _swapCallPool.push_back(cb); }
 
 	virtual IObject * GetHost() { return _host; }
-	s32 GetName() const { return _name; }
+	s64 GetName() const { return _name; }
 
 	virtual s32 RowCount() const { return (s32)_rows.size(); }
 	virtual void ClearRows();
@@ -54,7 +54,7 @@ public:
     virtual bool DelRow(const s32 index);
     virtual bool SwapRowIndex(const s32 src, const s32 dst);
 
-	void UpdateCallBack(IKernel * pKernel, IRow *  row, const s32 column, const s8 type) {
+	void UpdateCallBack(IKernel * pKernel, IRow *  row, const IColumn * column, const s8 type) {
 		for (auto cb : _updateCallPool)
 			cb(pKernel, this, row, column, type);
 	}
@@ -80,7 +80,7 @@ public:
 
 private:
     IObject * _host;
-	s32 _name;
+	s64 _name;
 
     UPDATE_CB_POOL _updateCallPool;
     ADD_CB_POOL _addCallPool;

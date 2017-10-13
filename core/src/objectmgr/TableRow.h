@@ -11,10 +11,14 @@
 #include "XmlReader.h"
 #include "TableControl.h"
 #include "ObjectMgr.h"
+#include <string>
+#include "TableProp.h"
 
 struct TableLayout : public Layout {
+	std::string name;
 	s8 type;
 	bool key;
+	IColumn * col;
 };
 
 class TableDescriptor {
@@ -24,10 +28,11 @@ public:
 
 	inline s32 CalMemorySize() const { return _size; }
 	inline s8 GetKeyType() const { return _key; }
-	inline s32 GetKeyCol() const { return _keyCol; }
+	inline IColumn * GetKeyCol() const { return (_keyCol != -1 ? _layouts[_keyCol].col : nullptr); }
 
 	bool LoadFrom(const olib::IXmlObject& root);
-	inline void AddLayout(s8 type, s32 size, bool key) { AddLayout(type, _size, size, key); }
+	inline void AddLayout(const char * name, s8 type, s32 size, bool key) { AddLayout(name, type, _size, size, key); }
+	void SetupColumn(ITable * table, s32 typeId);
 
 	const TableLayout * Query(s32 col, s32 type, s32 size) const {
 		OASSERT(col >= 0 && col < (s32)_layouts.size(), "wtf");
@@ -42,8 +47,9 @@ public:
 	}
 
 private:
-	void AddLayout(s8 type, s32 offset, s32 size, bool key) {
+	void AddLayout(const char * name, s8 type, s32 offset, s32 size, bool key) {
 		TableLayout layout;
+		layout.name = name;
 		layout.type = type;
 		layout.offset = offset;
 		layout.size = size;
@@ -76,25 +82,27 @@ public:
 	virtual s32 GetRowIndex() const { return _index; }
 	void SetRowIndex(const s32 index) { _index = index; }
 
-	inline const void * Get(const s32 col, const s8 type, s32& size) const {
-		const TableLayout * info = _descriptor->Query(col, type, size);
+	inline const void * Get(const IColumn * col, const s8 type, s32& size) const {
+		s32 idx = ((ColumnProp*)col)->GetLayout(_typeId);
+		const TableLayout * info = (idx > 0 ? _descriptor->Query(idx - 1, type, size) : nullptr);
 		if (!info)
 			return nullptr;
 
 		size = info->size;
 		return _memory->Get(info);
 	}
-	virtual s8 GetDataInt8(const s32 col) const { s32 size = sizeof(s8); return *(s8*)Get(col, DTYPE_INT8, size); }
-	virtual s16 GetDataInt16(const s32 col) const { s32 size = sizeof(s16); return *(s8*)Get(col, DTYPE_INT16, size); }
-	virtual s32 GetDataInt32(const s32 col) const { s32 size = sizeof(s32); return *(s8*)Get(col, DTYPE_INT32, size); }
-	virtual s64 GetDataInt64(const s32 col) const { s32 size = sizeof(s64); return *(s8*)Get(col, DTYPE_INT64, size); }
-	virtual float GetDataFloat(const s32 col) const { s32 size = sizeof(float); return *(s8*)Get(col, DTYPE_FLOAT, size); }
-	virtual const char * GetDataString(const s32 col) const { s32 size = 0; return (const char *)Get(col, DTYPE_STRING, size); }
-	virtual const void * GetDataStruct(const s32 col, const s32 size) const { s32 tempSize = size; return (const char *)Get(col, DTYPE_STRUCT, tempSize); }
-	virtual const void * GetDataBlob(const s32 col, s32& size) const { size = 0; return (const char *)Get(col, DTYPE_BLOB, size); }
+	virtual s8 GetDataInt8(const IColumn * col) const { s32 size = sizeof(s8); return *(s8*)Get(col, DTYPE_INT8, size); }
+	virtual s16 GetDataInt16(const IColumn * col) const { s32 size = sizeof(s16); return *(s8*)Get(col, DTYPE_INT16, size); }
+	virtual s32 GetDataInt32(const IColumn * col) const { s32 size = sizeof(s32); return *(s8*)Get(col, DTYPE_INT32, size); }
+	virtual s64 GetDataInt64(const IColumn * col) const { s32 size = sizeof(s64); return *(s8*)Get(col, DTYPE_INT64, size); }
+	virtual float GetDataFloat(const IColumn * col) const { s32 size = sizeof(float); return *(s8*)Get(col, DTYPE_FLOAT, size); }
+	virtual const char * GetDataString(const IColumn * col) const { s32 size = 0; return (const char *)Get(col, DTYPE_STRING, size); }
+	virtual const void * GetDataStruct(const IColumn * col, const s32 size) const { s32 tempSize = size; return (const char *)Get(col, DTYPE_STRUCT, tempSize); }
+	virtual const void * GetDataBlob(const IColumn * col, s32& size) const { size = 0; return (const char *)Get(col, DTYPE_BLOB, size); }
 
-	inline void Set(const s32 col, const s8 type, const void * data, const s32 size, bool changeKey = true) {
-		const TableLayout * info = _descriptor->Query(col, type, size);
+	inline void Set(const IColumn * col, const s8 type, const void * data, const s32 size, bool changeKey = true) {
+		s32 idx = ((ColumnProp*)col)->GetLayout(_typeId);
+		const TableLayout * info = (idx > 0 ? _descriptor->Query(idx - 1, type, size) : nullptr);
 		if (!info)
 			return;
 
@@ -114,19 +122,20 @@ public:
 		_memory->Set(info, data, size);
 		_table->UpdateCallBack(ObjectMgr::Instance()->GetKernel(), this, col, info->type);
 	}
-	virtual void SetDataInt8(const s32 col, const s8 value) { Set(col, DTYPE_INT8, &value, sizeof(s8)); }
-	virtual void SetDataInt16(const s32 col, const s16 value) { Set(col, DTYPE_INT16, &value, sizeof(s16)); }
-	virtual void SetDataInt32(const s32 col, const s32 value) { Set(col, DTYPE_INT32, &value, sizeof(s32)); }
-	virtual void SetDataInt64(const s32 col, const s64 value) { Set(col, DTYPE_INT64, &value, sizeof(s64)); }
-	virtual void SetDataFloat(const s32 col, const float value) { Set(col, DTYPE_FLOAT, &value, sizeof(float)); }
-	virtual void SetDataString(const s32 col, const char * value) { Set(col, DTYPE_STRING, value, (s32)strlen(value) + 1); }
-	virtual void SetDataStruct(const s32 col, const void * value, const s32 size) { Set(col, DTYPE_STRUCT, value, size); }
-	virtual void SetDataBlob(const s32 col, const void * value, const s32 size) { Set(col, DTYPE_BLOB, value, size); }
+	virtual void SetDataInt8(const IColumn * col, const s8 value) { Set(col, DTYPE_INT8, &value, sizeof(s8)); }
+	virtual void SetDataInt16(const IColumn * col, const s16 value) { Set(col, DTYPE_INT16, &value, sizeof(s16)); }
+	virtual void SetDataInt32(const IColumn * col, const s32 value) { Set(col, DTYPE_INT32, &value, sizeof(s32)); }
+	virtual void SetDataInt64(const IColumn * col, const s64 value) { Set(col, DTYPE_INT64, &value, sizeof(s64)); }
+	virtual void SetDataFloat(const IColumn * col, const float value) { Set(col, DTYPE_FLOAT, &value, sizeof(float)); }
+	virtual void SetDataString(const IColumn * col, const char * value) { Set(col, DTYPE_STRING, value, (s32)strlen(value) + 1); }
+	virtual void SetDataStruct(const IColumn * col, const void * value, const s32 size) { Set(col, DTYPE_STRUCT, value, size); }
+	virtual void SetDataBlob(const IColumn * col, const void * value, const s32 size) { Set(col, DTYPE_BLOB, value, size); }
 
 private:
 	TableControl * _table;
 	const TableDescriptor * _descriptor;
 	s32 _index;
+	s32 _typeId;
 
 	Memory * _memory;
 };

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+	<prop name="sceneId" type="string" size="32" />
+	<prop name="copyId" type="s64" />
+	<prop name="controller" type="s64" />
+	
+</config>

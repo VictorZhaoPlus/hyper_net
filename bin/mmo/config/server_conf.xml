@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+    <master ip="127.0.0.1" port="17700" />
+	<agent send="1024" recv="1024" />
+	<limit open_file="4096" stack="40960" />
+	<app area="1" />
+	<id multi="true" server="5" pool_size="20000" />
+    <harbor send="10240" recv="10240" reconnect="30">
+        <node name="master" type="-1" hide="false" />
+		<node name="slave" type="-2" hide="true" />
+        <node name="gate" type="1" hide="false" />
+		<node name="account" type="2" hide="false" />
+		<node name="logic" type="3" hide="false" />
+		<node name="scene" type="4" hide="false" />
+		<node name="scenemgr" type="5" hide="false" />
+		<node name="relation" type="6" hide="false" />
+    </harbor>
+	<starter check="500" dead="10000" >
+		<port node="1" start="7300" end="7399" />
+		<out_port node="1" start="7201" end="7299" />
+		<node name="gate" nodeType="1" min="1" max="1" score="10" delay="1" cmd=" --name=gate --node=$id$ --port=$port$ --agent=$out_port$" />
+		<node name="account" nodeType="2" min="1" max="1" score="10" delay="1" cmd=" --name=account --node=$id$ --port=$port$ " />
+		<node name="logic" nodeType="3" min="1" max="1" score="10" delay="1" cmd=" --name=logic --node=$id$ --port=$port$" />
+		<node name="scene" nodeType="4" min="1" max="1" score="10" delay="1" cmd=" --name=scene --node=$id$ --port=$port$" />
+		<abc><node name="scenemgr" nodeType="5" min="1" max="1" score="10" delay="1" cmd=" --name=scenemgr --node=$id$ --port=$port$" />
+		<node name="relation" nodeType="6" min="1" max="1" score="10" delay="1" cmd=" --name=relation --node=$id$ --port=$port$" /></abc>
+	</starter>
+    <lua path="./logic" />
+	<redis send="1024" recv="10240" reconnect="30">
+		<context ip="127.0.0.1" port="6379" />
+	</redis>
+	<logger path="./log" console="true" />
+	<login single_logic="false" max_role="3" />
+	<save>
+	</save>
+	<fsm>
+	</fsm>
+	<extend>
+		<master>
+			<loop tick="33" />
+			<net tick="13" wait="2" support="1024" thread="2" />
+			<async thread="0" tick="1" />
+		</master>
+		<slave>
+			<loop tick="33" />
+			<net tick="13" wait="2" support="1024" thread="2" />
+			<async thread="0" tick="1" />
+		</slave>
+		<gate>
+			<loop tick="33" />
+			<net tick="13" wait="2" support="1024" thread="2" />
+			<async thread="3" tick="10" />
+		</gate>
+		<account>
+			<loop tick="33" />
+			<net tick="13" wait="2" support="1024" thread="2" />
+			<async thread="0" tick="10" />
+		</account>
+		<logic>
+			<loop tick="33" />
+			<net tick="13" wait="2" support="1024" thread="2" />
+			<async thread="3" tick="10" />
+		</logic>
+		<scenemgr>
+			<loop tick="33" />
+			<net tick="13" wait="2" support="1024" thread="2" />
+			<async thread="0" tick="10" />
+		</scenemgr>
+		<scene>
+			<loop tick="33" />
+			<net tick="13" wait="2" support="1024" thread="2" />
+			<async thread="5" tick="10" />
+		</scene>
+		<relation>
+			<loop tick="33" />
+			<net tick="13" wait="2" support="1024" thread="2" />
+			<async thread="0" tick="10" />
+		</relation>
+	</extend>
+</config>

@@ -1,0 +1,35 @@
+
+INCLUDE_DIRECTORIES(
+    "${PROJECT_SOURCE_DIR}/src/API"
+    "${PROJECT_SOURCE_DIR}/src/public"
+    "${PROJECT_SOURCE_DIR}/src/public/tinyxml"
+    "${PROJECT_SOURCE_DIR}/src/interface"
+    )
+
+SET(GAME
+    "${PROJECT_SOURCE_DIR}/src/game/Game.h"
+    "${PROJECT_SOURCE_DIR}/src/game/Game.cpp"
+    "${PROJECT_SOURCE_DIR}/src/game/main.cpp"
+    )
+
+SOURCE_GROUP(interface FILES ${LOGIC_INTERFACE})
+SOURCE_GROUP(API FILES ${API})
+SOURCE_GROUP(public\\tinyxml FILES ${PUBLIC_XML})
+SOURCE_GROUP(public FILES ${PUBLIC})
+SOURCE_GROUP(\\ FILES ${GAME})
+
+ADD_LIBRARY(Game SHARED
+	${GAME}
+	${API}
+	${LOGIC_INTERFACE}
+	${PUBLIC}
+	${PUBLIC_XML}
+	)
+
+IF(WIN32)
+TARGET_LINK_LIBRARIES(Game
+	"${PROJECT_SOURCE_DIR}/thirdlibary/bin/$<CONFIGURATION>/serverd.lib"
+)
+ENDIF(WIN32)
+
+SET_TARGET_PROPERTIES(Game PROPERTIES FOLDER "logic")

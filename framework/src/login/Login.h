@@ -24,13 +24,6 @@ class Login : public IModule, public INodeListener, public OHolder<Login> {
 		s32 tokenCount;
 	};
 
-	struct Proto {
-		s32 bindAccountReq;
-		s32 bindAccountAck;
-		s32 unbindAccountReq;
-		s32 kickFromAccount;
-	};
-
 public:
     virtual bool Initialize(IKernel * kernel);
     virtual bool Launched(IKernel * kernel);

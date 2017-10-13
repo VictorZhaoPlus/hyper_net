@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+	<err_mmo name="invalid_token" type="error" />
+	<err_mmo name="token_check_failed" type="error" />
+	<err_mmo name="authen_failed" type="error" />
+	<err_mmo name="read_account_failed" type="error" />
+	<err_mmo name="load_role_failed" type="error" />
+	<err_mmo name="distribute_role_failed" type="error" />
+	<err_mmo name="bind_logic_failed" type="error" />
+	<err_mmo name="too_much_role" type="error" />
+	<err_mmo name="create_role_failed" type="error" />
+	<err_mmo name="delete_role_failed" type="error" />
+</config>

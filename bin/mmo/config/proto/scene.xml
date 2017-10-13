@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+	<scene name="create_scene" type="node_proto" />
+	<scene name="appear" type="node_proto" />
+	<scene name="disappear" type="node_proto" />
+	<scene name="update" type="node_proto" />
+	<scene name="comfirm_scene" type="node_proto" />
+	<scene name="recover_scene" type="node_proto" />
+	<scene name="deal_interest" type="node_proto" />
+	<scene name="deal_watcher" type="node_proto" />
+	<scene name="query" type="node_proto" />
+	<scene name="query_ack" type="node_proto" />
+	
+	<evt_scene name="appear_on_map" type="event" />
+	<evt_scene name="disappear_from_map" type="event" />
+	<evt_scene name="prepare_switch_scene" type="event" />
+	<evt_scene name="switch_scene" type="event" />
+	<evt_scene name="player_appear" type="event" />
+	<evt_scene name="player_first_appear" type="event" />
+	<evt_scene name="scene_object_destroy" type="event" />
+</config>

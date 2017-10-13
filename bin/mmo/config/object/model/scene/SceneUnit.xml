@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+	<prop name="objectId" type="s64" />
+	<prop name="x" type="s16" />
+	<prop name="y" type="s16" />
+	<prop name="z" type="s16" />
+	<prop name="status" type="s8" />
+	
+	<prop name="gate" type="s32" />
+	<prop name="logic" type="s32" />
+	
+</config>

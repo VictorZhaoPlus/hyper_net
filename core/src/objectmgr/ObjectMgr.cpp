@@ -8,13 +8,14 @@
 #include "ObjectDescriptor.h"
 #include "ObjectProp.h"
 #include "TableRow.h"
+#include "TableProp.h"
 
 bool ObjectMgr::Initialize(IKernel * kernel) {
 	_kernel = kernel;
 	_nextTypeId = 1;
 
 	char path[512] = { 0 };
-	SafeSprintf(path, sizeof(path), "%s/config/object.xml", tools::GetAppPath());
+	SafeSprintf(path, sizeof(path), "%s/config/object/object.xml", tools::GetWorkPath());
 	olib::XmlReader conf;
 	if (!conf.LoadXml(path)) {
 		OASSERT(false, "load object.xml failed");
@@ -36,10 +37,13 @@ bool ObjectMgr::Initialize(IKernel * kernel) {
 				return false;
 
 			_tableModels[tools::CalcStringUniqueId(name)] = tableModel;
+
+			ITable * table = ObjectMgr::Instance()->SetTableProp("", name, 0, 0);
+			tableModel->SetupColumn(table, 0);
 		}
 	}
     
-    SafeSprintf(path, sizeof(path), "%s/config/dccenter/", tools::GetAppPath());
+    SafeSprintf(path, sizeof(path), "%s/config/object/model/", tools::GetWorkPath());
 	tools::ListFileInDirection(path, ".xml", [this](const char * name, const char * path) {
 		if (_namePathMap.end() != _namePathMap.find(name)) {
 			OASSERT(false, "prop xml name repeated");
@@ -51,8 +55,11 @@ bool ObjectMgr::Initialize(IKernel * kernel) {
 	for (auto itr = _namePathMap.begin(); itr != _namePathMap.end(); ++itr)
 		CreateTemplate(kernel, itr->first.c_str());
 
-	for (auto itr = _props.begin(); itr != _props.end(); ++itr)
-		_propIds[tools::CalcStringUniqueId(itr->first.c_str())] = itr->second;
+	for (auto itr = _props.begin(); itr != _props.end(); ++itr) {
+		for (auto& prop : itr->second) {
+			_propIds[(((s64)tools::CalcStringUniqueId(itr->first.c_str())) << 32) | (tools::CalcStringUniqueId(prop.first.c_str()))] = prop.second;
+		}
+	}
 
     return true;
 }
@@ -90,6 +97,9 @@ ObjectDescriptor * ObjectMgr::CreateTemplate(IKernel * kernel, const char * name
         OASSERT(false, "wtf");
         return nullptr;
     }
+
+	if (_models.find(name) != _models.end())
+		return _models[name];
 
 	olib::XmlReader conf;
     if (!conf.LoadXml(itr->second.c_str())) {
@@ -180,15 +190,15 @@ void ObjectMgr::Recove(IObject * object) {
     _objects.erase(itr);
 }
 
-const IProp * ObjectMgr::CalcProp(const char * name) {
-	auto itr = _props.find(name);
-	OASSERT(itr != _props.end(), "wtf");
-	if (itr != _props.end())
+const IProp * ObjectMgr::CalcProp(const char * name, const char * module) {
+	auto itr = _props[module].find(name);
+	OASSERT(itr != _props[module].end(), "wtf");
+	if (itr != _props[module].end())
 		return itr->second;
 	return nullptr;
 }
 
-const IProp * ObjectMgr::CalcProp(const s32 name) {
+const IProp * ObjectMgr::CalcProp(const s64 name) {
 	auto itr = _propIds.find(name);
 	OASSERT(itr != _propIds.end(), "wtf");
 	if (itr != _propIds.end())
@@ -203,6 +213,14 @@ s32 ObjectMgr::CalcPropSetting(const char * setting) {
 	return 0;
 }
 
+const ITable * ObjectMgr::CalcTable(const char * name, const char * module) {
+	auto itr = _tableProps[module].find(name);
+	OASSERT(itr != _tableProps[module].end(), "wtf");
+	if (itr != _tableProps[module].end())
+		return itr->second;
+	return nullptr;
+}
+
 const std::vector<const IProp*>* ObjectMgr::GetPropsInfo(const char * type, bool noFather) const {
 	auto itr = _models.find(type);
     if (itr != _models.end())
@@ -211,144 +229,21 @@ const std::vector<const IProp*>* ObjectMgr::GetPropsInfo(const char * type, bool
     return nullptr;
 }
 
-s32 ObjectMgr::ParseSetting(va_list args) {
-	s32 setting = 0;
-	const char * s = nullptr;
-	while ((s = va_arg(args, const char *)) != nullptr){
-		auto itr = _defines.find(s);
-		if (itr != _defines.end())
-			setting |= itr->second;
-	}
-	return setting;
-}
-
-void ObjectMgr::ExtendInt8(const char * type, const char * module, const char * name, ...) {
-	std::string realName = std::string(module) + "." + name;
-
-	va_list args;
-	va_start(args, name);
-	s32 setting = ParseSetting(args);
-	va_end(args);
-
-	TravelGroup(_kernel, type, [&realName, setting](ObjectDescriptor * descriptor, bool self) {
-		descriptor->AddProp(realName.c_str(), DTYPE_INT8, sizeof(s8), setting, self);
+void ObjectMgr::ExtendData(const char * type, const char * module, const char * name, const s32 dataType, const s32 size, const PropFunc& init, const PropFunc& reset, const PropFunc& uninit) {
+	TravelGroup(_kernel, type, [module, name, size, dataType, &init, &reset, &uninit](ObjectDescriptor * descriptor, bool self) {
+		const IProp * prop = descriptor->AddProp(module, name, dataType, size, 0, self);
+		if (init || reset || uninit)
+			descriptor->SetupInitial(prop, init, reset, uninit);
 	});
 }
 
-void ObjectMgr::ExtendInt16(const char * type, const char * module, const char * name, ...) {
-	std::string realName = std::string(module) + "." + name;
-
-	va_list args;
-	va_start(args, name);
-	s32 setting = ParseSetting(args);
-	va_end(args);
-
-	TravelGroup(_kernel, type, [&realName, setting](ObjectDescriptor * descriptor, bool self) {
-		descriptor->AddProp(realName.c_str(), DTYPE_INT16, sizeof(s16), setting, self);
-	});
-}
-
-void ObjectMgr::ExtendInt32(const char * type, const char * module, const char * name, ...) {
-	std::string realName = std::string(module) + "." + name;
-
-	va_list args;
-	va_start(args, name);
-	s32 setting = ParseSetting(args);
-	va_end(args);
-
-	TravelGroup(_kernel, type, [&realName, setting](ObjectDescriptor * descriptor, bool self) {
-		descriptor->AddProp(realName.c_str(), DTYPE_INT32, sizeof(s32), setting, self);
-	});
-}
-
-void ObjectMgr::ExtendInt64(const char * type, const char * module, const char * name, ...) {
-	std::string realName = std::string(module) + "." + name;
-
-	va_list args;
-	va_start(args, name);
-	s32 setting = ParseSetting(args);
-	va_end(args);
-
-	TravelGroup(_kernel, type, [&realName, setting](ObjectDescriptor * descriptor, bool self) {
-		descriptor->AddProp(realName.c_str(), DTYPE_INT64, sizeof(s64), setting, self);
-	});
-}
-
-void ObjectMgr::ExtendFloat(const char * type, const char * module, const char * name, ...) {
-	std::string realName = std::string(module) + "." + name;
-
-	va_list args;
-	va_start(args, name);
-	s32 setting = ParseSetting(args);
-	va_end(args);
-
-	TravelGroup(_kernel, type, [&realName, setting](ObjectDescriptor * descriptor, bool self) {
-		descriptor->AddProp(realName.c_str(), DTYPE_FLOAT, sizeof(float), setting, self);
-	});
-}
-
-void ObjectMgr::ExtendString(const char * type, const char * module, const char * name, const s32 size, ...) {
-	std::string realName = std::string(module) + "." + name;
-
-	va_list args;
-	va_start(args, name);
-	s32 setting = ParseSetting(args);
-	va_end(args);
-
-	TravelGroup(_kernel, type, [&realName, setting, size](ObjectDescriptor * descriptor, bool self) {
-		descriptor->AddProp(realName.c_str(), DTYPE_STRING, size, setting, self);
-	});
-}
-
-void ObjectMgr::ExtendStruct(const char * type, const char * module, const char * name, const s32 size, const PropFunc& init, const PropFunc& uninit) {
-	std::string realName = std::string(module) + "." + name;
-
-	TravelGroup(_kernel, type, [&realName, size, &init, &uninit](ObjectDescriptor * descriptor, bool self) {
-		auto * prop = descriptor->AddProp(realName.c_str(), DTYPE_STRUCT, size, 0, self);
-		if (init || uninit)
-			descriptor->SetupInitial(prop, init, uninit);
-	});
-}
-
-TableDescriptor * ObjectMgr::ParseTable(s32 count, va_list args) {
-	TableDescriptor * table = NEW TableDescriptor();
-	for (s32 i = 0; i < count; ++i) {
-		s8 type = va_arg(args, s8);
-		s32 size = 0;
-		switch (type) {
-		case DTYPE_INT8: size = sizeof(s8); break;
-		case DTYPE_INT16: size = sizeof(s16); break;
-		case DTYPE_INT32: size = sizeof(s32); break;
-		case DTYPE_INT64: size = sizeof(s64); break;
-		case DTYPE_FLOAT: size = sizeof(float); break;
-		default: size = va_arg(args, s32); break;
-		}
-		bool key = va_arg(args, bool);
-		
-		table->AddLayout(type, size, key);
-	}
-	return table;
-}
-
-void ObjectMgr::ExtendTable(const char * type, const char * name, s32 count, ...) {
-	va_list args;
-	va_start(args, count);
-	TableDescriptor * table = ParseTable(count, args);
-	va_end(args);
-
-	s32 tableName = CalcTableName(name);
-	TravelGroup(_kernel, type, [tableName, table](ObjectDescriptor * descriptor, bool self) {
-		descriptor->AddTable(tableName, table);
-	});
-}
-
-ITableControl * ObjectMgr::CreateStaticTable(const char * name, const char * model, const char * file, const s32 line) {
+ITableControl * ObjectMgr::CreateStaticTable(const char * name, const ITable * model, const char * file, const s32 line) {
 	if (_tableMap.find(tools::CalcStringUniqueId(name)) != _tableMap.end()) {
 		OASSERT(false, "already hsa table %s", name);
 		return nullptr;
 	}
 
-	auto itr = _tableModels.find(tools::CalcStringUniqueId(model));
+	auto itr = _tableModels.find(tools::CalcStringUniqueId(model->GetRealName()));
 	OASSERT(itr != _tableModels.end(), "wtf");
 	if (itr == _tableModels.end())
 		return nullptr;
@@ -379,16 +274,31 @@ void ObjectMgr::RgsObjectCRCB(const char * type, const ObjectCRCB& init, const O
 	});
 }
 
-const IProp* ObjectMgr::SetObjectProp(const char* name, const s32 typeId, ObjectLayout * layout) {
+const IProp* ObjectMgr::SetObjectProp(const char * module, const char* name, const s32 typeId, ObjectLayout * layout) {
 	ObjectProp * prop = nullptr;
-	auto itr = _props.find(name);
-	if (itr != _props.end())
+	auto itr = _props[module].find(name);
+	if (itr != _props[module].end())
 		prop = itr->second;
 	else {
-		prop = NEW ObjectProp(tools::CalcStringUniqueId(name), name, (s32)_namePathMap.size());
-		_props[name] = prop;
+		prop = NEW ObjectProp((((s64)tools::CalcStringUniqueId(module)) << 32) | tools::CalcStringUniqueId(name), name, (s32)_namePathMap.size());
+		_props[module][name] = prop;
 	}
 
 	prop->SetLayout(typeId, layout);
 	return prop;
+}
+
+ITable* ObjectMgr::SetTableProp(const char * module, const char* name, const s32 typeId, s32 layout) {
+	TableProp * table = nullptr;
+	auto itr = _tableProps[module].find(name);
+	if (itr != _tableProps[module].end())
+		table = itr->second;
+	else {
+		table = NEW TableProp(name, (s32)_namePathMap.size());
+		_tableProps[module][name] = table;
+	}
+
+	table->SetLayout(typeId, layout);
+
+	return table;
 }

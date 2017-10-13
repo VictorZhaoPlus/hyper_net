@@ -13,7 +13,7 @@ bool StartNodeStrategy::Initialize(IKernel * kernel) {
     s_kernel = kernel;
 
 	olib::XmlReader conf;
-	std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
+	std::string coreConfigPath = std::string(tools::GetWorkPath()) + "/config/server_conf.xml";
 	if (!conf.LoadXml(coreConfigPath.c_str())) {
 		OASSERT(false, "wtf");
 		return false;

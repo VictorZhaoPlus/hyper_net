@@ -4,6 +4,7 @@
 #include "ObjectMgr.h"
 #include "ObjectProp.h"
 #include "TableControl.h"
+#include "TableProp.h"
 
 MMObject::MMObject(const char * type, ObjectDescriptor * descriptor)
 	: _type(type)
@@ -11,9 +12,9 @@ MMObject::MMObject(const char * type, ObjectDescriptor * descriptor)
 	, _descriptor(descriptor) {
 	_memory = MemoryPool::Instance()->Create<Memory>(__FILE__, __LINE__, _descriptor->CalcMemorySize());
 
-	descriptor->QueryTableModel([this](const s32 name, const TableDescriptor * model) {
-		TableControl * table = MemoryPool::Instance()->Create<TableControl>(__FILE__, __LINE__, name, model, this);
-		_tables[name] = table;
+	_tables = (TableControl**)MALLOC(descriptor->CountTable() * sizeof(TableControl*));
+	descriptor->QueryTableModel([this](const s64 name, const s32 idx, const TableDescriptor * model) {
+		_tables[idx] = MemoryPool::Instance()->Create<TableControl>(__FILE__, __LINE__, name, model, this);
 	});
 
 	descriptor->InitObject(_memory, this);
@@ -26,19 +27,19 @@ MMObject::~MMObject() {
 
 	MemoryPool::Instance()->Recover(_memory);
 
-	for (auto itr = _tables.begin(); itr != _tables.end(); ++itr) {
-		MemoryPool::Instance()->Recover(itr->second);
+	for (s32 i = 0; i < _descriptor->CountTable(); ++i) {
+		MemoryPool::Instance()->Recover(_tables[i]);
 	}
-	_tables.clear();
+	FREE(_tables);
 }
 
 const std::vector<const IProp*>& MMObject::GetPropsInfo(bool noParent) const {
 	return _descriptor->GetPropsInfo(noParent);
 }
 
-ITableControl * MMObject::FindTable(const s32 name) const {
-    TABLE_MAP::const_iterator itor = _tables.find(name);
-    if (itor == _tables.end())
-        return nullptr;
-    return itor->second;
+ITableControl * MMObject::FindTable(const ITable* table) const {
+	s32 idx = ((TableProp*)table)->GetLayout(_descriptor->GetTypeId());
+	if (idx > 0)
+		return _tables[idx - 1];
+    return nullptr;
 }

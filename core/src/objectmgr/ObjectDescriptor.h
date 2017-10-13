@@ -17,6 +17,7 @@
 struct ObjectLayout : public Layout {
 	s8 type;
 	s32 setting;
+	std::string module;
 	std::string name;
 };
 
@@ -24,13 +25,16 @@ class TableDescriptor;
 class IProp;
 class ObjectDescriptor {
 	struct TableInfo {
-		s32 name;
+		s64 nameId;
+		std::string module;
+		std::string name;
 		TableDescriptor * tableModel;
 	};
 
 	struct PropInit {
 		const Layout * layout;
 		PropFunc init;
+		PropFunc reset;
 		PropFunc uninit;
 	};
 
@@ -41,12 +45,14 @@ public:
 	inline const std::vector<const IProp*>& GetPropsInfo(bool noFather = false) const { return noFather ? _selfProps : _props; }
 	inline s32 CalcMemorySize() const { return _size; }
 	inline s32 GetTypeId() const { return _typeId; }
+	inline s32 CountTable() const { return (s32)_tables.size(); }
 
 	bool LoadFrom(const olib::IXmlObject& root, const std::unordered_map<std::string, s32>& defines);
 	
-	inline void QueryTableModel(const std::function<void(const s32 name, const TableDescriptor * model)>& f) {
+	inline void QueryTableModel(const std::function<void(const s64 name, const s32 idx, const TableDescriptor * model)>& f) {
+		s32 idx = 0;
 		for (const auto& info : _tables)
-			f(info.name, info.tableModel);
+			f(info.nameId, idx++, info.tableModel);
 	}
 
 	inline void InitObject(Memory * memory, IObject * object) {
@@ -58,12 +64,12 @@ public:
 		}
 
 		for (auto& f : _inits)
-			f(object);
+			f(GetCore(), object);
 	}
 
 	inline void DeInitObject(Memory * memory, IObject * object) {
 		for (auto& f : _uninits)
-			f(object);
+			f(GetCore(), object);
 
 		for (auto& u : _propInits) {
 			if (u.uninit) {
@@ -73,17 +79,15 @@ public:
 		}
 	}
 
-	const IProp * AddProp(const char * name, s8 type, s32 size, s32 setting, bool self);
-	void SetupInitial(const IProp * prop, const PropFunc& init, const PropFunc& uninit);
-
-	inline void AddTable(s32 name, TableDescriptor * tableModel) { _tables.push_back({ name, tableModel }); }
+	const IProp * AddProp(const char * module, const char * name, s8 type, s32 size, s32 setting, bool self);
+	void SetupInitial(const IProp * prop, const PropFunc& init, const PropFunc& reset, const PropFunc& uninit);
 
 	void AddInit(const ObjectCRCB& init) { _inits.push_back(init); }
 	void AddDeinit(const ObjectCRCB& uninit) { _uninits.push_back(uninit); }
 
 private:
-	bool LoadProps(const olib::IXmlObject& props, const std::unordered_map<std::string, s32>& defines);
-	bool LoadTables(const olib::IXmlObject& tables);
+	bool LoadProps(const char * name, const olib::IXmlObject& props, const std::unordered_map<std::string, s32>& defines);
+	bool LoadTables(const char * name, const olib::IXmlObject& tables);
 
 private:
 	s32 _typeId;

@@ -19,7 +19,7 @@ bool Profile::Initialize() {
 	const char * name = ConfigMgr::Instance()->GetCmdArg("name");
 	OASSERT(name, "invalid command args, there is no name");
 
-	std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
+	std::string coreConfigPath = std::string(tools::GetWorkPath()) + "/config/server_conf.xml";
 	olib::XmlReader conf;
 	if (!conf.LoadXml(coreConfigPath.c_str())) {
 		OASSERT(false, "can't find core file : %s", coreConfigPath.c_str());

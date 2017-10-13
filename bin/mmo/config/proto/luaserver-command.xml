@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+	<command name="call" type="node_proto" />
+	<command name="call_no_ret" type="node_proto" />
+	<command name="call_forward" type="node_proto" />
+	<command name="respone" type="node_proto" />
+</config>

@@ -1,5 +1,4 @@
 #include "Analysis.h"
-#include "NodeType.h"
 #include "ICapacitySubscriber.h"
 #include "OArgs.h"
 #include "IProtocolMgr.h"

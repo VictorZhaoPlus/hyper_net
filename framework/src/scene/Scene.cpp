@@ -20,8 +20,8 @@ bool Scene::Launched(IKernel * kernel) {
 		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "disappear"), Scene::LeaveScene);
 		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "update"), Scene::UpdateObject);
 
-		OMODULE(ObjectMgr)->ExtendT<std::set<s64>>("SceneUnit", "scene", "interest");
-		OMODULE(ObjectMgr)->ExtendT<std::set<s64>>("SceneUnit", "scene", "watcher");
+		OMODULE(ObjectMgr)->ExtendT<std::set<s64>>("SceneUnit", "interest");
+		OMODULE(ObjectMgr)->ExtendT<std::set<s64>>("SceneUnit", "watcher");
 	}
     return true;
 }

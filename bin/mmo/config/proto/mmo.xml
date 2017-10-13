@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+    <node_type name="gate" id="1" />
+	<node_type name="account" id="2" />
+	<node_type name="logic" id="3" />
+	<node_type name="scene" id="4" />
+	<node_type name="scenemgr" id="5" />
+	<node_type name="distributor" id="5" />
+	<node_type name="relation" id="6" />
+	
+	<login name="distribute_logic_req" type="node_proto" />
+	<login name="distribute_logic_ack" type="node_proto" />
+	<login name="add_player" type="node_proto" />
+	<login name="remove_player" type="node_proto" />
+	<login name="bind_account_req" type="node_proto" />
+	<login name="bind_account_ack" type="node_proto" />
+	<login name="unbind_account_req" type="node_proto" />
+	<login name="bind_player_req" type="node_proto" />
+	<login name="bind_player_ack" type="node_proto" />
+	<login name="unbind_player_req" type="node_proto" />
+	<login name="kick_from_account" type="node_proto" />
+	<login name="kick_from_logic" type="node_proto" />
+	<login name="transmit_to_actor" type="node_proto" />
+	<login name="brocast_to_actor" type="node_proto" />
+	<login name="transmit_to_logic" type="node_proto" />
+	
+	<evt_login name="gate_lost" type="event" />
+	<evt_login name="reconnect" type="event" />
+	<evt_login name="online" type="event" />
+	<evt_login name="recover" type="event" />
+</config>

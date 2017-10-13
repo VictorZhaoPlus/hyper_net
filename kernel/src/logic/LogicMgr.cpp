@@ -14,7 +14,7 @@ bool LogicMgr::Initialize() {
     OASSERT(name, "invalid command args, there is no name");
 
     TiXmlDocument doc;
-    std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/extend/" + name + ".xml";
+    std::string coreConfigPath = std::string(tools::GetWorkPath()) + "/config/extend/" + name + ".xml";
     if (!doc.LoadFile(coreConfigPath.c_str())) {
         OASSERT(false, "can't find core file : %s", coreConfigPath.c_str());
         return false;
@@ -22,8 +22,6 @@ bool LogicMgr::Initialize() {
 
     const TiXmlElement * root = doc.RootElement();
     OASSERT(root, "module.xml format error");
-    const char * path = root->Attribute("path");
-    OASSERT(path, "module.xml format error, can't find module path");
 
     const TiXmlElement * module = root->FirstChildElement("module");
     while (module) {
@@ -32,9 +30,9 @@ bool LogicMgr::Initialize() {
 
         char fullPath[512];
 #ifdef WIN32
-		SafeSprintf(fullPath, sizeof(fullPath), "%s/%s%s.dll", tools::GetAppPath(), path, name);
+		SafeSprintf(fullPath, sizeof(fullPath), "%s/%s.dll", tools::GetAppPath(), name);
 #else
-        SafeSprintf(fullPath, sizeof(fullPath), "%s/%slib%s.so", tools::GetAppPath(), path, name);
+        SafeSprintf(fullPath, sizeof(fullPath), "%s/lib%s.so", tools::GetAppPath(), name);
 #endif
         if (!LoadModule(fullPath)) {
             OASSERT(false, "load module failed");

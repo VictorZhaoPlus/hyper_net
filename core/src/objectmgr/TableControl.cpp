@@ -2,7 +2,7 @@
 #include "TableRow.h"
 #include "ObjectMgr.h"
 
-TableControl::TableControl(s32 name, const TableDescriptor * descriptor, IObject * host)
+TableControl::TableControl(s64 name, const TableDescriptor * descriptor, IObject * host)
 	: _name(name)
 	, _descriptor(descriptor)
 	, _host(host)

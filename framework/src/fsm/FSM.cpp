@@ -3,6 +3,9 @@
 #include "IObjectMgr.h"
 #include "XmlReader.h"
 
+#define __STR2__(x) #x  
+#pragma message(__STR2__(sizeof(ObjectFsm)))
+
 bool FSM::Initialize(IKernel * kernel) {
     _kernel = kernel;
     return true;
@@ -10,21 +13,18 @@ bool FSM::Initialize(IKernel * kernel) {
 
 bool FSM::Launched(IKernel * kernel) {
 	olib::XmlReader reader;
-	std::string coreConfigPath = std::string(tools::GetAppPath()) + "/config/server_conf.xml";
+	std::string coreConfigPath = std::string(tools::GetWorkPath()) + "/config/server_conf.xml";
 	if (!reader.LoadXml(coreConfigPath.c_str())) {
 		OASSERT(false, "can't find core file : %s", coreConfigPath.c_str());
 		return false;
 	}
 
-	const olib::IXmlObject& units = reader.Root()["fsm"][0]["object"];
-	for (s32 i = 0; i < units.Count(); ++i) {
-		OMODULE(ObjectMgr)->ExtendInt8(units[i].GetAttributeString("name"), "fsm", "state");
-		OMODULE(ObjectMgr)->ExtendStruct(units[i].GetAttributeString("name"), "fsm", "fsm", sizeof(ObjectFsm), [](void * p, s32 size) {
-			new(p) ObjectFsm();
-		}, [](void * p, s32 size) {
-			ObjectFsm * fsm = (ObjectFsm *)p;
-			fsm->~ObjectFsm();
-		});
+	if (reader.Root()["fsm"][0].IsExist("object")) {
+		const olib::IXmlObject& units = reader.Root()["fsm"][0]["object"];
+		for (s32 i = 0; i < units.Count(); ++i) {
+			OMODULE(ObjectMgr)->ExtendInt8(units[i].GetAttributeString("name"), "fsm", "state");
+			OMODULE(ObjectMgr)->ExtendT<ObjectFsm>(units[i].GetAttributeString("name"), "fsm", "fsm");
+		}
 	}
     return true;
 }
@@ -63,7 +63,6 @@ void FSM::RgsLeaveCB(IObject * object, s32 status, const StatusCallback& f, cons
 	ObjectFsm& fsm = object->GetPropT<ObjectFsm>(OMPROP("fsm", "fsm"));
 	fsm.RgsLeaveCB(status, f, debug);
 }
-
 
 bool FSM::EntryStatus(IObject * object, s32 status, const void * context, const s32 size) {
 	ObjectFsm& fsm = object->GetPropT<ObjectFsm>(OMPROP("fsm", "fsm"));

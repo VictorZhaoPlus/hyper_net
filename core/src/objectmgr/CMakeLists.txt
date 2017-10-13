@@ -18,6 +18,8 @@ SET(MAIN
     "${PROJECT_SOURCE_DIR}/src/objectmgr/TableControl.cpp"
     "${PROJECT_SOURCE_DIR}/src/objectmgr/TableRow.h"
     "${PROJECT_SOURCE_DIR}/src/objectmgr/TableRow.cpp"
+    "${PROJECT_SOURCE_DIR}/src/objectmgr/TableProp.h"
+    "${PROJECT_SOURCE_DIR}/src/objectmgr/TableProp.cpp"
     "${PROJECT_SOURCE_DIR}/src/objectmgr/main.cpp"
 	)
     

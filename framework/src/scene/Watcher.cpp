@@ -12,17 +12,6 @@
 #define MAX_QUERY_PACKET 8192
 #define SINGLE_PATCH 10
 
-enum InterestTable {
-	IT_COL_ID = 0,
-	IT_COL_LOGIC,
-};
-
-enum WatcherTable {
-	WT_COL_ID = 0,
-	WT_COL_GATE,
-	WT_COL_LOGIC,
-};
-
 void Watcher::RuningQuery::Awake(IKernel * kernel, s64 target, s8 batch) {
 	if (batch != 0)
 		_ret.insert({ batch, target });
@@ -57,29 +46,13 @@ bool Watcher::Initialize(IKernel * kernel) {
 
 bool Watcher::Launched(IKernel * kernel) {
 	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "logic")) {
-		_settingShare = OMODULE(ObjectMgr)->CalcPropSetting("share");
-
-		_tableInterest = OMODULE(ObjectMgr)->CalcTableName("watcher.interest");
-		_tableWatcher = OMODULE(ObjectMgr)->CalcTableName("watcher.watcher");
-
-		OMODULE(ObjectMgr)->ExtendTable("SceneObject", "watcher.interest", 2,
-			DTYPE_INT64, sizeof(s64), true,
-			DTYPE_INT32, sizeof(s32), false
-		);
-
-		OMODULE(ObjectMgr)->ExtendTable("SceneObject", "watcher.watcher", 3,
-			DTYPE_INT64, sizeof(s64), true,
-			DTYPE_INT32, sizeof(s32), false,
-			DTYPE_INT32, sizeof(s32), false
-		);
-
 		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "deal_interest"), Watcher::DealInterest);
 		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "deal_watcher"), Watcher::DealWatcher);
 		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "query"), Watcher::Query);
 		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "query_ack"), Watcher::QueryAck);
 
 
-		RGS_EVENT_HANDLER(PROTOCOL_ID("event", "scene_object_destroy"), Watcher::DisapperWhenDestroy);
+		RGS_EVENT_HANDLER(PROTOCOL_ID("evt_scene", "scene_object_destroy"), Watcher::DisapperWhenDestroy);
 	}
 
     return true;
@@ -91,7 +64,7 @@ bool Watcher::Destroy(IKernel * kernel) {
 }
 
 void Watcher::Brocast(IObject * object, const s32 msgId, const OBuffer& buf, bool self) {
-	ITableControl * watcher = object->FindTable(_tableWatcher);
+	ITableControl * watcher = object->FindTable(OTABLE("watcher"));
 	OASSERT(watcher, "wtf");
 
 	std::unordered_map<s32, std::vector<s64>> actors;
@@ -106,8 +79,8 @@ void Watcher::Brocast(IObject * object, const s32 msgId, const OBuffer& buf, boo
 		IRow * row = watcher->GetRow(i);
 		OASSERT(row, "wtf");
 		
-		s64 id = row->GetDataInt64(WatcherTable::WT_COL_ID);
-		s32 gate = row->GetDataInt32(WatcherTable::WT_COL_GATE);
+		s64 id = row->GetDataInt64(OCOLUMN("watcher", "id"));
+		s32 gate = row->GetDataInt32(OCOLUMN("watcher", "gate"));
 		if (gate != 0)
 			actors[gate].push_back(id);
 	}
@@ -116,7 +89,7 @@ void Watcher::Brocast(IObject * object, const s32 msgId, const OBuffer& buf, boo
 }
 
 s64 Watcher::QueryInVision(IObject * object, const s32 type, const void * context, const s32 size, s32 wait, const QueryCallback& cb) {
-	ITableControl * interest = object->FindTable(_tableInterest);
+	ITableControl * interest = object->FindTable(OTABLE("interest"));
 	OASSERT(interest, "wtf");
 
 	RuningQuery * query = NEW RuningQuery(_nextQueryId++, object->GetID(), cb);
@@ -125,8 +98,8 @@ s64 Watcher::QueryInVision(IObject * object, const s32 type, const void * contex
 		IRow * row = interest->GetRow(i);
 		OASSERT(row, "wtf");
 
-		ids[row->GetDataInt32(InterestTable::IT_COL_LOGIC)].push_back(row->GetDataInt64(InterestTable::IT_COL_ID));
-		query->Wait(row->GetDataInt64(InterestTable::IT_COL_ID));
+		ids[row->GetDataInt32(OCOLUMN("interest", "logic"))].push_back(row->GetDataInt64(OCOLUMN("interest", "id")));
+		query->Wait(row->GetDataInt64(OCOLUMN("interest", "id")));
 	}
 
 	olib::Buffer<MAX_QUERY_PACKET> buf;
@@ -222,7 +195,7 @@ void Watcher::DealInterest(IKernel * kernel, s32 nodeType, s32 nodeId, const OBu
 
 	IObject * reciever = OMODULE(ObjectMgr)->FindObject(id);
 	if (reciever) {
-		ITableControl * interest = reciever->FindTable(_tableInterest);
+		ITableControl * interest = reciever->FindTable(OTABLE("interest"));
 		OASSERT(interest, "wtf");
 		
 		s16 count = 0;
@@ -232,7 +205,7 @@ void Watcher::DealInterest(IKernel * kernel, s32 nodeType, s32 nodeId, const OBu
 			s32 logic;
 			args.ReadMulti(interestId, logic);
 			IRow * row = interest->AddRowKeyInt64(id);
-			row->SetDataInt32(InterestTable::IT_COL_LOGIC, logic);
+			row->SetDataInt32(OCOLUMN("interest", "logic"), logic);
 		}
 
 		args.Read(count);
@@ -251,7 +224,7 @@ void Watcher::DealWatcher(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuf
 
 	IObject * reciever = OMODULE(ObjectMgr)->FindObject(id);
 	if (reciever) {
-		ITableControl * watcher = reciever->FindTable(_tableWatcher);
+		ITableControl * watcher = reciever->FindTable(OTABLE("watcher"));
 		OASSERT(watcher, "wtf");
 
 		s16 count = 0;
@@ -265,8 +238,8 @@ void Watcher::DealWatcher(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuf
 				args.ReadMulti(watcherId, gate, logic);
 
 				IRow * row = watcher->AddRowKeyInt64(id);
-				row->SetDataInt32(WatcherTable::WT_COL_GATE, gate);
-				row->SetDataInt32(WatcherTable::WT_COL_LOGIC, logic);
+				row->SetDataInt32(OCOLUMN("watcher", "gate"), gate);
+				row->SetDataInt32(OCOLUMN("watcher", "logic"), logic);
 
 				if (gate > 0)
 					actors[gate].push_back(watcherId);
@@ -276,7 +249,7 @@ void Watcher::DealWatcher(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuf
 				buf << reciever->GetID() << reciever->GetPropInt32(OPROP("type"));
 				s16 * propCount = buf.Reserve<s16>();
 				for (auto * prop : reciever->GetPropsInfo()) {
-					if (prop->GetSetting(reciever) & _settingShare) {
+					if (prop->GetSetting(reciever) & OSETTING("share")) {
 						buf << prop->GetName();
 						switch (prop->GetType(reciever)) {
 						case DTYPE_INT8: buf << reciever->GetPropInt8(prop); break;
@@ -297,7 +270,7 @@ void Watcher::DealWatcher(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuf
 					}
 				}
 
-				OMODULE(PacketSender)->Brocast(actors, PROTOCOL_ID("proto", "role_appear"), buf.Out());
+				OMODULE(PacketSender)->Brocast(actors, PROTOCOL_ID("cli_scene", "role_appear"), buf.Out());
 			}
 		}
 
@@ -309,7 +282,7 @@ void Watcher::DealWatcher(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuf
 				args.Read(watcherId);
 
 				IRow * row = watcher->FindRow(id);
-				s32 gate = row->GetDataInt32(WatcherTable::WT_COL_GATE);
+				s32 gate = row->GetDataInt32(OCOLUMN("watcher", "gate"));
 				if (gate > 0)
 					actors[gate].push_back(watcherId);
 
@@ -319,7 +292,7 @@ void Watcher::DealWatcher(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuf
 			olib::Buffer<64> buf;
 			buf << reciever->GetID();
 
-			OMODULE(PacketSender)->Brocast(actors, PROTOCOL_ID("proto", "role_disappear"), buf.Out());
+			OMODULE(PacketSender)->Brocast(actors, PROTOCOL_ID("cli_scene", "role_disappear"), buf.Out());
 		}
 	}
 }
@@ -331,5 +304,5 @@ void Watcher::DisapperWhenDestroy(IKernel * kernel, const void * context, const 
 	olib::Buffer<64> buf;
 	buf << object->GetID();
 
-	Brocast(object, PROTOCOL_ID("proto", "role_disappear"), buf.Out());
+	Brocast(object, PROTOCOL_ID("cli_scene", "role_disappear"), buf.Out());
 }

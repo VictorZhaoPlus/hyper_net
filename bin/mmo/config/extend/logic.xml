@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config path="./">
+	<module name="ProtocolMgr" />
+    <module name="Harbor" />
+	<module name="Monitor" />
+	
+    <module name="Cluster" />
+	<module name="Redis" />
+	<module name="IdMgr" />
+	<module name="CacheDB" />
+	<module name="EventEngine" />
+	<module name="ObjectMgr" />
+	<module name="Save" />
+	<module name="ObjectTimer" />
+	<module name="FSM" />
+	<module name="Login" />
+	<module name="Scene" />
+	<module name="ObjectLocator" />
+</config>

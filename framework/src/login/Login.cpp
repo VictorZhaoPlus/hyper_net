@@ -86,7 +86,7 @@ void Login::OnRecvBindAccount(IKernel * kernel, s32 nodeType, s32 nodeId, const 
 	Account& account = _accounts[accountId];
 	if (tokenCount > 0 && account.tokenCount != tokenCount) {
 		IArgs<3, 128> args;
-		args << agentId << accountId << PROTOCOL_ID("error", "token_check_failed");
+		args << agentId << accountId << PROTOCOL_ID("err_mmo", "token_check_failed");
 		args.Fix();
 		OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("login", "bind_account_ack"), args.Out());
 		return;
@@ -119,7 +119,7 @@ void Login::OnRecvBindAccount(IKernel * kernel, s32 nodeType, s32 nodeId, const 
 		break;
 	case ST_SWITCH: {
 			IArgs<3, 128> args;
-			args << account.switchAgentId << accountId << PROTOCOL_ID("error", "authen_failed");
+			args << account.switchAgentId << accountId << PROTOCOL_ID("err_mmo", "authen_failed");
 			args.Fix();
 			OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "gate"), account.switchGateId, PROTOCOL_ID("login", "bind_account_ack"), args.Out());
 

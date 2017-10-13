@@ -32,6 +32,24 @@ namespace tools {
         return path;
     }
 
+	inline const char * GetWorkPath() {
+		static char * path = nullptr;
+
+		if (nullptr == path) {
+			path = NEW char[256];
+			char link[256];
+			memset(link, 0, 256);
+			memset(path, 0, 256);
+
+#ifdef WIN32
+			GetCurrentDirectory(256, path);
+#else
+			path = getcwd(path, 256);
+#endif
+		}
+		return path;
+	}
+
     inline s32 StringAsInt(const char * val) {
         OASSERT(val != nullptr, "val is null");
         return atoi(val);

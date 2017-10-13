@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+	<cli_scene name="enter_scene" type="proto" />
+	<cli_scene name="enter_area" type="proto" />
+	<cli_scene name="scene_info" type="proto" />
+	<cli_scene name="role_appear" type="proto" />
+	<cli_scene name="role_disappear" type="proto" />
+</config>
