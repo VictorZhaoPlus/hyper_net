@@ -14,8 +14,8 @@ bool SceneMgr::Launched(IKernel * kernel) {
 		RGS_HABOR_HANDLER(OID("scene", "appear"), SceneMgr::OnRecvAppear);
 		RGS_HABOR_HANDLER(OID("scene", "disappear"), SceneMgr::OnRecvDisappear);
 		RGS_HABOR_HANDLER(OID("scene", "update"), SceneMgr::OnRecvUpdate);
-		RGS_HABOR_ARGS_HANDLER(OID("scene", "confirmScene"), SceneMgr::OnRecvConfirm);
-		RGS_HABOR_ARGS_HANDLER(OID("scene", "recoverScene"), SceneMgr::OnRecvRecover);
+		RGS_HABOR_ARGS_HANDLER(OID("scene", "comfirm_scene"), SceneMgr::OnRecvConfirm);
+		RGS_HABOR_ARGS_HANDLER(OID("scene", "recover_scene"), SceneMgr::OnRecvRecover);
 	}
     return true;
 }

@@ -3,6 +3,7 @@
 #include "OArgs.h"
 #include "XmlReader.h"
 #include "IEventEngine.h"
+#include "OBuffer.h"
 
 #define SEQUENCE_BITS 5
 #define SEQUENCE_MASK 0x001F
@@ -10,7 +11,7 @@
 #define AREA_MASK 0x03FF
 #define TIME_BITS 49
 #define TIME_MASK 0x0001FFFFFFFFFFFF
-#define SINGLE_PATCH 1000
+#define SINGLE_PATCH 100
 #define SINGLE_PATCH_SIZE 64000
 #define TIMER_INTERVAL 500
 
@@ -46,7 +47,7 @@ bool IdMgr::Launched(IKernel * kernel) {
 			START_TIMER(this, 0, 1, TIMER_INTERVAL);
 		}
 		else {
-			RGS_HABOR_ARGS_HANDLER(OID("id", "give"), IdMgr::GiveId);
+			RGS_HABOR_HANDLER(OID("id", "give"), IdMgr::GiveId);
 
 			START_TIMER(this, 0, TIMER_BEAT_FOREVER, TIMER_INTERVAL);
 		}
@@ -118,18 +119,25 @@ s64 IdMgr::GenerateId() {
 }
 
 void IdMgr::AskId(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {
-	IArgs<SINGLE_PATCH, SINGLE_PATCH_SIZE> ret;
+	olib::Buffer<SINGLE_PATCH * sizeof(s64)> ret;
 	for (s32 i = 0; i < SINGLE_PATCH; ++i)
 		ret << GenerateId();
 	OMODULE(Harbor)->Send(nodeType, nodeId, OID("id", "give"), ret.Out());
 }
 
-void IdMgr::GiveId(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {
-	for (s32 i = 0; i < args.Count(); ++i)
-		_ids.push_back(args.GetDataInt64(i));
+void IdMgr::GiveId(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer & args) {
+	s32 count = args.GetSize() / sizeof(s64);
+	for (s32 i = 0; i < count; ++i) {
+		s64 id = 0;
+		if (!args.Read(id))
+			return;
+
+		_ids.push_back(id);
+	}
 
 	if (_loadFirst) {
 		OMODULE(EventEngine)->Exec(OID("evt_id", "id_loaded"), nullptr, 0);
+		printf("id loaded\n");
 		_loadFirst = false;
 	}
 }

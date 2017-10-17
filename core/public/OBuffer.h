@@ -102,7 +102,7 @@ namespace olib {
 	class Buffer : public IBuffer {
 		template <typename T> struct Trait {};
 	public:
-		Buffer() {}
+		Buffer() : _offset(0){}
 		virtual ~Buffer() {}
 
 		const s32 Mark() { return _offset; }

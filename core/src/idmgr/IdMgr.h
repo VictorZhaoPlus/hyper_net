@@ -6,6 +6,7 @@
 #include <vector>
 
 class OArgs;
+class OBuffer;
 class IHarbor;
 class IEventEngine;
 class IProtocolMgr;
@@ -27,7 +28,7 @@ public:
 	s64 GenerateId();
 
 	void AskId(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args);
-	void GiveId(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args);
+	void GiveId(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer & args);
 
 private:
     IKernel * _kernel;
