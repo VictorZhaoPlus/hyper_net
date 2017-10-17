@@ -1,5 +1,4 @@
 #include "Login.h"
-#include "IProtocolMgr.h"
 #include "OArgs.h"
 
 #define TOKEN_LEN 512
@@ -11,10 +10,10 @@ bool Login::Initialize(IKernel * kernel) {
 }
 
 bool Login::Launched(IKernel * kernel) {
-	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "account")) {
+	if (OMODULE(Harbor)->GetNodeType() == OID("node_type", "account")) {
 		OMODULE(Harbor)->AddNodeListener(this, "Login");
-		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("login", "bind_account_req"), Login::OnRecvBindAccount);
-		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("login", "unbind_account_req"), Login::OnRecvUnbindAccount);
+		RGS_HABOR_ARGS_HANDLER(OID("login", "bind_account_req"), Login::OnRecvBindAccount);
+		RGS_HABOR_ARGS_HANDLER(OID("login", "unbind_account_req"), Login::OnRecvUnbindAccount);
 	}
 
     return true;
@@ -26,7 +25,7 @@ bool Login::Destroy(IKernel * kernel) {
 }
 
 void Login::OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) {
-	if (nodeType == PROTOCOL_ID("node_type", "gate")) { 
+	if (nodeType == OID("node_type", "gate")) { 
 		{
 			for (auto accountId : _switchGateAccounts[nodeId]) {
 				OASSERT(_accounts.find(accountId) == _accounts.end(), "wtf");
@@ -86,9 +85,9 @@ void Login::OnRecvBindAccount(IKernel * kernel, s32 nodeType, s32 nodeId, const 
 	Account& account = _accounts[accountId];
 	if (tokenCount > 0 && account.tokenCount != tokenCount) {
 		IArgs<3, 128> args;
-		args << agentId << accountId << PROTOCOL_ID("err_mmo", "token_check_failed");
+		args << agentId << accountId << OID("err_mmo", "token_check_failed");
 		args.Fix();
-		OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("login", "bind_account_ack"), args.Out());
+		OMODULE(Harbor)->Send(nodeType, nodeId, OID("login", "bind_account_ack"), args.Out());
 		return;
 	}
 
@@ -114,14 +113,14 @@ void Login::OnRecvBindAccount(IKernel * kernel, s32 nodeType, s32 nodeId, const 
 			IArgs<1, 128> args;
 			args << account.agentId;
 			args.Fix();
-			OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "gate"), account.gateId, PROTOCOL_ID("login", "kick_from_account"), args.Out());
+			OMODULE(Harbor)->Send(OID("node_type", "gate"), account.gateId, OID("login", "kick_from_account"), args.Out());
 		}
 		break;
 	case ST_SWITCH: {
 			IArgs<3, 128> args;
-			args << account.switchAgentId << accountId << PROTOCOL_ID("err_mmo", "authen_failed");
+			args << account.switchAgentId << accountId << OID("err_mmo", "authen_failed");
 			args.Fix();
-			OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "gate"), account.switchGateId, PROTOCOL_ID("login", "bind_account_ack"), args.Out());
+			OMODULE(Harbor)->Send(OID("node_type", "gate"), account.switchGateId, OID("login", "bind_account_ack"), args.Out());
 
 			_switchGateAccounts[account.switchGateId].erase(accountId);
 
@@ -181,7 +180,7 @@ void Login::OnRecvUnbindAccount(IKernel * kernel, s32 nodeType, s32 nodeId, cons
 
 void Login::BindAccountSuccess(IKernel * kernel, const Account& account) {
 	IArgs<4, 1024> args;
-	args << account.agentId << account.accountId << PROTOCOL_ID("error", "no_error") << account.tokenCount;
+	args << account.agentId << account.accountId << OID("error", "no_error") << account.tokenCount;
 	args.Fix();
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "gate"), account.gateId, PROTOCOL_ID("login", "bind_account_ack"), args.Out());
+	OMODULE(Harbor)->Send(OID("node_type", "gate"), account.gateId, OID("login", "bind_account_ack"), args.Out());
 }

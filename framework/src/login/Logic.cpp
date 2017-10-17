@@ -1,6 +1,5 @@
 #include "Logic.h"
 #include "IObjectMgr.h"
-#include "IProtocolMgr.h"
 #include "OBuffer.h"
 #include "IObjectMgr.h"
 #include "IEventEngine.h"
@@ -35,12 +34,12 @@ bool Logic::Initialize(IKernel * kernel) {
 }
 
 bool Logic::Launched(IKernel * kernel) {
-	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "logic")) {
+	if (OMODULE(Harbor)->GetNodeType() == OID("node_type", "logic")) {
 		OMODULE(Harbor)->AddNodeListener(this, "Logic");
 
-		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("login", "bind_player_req"), Logic::OnBindLogic);
-		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("login", "unbind_player_req"), Logic::OnUnbindLogic);
-		RGS_HABOR_HANDLER(PROTOCOL_ID("login", "transmit_to_logic"), Logic::OnTransMsg);
+		RGS_HABOR_ARGS_HANDLER(OID("login", "bind_player_req"), Logic::OnBindLogic);
+		RGS_HABOR_ARGS_HANDLER(OID("login", "unbind_player_req"), Logic::OnUnbindLogic);
+		RGS_HABOR_HANDLER(OID("login", "transmit_to_logic"), Logic::OnTransMsg);
 	}
 
     return true;
@@ -52,7 +51,7 @@ bool Logic::Destroy(IKernel * kernel) {
 }
 
 void Logic::OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) {
-	if (nodeType == PROTOCOL_ID("node_type", "gate")) {
+	if (nodeType == OID("node_type", "gate")) {
 		for (auto actorId : _gateActors[nodeId]) {
 			IObject * object = OMODULE(ObjectMgr)->FindObject(actorId);
 			OASSERT(object, "wtf");
@@ -60,7 +59,7 @@ void Logic::OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) {
 				if (object->GetPropInt32(OPROP("gate")) > 0) {
 					object->SetPropInt32(OPROP("gate"), 0, false);
 
-					OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_login", "gate_lost"), &object, sizeof(object));
+					OMODULE(EventEngine)->Exec(OID("evt_login", "gate_lost"), &object, sizeof(object));
 
 					OASSERT(object->GetPropInt64(OPROP("recoverTimer")) == 0, "wtf");
 					logic::RemoveObjectTimer * timer = NEW logic::RemoveObjectTimer(object);
@@ -71,7 +70,7 @@ void Logic::OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) {
 		}
 		_gateActors[nodeId].clear();
 	}
-	else if (nodeType == PROTOCOL_ID("node_type", "distributor")) {
+	else if (nodeType == OID("node_type", "distributor")) {
 	}
 }
 
@@ -89,17 +88,17 @@ void Logic::OnBindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs 
 		_gateActors[nodeId].insert(actorId);
 
 		IArgs<3, 32> args;
-		args << actorId << accountId << PROTOCOL_ID("error", "no_error");
+		args << actorId << accountId << OID("error", "no_error");
 		args.Fix();
 
-		OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("login", "bind_player_ack"), args.Out());
+		OMODULE(Harbor)->Send(nodeType, nodeId, OID("login", "bind_player_ack"), args.Out());
 
-		OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_login", "reconnect"), &object, sizeof(object));
+		OMODULE(EventEngine)->Exec(OID("evt_login", "reconnect"), &object, sizeof(object));
 
 		IArgs<1, 32> notify;
 		notify << actorId;
 		notify.Fix();
-		OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "distributor"), 1, PROTOCOL_ID("login", "add_player"), notify.Out());
+		OMODULE(Harbor)->Send(OID("node_type", "distributor"), 1, OID("login", "add_player"), notify.Out());
 
 		OASSERT(object->GetPropInt64(OPROP("recoverTimer")) != 0, "wtf");
 		logic::RemoveObjectTimer * timer = (logic::RemoveObjectTimer*)object->GetPropInt64(OPROP("recoverTimer"));
@@ -118,26 +117,26 @@ void Logic::OnBindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs 
 			_gateActors[nodeId].insert(actorId);
 
 			IArgs<3, 32> args;
-			args << actorId << accountId << PROTOCOL_ID("error", "no_error");
+			args << actorId << accountId << OID("error", "no_error");
 			args.Fix();
 
-			OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("login", "bind_player_ack"), args.Out());
+			OMODULE(Harbor)->Send(nodeType, nodeId, OID("login", "bind_player_ack"), args.Out());
 
-			OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_login", "online"), &object, sizeof(object));
+			OMODULE(EventEngine)->Exec(OID("evt_login", "online"), &object, sizeof(object));
 
 			IArgs<1, 32> notify;
 			notify << actorId;
 			notify.Fix();
-			OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "distributor"), 1, PROTOCOL_ID("login", "add_player"), notify.Out());
+			OMODULE(Harbor)->Send(OID("node_type", "distributor"), 1, OID("login", "add_player"), notify.Out());
 		}
 		else {
 			OMODULE(ObjectMgr)->Recove(object);
 
 			IArgs<3, 32> args;
-			args << actorId << accountId << PROTOCOL_ID("err_mmo", "load_player_failed");
+			args << actorId << accountId << OID("err_mmo", "load_player_failed");
 			args.Fix();
 
-			OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("login", "bind_player_ack"), args.Out());
+			OMODULE(Harbor)->Send(nodeType, nodeId, OID("login", "bind_player_ack"), args.Out());
 		}
 	}
 }
@@ -152,7 +151,7 @@ void Logic::OnUnbindLogic(IKernel * kernel, s32 nodeType, s32 nodeId, const OArg
 		object->SetPropInt32(OPROP("gate"), 0, false);
 		_gateActors[nodeId].erase(actorId);
 
-		OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_login", "gate_lost"), &object, sizeof(object));
+		OMODULE(EventEngine)->Exec(OID("evt_login", "gate_lost"), &object, sizeof(object));
 
 		OASSERT(object->GetPropInt64(OPROP("recoverTimer")) == 0, "wtf");
 		logic::RemoveObjectTimer * timer = NEW logic::RemoveObjectTimer(object);
@@ -187,7 +186,7 @@ void Logic::Recover(IKernel * kernel, const s64 id) {
 	if (object) {
 		object->SetPropInt64(OPROP("recoverTimer"), 0);
 
-		OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_login", "recover"), &object, sizeof(object));
+		OMODULE(EventEngine)->Exec(OID("evt_login", "recover"), &object, sizeof(object));
 
 		_roleMgr->PrepareRecover(object);
 		OMODULE(ObjectMgr)->Recove(object);
@@ -195,6 +194,6 @@ void Logic::Recover(IKernel * kernel, const s64 id) {
 		IArgs<1, 32> notify;
 		notify << id;
 		notify.Fix();
-		OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "distributor"), 1, PROTOCOL_ID("login", "remove_player"), notify.Out());
+		OMODULE(Harbor)->Send(OID("node_type", "distributor"), 1, OID("login", "remove_player"), notify.Out());
 	}
 }

@@ -1,6 +1,5 @@
 #include "Distribution.h"
 #include "OArgs.h"
-#include "IProtocolMgr.h"
 
 bool Distribution::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -9,12 +8,12 @@ bool Distribution::Initialize(IKernel * kernel) {
 }
 
 bool Distribution::Launched(IKernel * kernel) {
-	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "scenemgr")) {
-		_harbor->AddNodeListener(this, "Distribution");
+	if (OMODULE(Harbor)->GetNodeType() == OID("node_type", "scenemgr")) {
+		OMODULE(Harbor)->AddNodeListener(this, "Distribution");
 
-		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("login", "distribute_logic_req"), Distribution::OnRecvDistributeLogic);
-		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("login", "add_player"), Distribution::OnRecvAddPlayer);
-		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("login", "remove_player"), Distribution::OnRecvRemovePlayer);
+		RGS_HABOR_ARGS_HANDLER(OID("login", "distribute_logic_req"), Distribution::OnRecvDistributeLogic);
+		RGS_HABOR_ARGS_HANDLER(OID("login", "add_player"), Distribution::OnRecvAddPlayer);
+		RGS_HABOR_ARGS_HANDLER(OID("login", "remove_player"), Distribution::OnRecvRemovePlayer);
 	}
     return true;
 }
@@ -32,7 +31,7 @@ s32 Distribution::ChooseLogic(s64 actorId) {
 }
 
 void Distribution::OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port) {
-	if (nodeType == PROTOCOL_ID("node_type", "logic")) {
+	if (nodeType == OID("node_type", "logic")) {
 		auto itr = std::find(_logices.begin(), _logices.end(), nodeId);
 		if (itr == _logices.end())
 			_logices.push_back(nodeId);
@@ -62,7 +61,7 @@ void Distribution::OnRecvDistributeLogic(IKernel * kernel, s32 nodeType, s32 nod
 	ret << agentId << actorId << logic;
 	ret.Fix();
 
-	_harbor->Send(nodeType, nodeId, PROTOCOL_ID("login", "distribute_logic_ack"), ret.Out());
+	OMODULE(Harbor)->Send(nodeType, nodeId, OID("login", "distribute_logic_ack"), ret.Out());
 }
 
 void Distribution::OnRecvAddPlayer(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {

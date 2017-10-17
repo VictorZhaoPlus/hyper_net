@@ -7,6 +7,7 @@
 #include "TimerMgr.h"
 #include "AsyncMgr.h"
 #include "Profile.h"
+#include "Id.h"
 
 bool Kernel::Ready() {
     if (ConfigMgr::Instance() == nullptr)
@@ -20,6 +21,8 @@ bool Kernel::Ready() {
 	if (AsyncMgr::Instance() == nullptr)
 		return false;
 	if (Profile::Instance() == nullptr)
+		return false;
+	if (Id::Instance() == nullptr)
 		return false;
     if (LogicMgr::Instance() == nullptr)
         return false;
@@ -49,6 +52,11 @@ bool Kernel::Initialize(int argc, char ** argv) {
 
 	if (!AsyncMgr::Instance()->Initialize()) {
 		OASSERT(false, "initialize async failed");
+		return false;
+	}
+
+	if (!Id::Instance()->Initialize()) {
+		OASSERT(false, "initialize id failed");
 		return false;
 	}
 
@@ -83,6 +91,7 @@ void Kernel::Loop() {
 
 void Kernel::Destroy() {
     LogicMgr::Instance()->Destroy();
+	Id::Instance()->Destroy();
 	AsyncMgr::Instance()->Destroy();
 	TimerMgr::Instance()->Destroy();
     NetEngine::Instance()->Destroy();
@@ -122,6 +131,10 @@ void Kernel::StartAsync(const s64 threadId, IAsyncHandler * handler, const char 
 
 void Kernel::StopAsync(IAsyncHandler * handler) {
 	AsyncMgr::Instance()->Stop(handler);
+}
+
+s32 Kernel::GetId(const char * group, const char * name) {
+	return Id::Instance()->GetId(group, name);
 }
 
 IModule * Kernel::FindModule(const char * name) {

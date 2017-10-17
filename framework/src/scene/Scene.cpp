@@ -3,7 +3,6 @@
 #include "OArgs.h"
 #include "OBuffer.h"
 #include "IObjectMgr.h"
-#include "IProtocolMgr.h"
 #include "IVisionController.h"
 
 bool Scene::Initialize(IKernel * kernel) {
@@ -14,11 +13,11 @@ bool Scene::Initialize(IKernel * kernel) {
 }
 
 bool Scene::Launched(IKernel * kernel) {
-	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "scene")) {
-		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("scene", "create_scene"), Scene::CreateScene);
-		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "appear"), Scene::EnterScene);
-		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "disappear"), Scene::LeaveScene);
-		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "update"), Scene::UpdateObject);
+	if (OMODULE(Harbor)->GetNodeType() == OID("node_type", "scene")) {
+		RGS_HABOR_ARGS_HANDLER(OID("scene", "create_scene"), Scene::CreateScene);
+		RGS_HABOR_HANDLER(OID("scene", "appear"), Scene::EnterScene);
+		RGS_HABOR_HANDLER(OID("scene", "disappear"), Scene::LeaveScene);
+		RGS_HABOR_HANDLER(OID("scene", "update"), Scene::UpdateObject);
 
 		OMODULE(ObjectMgr)->ExtendT<std::set<s64>>("SceneUnit", "interest");
 		OMODULE(ObjectMgr)->ExtendT<std::set<s64>>("SceneUnit", "watcher");
@@ -39,7 +38,7 @@ void Scene::CreateScene(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs&
 	IArgs<2, 64> ntf;
 	ntf << sceneId << copyId;
 	ntf.Fix();
-	OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("scene", "comfirm_scene"), ntf.Out());
+	OMODULE(Harbor)->Send(nodeType, nodeId, OID("scene", "comfirm_scene"), ntf.Out());
 
 
 	if (OMODULE(ObjectMgr)->FindObject(id))
@@ -207,7 +206,7 @@ void Scene::DealInterest(s64 id, s32 logic, const std::vector<IObject*>& interes
 	for (auto * b : interest)
 		buf << b->GetPropInt64(OPROP("objectId"));
 
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "logic"), logic, PROTOCOL_ID("scene", "deal_interest"), buf.Out());
+	OMODULE(Harbor)->Send(OID("node_type", "logic"), logic, OID("scene", "deal_interest"), buf.Out());
 }
 
 void Scene::DealWatcher(s64 id, s32 logic, const std::vector<IObject*>& interest, const std::vector<IObject*>& notInterest) {
@@ -221,6 +220,6 @@ void Scene::DealWatcher(s64 id, s32 logic, const std::vector<IObject*>& interest
 	for (auto * b : interest) 
 		buf << b->GetPropInt64(OPROP("objectId"));
 
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "logic"), logic, PROTOCOL_ID("scene", "deal_watcher"), buf.Out());
+	OMODULE(Harbor)->Send(OID("node_type", "logic"), logic, OID("scene", "deal_watcher"), buf.Out());
 }
 

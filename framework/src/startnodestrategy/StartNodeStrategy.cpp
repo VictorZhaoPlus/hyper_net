@@ -1,6 +1,5 @@
 #include "StartNodeStrategy.h"
 #include "XmlReader.h"
-#include "IProtocolMgr.h"
 
 StartNodeStrategy * StartNodeStrategy::s_self = nullptr;
 IKernel * StartNodeStrategy::s_kernel = nullptr;
@@ -48,7 +47,7 @@ s32 StartNodeStrategy::ChooseNode(const s32 nodeType) {
 	if (s_slaves.empty())
 		return 0;
 
-	if (nodeType == PROTOCOL_ID("node_type", "gate"))
+	if (nodeType == OID("node_type", "gate"))
 		return Choose(s_kernel, BANDWIDTH, OVERLOAD);
 	else
 		return Choose(s_kernel, OVERLOAD, BANDWIDTH);

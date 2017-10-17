@@ -1,7 +1,6 @@
 #include "Analysis.h"
 #include "ICapacitySubscriber.h"
 #include "OArgs.h"
-#include "IProtocolMgr.h"
 
 bool Analysis::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -10,10 +9,10 @@ bool Analysis::Initialize(IKernel * kernel) {
 }
 
 bool Analysis::Launched(IKernel * kernel) {
-	if (OMODULE(Harbor)->GetNodeType() < PROTOCOL_ID("node_type", "user")) {
+	if (OMODULE(Harbor)->GetNodeType() < OID("node_type", "user")) {
 		OMODULE(Harbor)->AddNodeListener(this, "Analysis");
 
-		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("analysis", "test_delay_respone"), Analysis::TestDelayRespone);
+		RGS_HABOR_ARGS_HANDLER(OID("analysis", "test_delay_respone"), Analysis::TestDelayRespone);
 	}
 
     return true;
@@ -41,6 +40,6 @@ void Analysis::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
 
 	for (auto itr = _nodes.begin(); itr != _nodes.end(); ++itr) {
 		for (auto itrType = itr->second.begin(); itrType != itr->second.end(); ++itrType)
-			OMODULE(Harbor)->Send(itr->first, itrType->first, PROTOCOL_ID("analysis", "test_delay"), args.Out());
+			OMODULE(Harbor)->Send(itr->first, itrType->first, OID("analysis", "test_delay"), args.Out());
 	}
 }

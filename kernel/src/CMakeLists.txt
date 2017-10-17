@@ -13,6 +13,7 @@ INCLUDE_DIRECTORIES(
 	"${PROJECT_SOURCE_DIR}/src/timer/"
 	"${PROJECT_SOURCE_DIR}/src/async/"
 	"${PROJECT_SOURCE_DIR}/src/profile/"
+	"${PROJECT_SOURCE_DIR}/src/id/"
     )
 ENDIF(UNIX)
 
@@ -31,6 +32,7 @@ INCLUDE_DIRECTORIES(
 	"${PROJECT_SOURCE_DIR}/src/timer/"
 	"${PROJECT_SOURCE_DIR}/src/async/"
 	"${PROJECT_SOURCE_DIR}/src/profile/"
+	"${PROJECT_SOURCE_DIR}/src/id/"
     )
 ENDIF(WIN32)
 
@@ -95,6 +97,11 @@ SET(KERNEL_PROFILE
     "${PROJECT_SOURCE_DIR}/src/profile/Profile.h"
     "${PROJECT_SOURCE_DIR}/src/profile/Profile.cpp"
     )
+	
+SET(KERNEL_ID
+    "${PROJECT_SOURCE_DIR}/src/id/Id.h"
+    "${PROJECT_SOURCE_DIR}/src/id/Id.cpp"
+    )
 
 SET(KERNEL
     "${PROJECT_SOURCE_DIR}/src/kernel.h"
@@ -109,6 +116,7 @@ SOURCE_GROUP(logic FILES ${KERNEL_LOGIC})
 SOURCE_GROUP(timer FILES ${KERNEL_TIMER})
 SOURCE_GROUP(async FILES ${KERNEL_ASYNC})
 source_group(profile FILES ${KERNEL_PROFILE})
+source_group(id FILES ${KERNEL_ID})
 SOURCE_GROUP(API FILES ${API})
 SOURCE_GROUP(public\\tinyxml FILES ${PUBLIC_XML})
 SOURCE_GROUP(public FILES ${PUBLIC})
@@ -123,6 +131,7 @@ ADD_EXECUTABLE(serverd
 	${KERNEL_LOGGER}
 	${KERNEL_ASYNC}
 	${KERNEL_PROFILE}
+	${KERNEL_ID}
 	${PUBLIC}
 	${PUBLIC_XML}
 	${KERNEL}

@@ -2,7 +2,6 @@
 #include "OBuffer.h"
 #include "OArgs.h"
 #include "IIdMgr.h"
-#include "IProtocolMgr.h"
 
 bool SceneMgr::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -11,12 +10,12 @@ bool SceneMgr::Initialize(IKernel * kernel) {
 }
 
 bool SceneMgr::Launched(IKernel * kernel) {
-	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "scenemgr")) {
-		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "appear"), SceneMgr::OnRecvAppear);
-		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "disappear"), SceneMgr::OnRecvDisappear);
-		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "update"), SceneMgr::OnRecvUpdate);
-		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("scene", "confirmScene"), SceneMgr::OnRecvConfirm);
-		RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("scene", "recoverScene"), SceneMgr::OnRecvRecover);
+	if (OMODULE(Harbor)->GetNodeType() == OID("node_type", "scenemgr")) {
+		RGS_HABOR_HANDLER(OID("scene", "appear"), SceneMgr::OnRecvAppear);
+		RGS_HABOR_HANDLER(OID("scene", "disappear"), SceneMgr::OnRecvDisappear);
+		RGS_HABOR_HANDLER(OID("scene", "update"), SceneMgr::OnRecvUpdate);
+		RGS_HABOR_ARGS_HANDLER(OID("scene", "confirmScene"), SceneMgr::OnRecvConfirm);
+		RGS_HABOR_ARGS_HANDLER(OID("scene", "recoverScene"), SceneMgr::OnRecvRecover);
 	}
     return true;
 }
@@ -27,7 +26,7 @@ bool SceneMgr::Destroy(IKernel * kernel) {
 }
 
 void SceneMgr::OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port) {
-	if (nodeType == PROTOCOL_ID("node_type", "scene")) {
+	if (nodeType == OID("node_type", "scene")) {
 		auto itr = std::find(_nodes.begin(), _nodes.end(), nodeId);
 		if (itr == _nodes.end())
 			_nodes.push_back(nodeId);
@@ -48,12 +47,12 @@ void SceneMgr::OnRecvAppear(IKernel * kernel, s32 nodeType, s32 nodeId, const OB
 	IArgs<3, 64> ntf;
 	ntf << rst.second << scene << copyId;
 	ntf.Fix();
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, PROTOCOL_ID("scene", "create_scene"), ntf.Out());
+	OMODULE(Harbor)->Send(OID("node_type", "scene"), rst.first, OID("scene", "create_scene"), ntf.Out());
 
 	OBuffer left = args.Left();
-	OMODULE(Harbor)->PrepareSend(PROTOCOL_ID("node_type", "scene"), rst.first, PROTOCOL_ID("scene", "appear"), sizeof(rst.second) + left.GetSize());
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, &rst.second, sizeof(rst.second));
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, left.GetContext(), left.GetSize());
+	OMODULE(Harbor)->PrepareSend(OID("node_type", "scene"), rst.first, OID("scene", "appear"), sizeof(rst.second) + left.GetSize());
+	OMODULE(Harbor)->Send(OID("node_type", "scene"), rst.first, &rst.second, sizeof(rst.second));
+	OMODULE(Harbor)->Send(OID("node_type", "scene"), rst.first, left.GetContext(), left.GetSize());
 }
 
 void SceneMgr::OnRecvDisappear(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer & args) {
@@ -68,9 +67,9 @@ void SceneMgr::OnRecvDisappear(IKernel * kernel, s32 nodeType, s32 nodeId, const
 	OASSERT(rst.first > 0, "wtf");
 
 	OBuffer left = args.Left();
-	OMODULE(Harbor)->PrepareSend(PROTOCOL_ID("node_type", "scene"), rst.first, PROTOCOL_ID("scene", "disappear"), sizeof(rst.second) + left.GetSize());
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, &rst.second, sizeof(rst.second));
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, left.GetContext(), left.GetSize());
+	OMODULE(Harbor)->PrepareSend(OID("node_type", "scene"), rst.first, OID("scene", "disappear"), sizeof(rst.second) + left.GetSize());
+	OMODULE(Harbor)->Send(OID("node_type", "scene"), rst.first, &rst.second, sizeof(rst.second));
+	OMODULE(Harbor)->Send(OID("node_type", "scene"), rst.first, left.GetContext(), left.GetSize());
 }
 
 void SceneMgr::OnRecvUpdate(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer & args) {
@@ -85,9 +84,9 @@ void SceneMgr::OnRecvUpdate(IKernel * kernel, s32 nodeType, s32 nodeId, const OB
 	OASSERT(rst.first > 0, "wtf");
 
 	OBuffer left = args.Left();
-	OMODULE(Harbor)->PrepareSend(PROTOCOL_ID("node_type", "scene"), rst.first, PROTOCOL_ID("scene", "update"), sizeof(rst.second) + left.GetSize());
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, &rst.second, sizeof(rst.second));
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "scene"), rst.first, left.GetContext(), left.GetSize());
+	OMODULE(Harbor)->PrepareSend(OID("node_type", "scene"), rst.first, OID("scene", "update"), sizeof(rst.second) + left.GetSize());
+	OMODULE(Harbor)->Send(OID("node_type", "scene"), rst.first, &rst.second, sizeof(rst.second));
+	OMODULE(Harbor)->Send(OID("node_type", "scene"), rst.first, left.GetContext(), left.GetSize());
 }
 
 void SceneMgr::OnRecvConfirm(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {

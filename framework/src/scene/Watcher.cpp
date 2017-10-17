@@ -1,7 +1,6 @@
 #include "Watcher.h"
 #include "IHarbor.h"
 #include "IEventEngine.h"
-#include "IProtocolMgr.h"
 #include "ILogin.h"
 #include "IOCommand.h"
 #include "IObjectMgr.h"
@@ -45,14 +44,14 @@ bool Watcher::Initialize(IKernel * kernel) {
 }
 
 bool Watcher::Launched(IKernel * kernel) {
-	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "logic")) {
-		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "deal_interest"), Watcher::DealInterest);
-		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "deal_watcher"), Watcher::DealWatcher);
-		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "query"), Watcher::Query);
-		RGS_HABOR_HANDLER(PROTOCOL_ID("scene", "query_ack"), Watcher::QueryAck);
+	if (OMODULE(Harbor)->GetNodeType() == OID("node_type", "logic")) {
+		RGS_HABOR_HANDLER(OID("scene", "deal_interest"), Watcher::DealInterest);
+		RGS_HABOR_HANDLER(OID("scene", "deal_watcher"), Watcher::DealWatcher);
+		RGS_HABOR_HANDLER(OID("scene", "query"), Watcher::Query);
+		RGS_HABOR_HANDLER(OID("scene", "query_ack"), Watcher::QueryAck);
 
 
-		RGS_EVENT_HANDLER(PROTOCOL_ID("evt_scene", "scene_object_destroy"), Watcher::DisapperWhenDestroy);
+		RGS_EVENT_HANDLER(OID("evt_scene", "scene_object_destroy"), Watcher::DisapperWhenDestroy);
 	}
 
     return true;
@@ -116,14 +115,14 @@ s64 Watcher::QueryInVision(IObject * object, const s32 type, const void * contex
 			++count;
 			if (count >= SINGLE_PATCH) {
 				count = 0;
-				OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "logic"), itr->first, PROTOCOL_ID("scene", "query"), buf.Out());
+				OMODULE(Harbor)->Send(OID("node_type", "logic"), itr->first, OID("scene", "query"), buf.Out());
 
 				buf.Back(mark);
 			}
 		}
 		
 		if (count > 0)
-			OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "logic"), itr->first, PROTOCOL_ID("scene", "query"), buf.Out());
+			OMODULE(Harbor)->Send(OID("node_type", "logic"), itr->first, OID("scene", "query"), buf.Out());
 	}
 
 	START_TIMER(query, 0, 1, wait);
@@ -168,7 +167,7 @@ void Watcher::Query(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& a
 		buf << id << batch;
 	}
 	
-	OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("scene", "query_ack"), buf.Out());
+	OMODULE(Harbor)->Send(nodeType, nodeId, OID("scene", "query_ack"), buf.Out());
 }
 
 void Watcher::QueryAck(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuffer& args) {
@@ -270,7 +269,7 @@ void Watcher::DealWatcher(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuf
 					}
 				}
 
-				OMODULE(PacketSender)->Brocast(actors, PROTOCOL_ID("cli_scene", "role_appear"), buf.Out());
+				OMODULE(PacketSender)->Brocast(actors, OID("cli_scene", "role_appear"), buf.Out());
 			}
 		}
 
@@ -292,7 +291,7 @@ void Watcher::DealWatcher(IKernel * kernel, s32 nodeType, s32 nodeId, const OBuf
 			olib::Buffer<64> buf;
 			buf << reciever->GetID();
 
-			OMODULE(PacketSender)->Brocast(actors, PROTOCOL_ID("cli_scene", "role_disappear"), buf.Out());
+			OMODULE(PacketSender)->Brocast(actors, OID("cli_scene", "role_disappear"), buf.Out());
 		}
 	}
 }
@@ -304,5 +303,5 @@ void Watcher::DisapperWhenDestroy(IKernel * kernel, const void * context, const 
 	olib::Buffer<64> buf;
 	buf << object->GetID();
 
-	Brocast(object, PROTOCOL_ID("cli_scene", "role_disappear"), buf.Out());
+	Brocast(object, OID("cli_scene", "role_disappear"), buf.Out());
 }

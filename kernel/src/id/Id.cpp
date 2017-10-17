@@ -1,10 +1,13 @@
-#include "ProtocolMgr.h"
+#include "Id.h"
 #include "XmlReader.h"
+#include "kernel.h"
 #include "tools.h"
 
-bool ProtocolMgr::Initialize(IKernel * kernel) {
-    _kernel = kernel;
+bool Id::Ready() {
+    return true;
+}
 
+bool Id::Initialize() {
 	std::string coreConfigPath = std::string(tools::GetWorkPath()) + "/config/proto";
 	tools::ListFileInDirection(coreConfigPath.c_str(), ".xml", [this](const char * name, const char * path) {
 		olib::XmlReader reader;
@@ -23,23 +26,10 @@ bool ProtocolMgr::Initialize(IKernel * kernel) {
 		});
 	});
 
-
     return true;
 }
 
-bool ProtocolMgr::Launched(IKernel * kernel) {
-    return true;
-}
-
-bool ProtocolMgr::Destroy(IKernel * kernel) {
+bool Id::Destroy() {
     DEL this;
     return true;
-}
-
-s32 ProtocolMgr::GetId(const char * group, const char * name) {
-	auto itr = _protos[group].find(name);
-	OASSERT(itr != _protos[group].end(), "where is %s/%s", group, name);
-	if (itr != _protos[group].end())
-		return itr->second;
-	return 0;
 }

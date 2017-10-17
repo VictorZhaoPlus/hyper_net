@@ -1,7 +1,6 @@
 #include "Command.h"
 #include "IScriptEngine.h"
 #include "IHarbor.h"
-#include "IProtocolMgr.h"
 #include "OBuffer.h"
 #include "IObjectMgr.h"
 
@@ -13,17 +12,17 @@ bool Command::Initialize(IKernel * kernel) {
 bool Command::Launched(IKernel * kernel) {
 	_module = OMODULE(ScriptEngine)->CreateModule("command");
 
-	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "logic")) {
-		RGS_HABOR_HANDLER(PROTOCOL_ID("command", "call"), Command::OnCall);
-		RGS_HABOR_HANDLER(PROTOCOL_ID("command", "call_no_ret"), Command::OnCallNoRet);
-		RGS_HABOR_HANDLER(PROTOCOL_ID("command", "respone"), Command::OnRespone);
+	if (OMODULE(Harbor)->GetNodeType() == OID("node_type", "logic")) {
+		RGS_HABOR_HANDLER(OID("command", "call"), Command::OnCall);
+		RGS_HABOR_HANDLER(OID("command", "call_no_ret"), Command::OnCallNoRet);
+		RGS_HABOR_HANDLER(OID("command", "respone"), Command::OnRespone);
 
 		RGS_SCRIPT_FUNC(_module, "call_wait", Command::Call);
 		RGS_SCRIPT_FUNC(_module, "call", Command::CallNoRet);
 		RGS_SCRIPT_FUNC(_module, "respone", Command::Respone);
 	}
-	else if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "relation")) {
-		RGS_HABOR_HANDLER(PROTOCOL_ID("command", "call_forward"), Command::OnCallForward);
+	else if (OMODULE(Harbor)->GetNodeType() == OID("node_type", "relation")) {
+		RGS_HABOR_HANDLER(OID("command", "call_forward"), Command::OnCallForward);
 	}
 	else {
 		RGS_SCRIPT_FUNC(_module, "call", Command::CallNoRet);
@@ -49,11 +48,11 @@ void Command::Call(IKernel * kernel, const IScriptArgumentReader * reader, IScri
 
 	s64 id = sender->GetID();
 	s32 sequenceId = _sequenceId++;
-	OMODULE(Harbor)->PrepareSend(PROTOCOL_ID("node_type", "relation"), 1, PROTOCOL_ID("command", "call_forward"), sizeof(s64) * 2 + sizeof(s32) + size);
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "relation"), 1, &id, sizeof(id));
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "relation"), 1, &reciever, sizeof(reciever));
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "relation"), 1, &sequenceId, sizeof(sequenceId));
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "relation"), 1, buffer, size);
+	OMODULE(Harbor)->PrepareSend(OID("node_type", "relation"), 1, OID("command", "call_forward"), sizeof(s64) * 2 + sizeof(s32) + size);
+	OMODULE(Harbor)->Send(OID("node_type", "relation"), 1, &id, sizeof(id));
+	OMODULE(Harbor)->Send(OID("node_type", "relation"), 1, &reciever, sizeof(reciever));
+	OMODULE(Harbor)->Send(OID("node_type", "relation"), 1, &sequenceId, sizeof(sequenceId));
+	OMODULE(Harbor)->Send(OID("node_type", "relation"), 1, buffer, size);
 
 	writer->Write("i", sequenceId);
 }
@@ -66,9 +65,9 @@ void Command::CallNoRet(IKernel * kernel, const IScriptArgumentReader * reader, 
 	if (!reader->Read("lS", &reciever, &buffer, &size))
 		return;
 
-	OMODULE(Harbor)->PrepareSend(PROTOCOL_ID("node_type", "relation"), 1, PROTOCOL_ID("command", "call_no_ret"), sizeof(s64) + size);
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "relation"), 1, &reciever, sizeof(reciever));
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "relation"), 1, buffer, size);
+	OMODULE(Harbor)->PrepareSend(OID("node_type", "relation"), 1, OID("command", "call_no_ret"), sizeof(s64) + size);
+	OMODULE(Harbor)->Send(OID("node_type", "relation"), 1, &reciever, sizeof(reciever));
+	OMODULE(Harbor)->Send(OID("node_type", "relation"), 1, buffer, size);
 }
 
 void Command::Respone(IKernel * kernel, const IScriptArgumentReader * reader, IScriptResultWriter * writer) {
@@ -83,7 +82,7 @@ void Command::Respone(IKernel * kernel, const IScriptArgumentReader * reader, IS
 	OASSERT(itr != _respones.end(), "wtf");
 	if (itr != _respones.end()) {
 
-		OMODULE(Harbor)->PrepareSend(itr->second.nodeType, itr->second.nodeId, PROTOCOL_ID("command", "respone"), sizeof(s64) + sizeof(s32) + size);
+		OMODULE(Harbor)->PrepareSend(itr->second.nodeType, itr->second.nodeId, OID("command", "respone"), sizeof(s64) + sizeof(s32) + size);
 		OMODULE(Harbor)->Send(itr->second.nodeType, itr->second.nodeId, &itr->second.sender, sizeof(s64));
 		OMODULE(Harbor)->Send(itr->second.nodeType, itr->second.nodeId, &itr->second.sequenceId, sizeof(s32));
 		OMODULE(Harbor)->Send(itr->second.nodeType, itr->second.nodeId, buffer, size);

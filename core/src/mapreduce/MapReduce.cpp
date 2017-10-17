@@ -36,4 +36,3 @@ void MapReduce::StartAsyncTask(IAsyncMapReduceTask * task, const char * file, s3
 void MapReduce::StopAsyncTask(IAsyncMapReduceTask * task) {
 	OASSERT(task->GetBase(), "wtf");
 }
-

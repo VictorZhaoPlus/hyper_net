@@ -1,6 +1,5 @@
 #include "CapacitySubscriber.h"
 #include "OArgs.h"
-#include "IProtocolMgr.h"
 
 bool CapacitySubscriber::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -11,7 +10,7 @@ bool CapacitySubscriber::Initialize(IKernel * kernel) {
 bool CapacitySubscriber::Launched(IKernel * kernel) {
 	OMODULE(Harbor)->AddNodeListener(this, "CapacitySubscriber");
 
-	RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("capacity", "over_load"), CapacitySubscriber::ReadLoad);
+	RGS_HABOR_ARGS_HANDLER(OID("capacity", "over_load"), CapacitySubscriber::ReadLoad);
     return true;
 }
 

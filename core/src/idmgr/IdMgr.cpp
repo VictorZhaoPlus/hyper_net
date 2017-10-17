@@ -2,7 +2,6 @@
 #include "IHarbor.h"
 #include "OArgs.h"
 #include "XmlReader.h"
-#include "IProtocolMgr.h"
 #include "IEventEngine.h"
 
 #define SEQUENCE_BITS 5
@@ -42,12 +41,12 @@ bool IdMgr::Launched(IKernel * kernel) {
 		_loadFirst = false;
 
 		if (OMODULE(Harbor)->GetNodeType() == _nodeType) {
-			RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("id", "ask"), IdMgr::AskId);
+			RGS_HABOR_ARGS_HANDLER(OID("id", "ask"), IdMgr::AskId);
 
 			START_TIMER(this, 0, 1, TIMER_INTERVAL);
 		}
 		else {
-			RGS_HABOR_ARGS_HANDLER(PROTOCOL_ID("id", "give"), IdMgr::GiveId);
+			RGS_HABOR_ARGS_HANDLER(OID("id", "give"), IdMgr::GiveId);
 
 			START_TIMER(this, 0, TIMER_BEAT_FOREVER, TIMER_INTERVAL);
 		}
@@ -86,7 +85,7 @@ void IdMgr::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
 				_ids.push_back(GenerateId());
 
 			if (_loadFirst) {
-				OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_id", "id_loaded"), nullptr, 0);
+				OMODULE(EventEngine)->Exec(OID("evt_id", "id_loaded"), nullptr, 0);
 				_loadFirst = false;
 			}
 		}
@@ -94,7 +93,7 @@ void IdMgr::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
 			IArgs<1, 32> args;
 			args << 0;
 			args.Fix();
-			OMODULE(Harbor)->Send(_nodeType, 1, PROTOCOL_ID("id", "ask"), args.Out());
+			OMODULE(Harbor)->Send(_nodeType, 1, OID("id", "ask"), args.Out());
 		}
 	}
 }
@@ -122,7 +121,7 @@ void IdMgr::AskId(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args
 	IArgs<SINGLE_PATCH, SINGLE_PATCH_SIZE> ret;
 	for (s32 i = 0; i < SINGLE_PATCH; ++i)
 		ret << GenerateId();
-	OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("id", "give"), ret.Out());
+	OMODULE(Harbor)->Send(nodeType, nodeId, OID("id", "give"), ret.Out());
 }
 
 void IdMgr::GiveId(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & args) {
@@ -130,7 +129,7 @@ void IdMgr::GiveId(IKernel * kernel, s32 nodeType, s32 nodeId, const OArgs & arg
 		_ids.push_back(args.GetDataInt64(i));
 
 	if (_loadFirst) {
-		OMODULE(EventEngine)->Exec(PROTOCOL_ID("evt_id", "id_loaded"), nullptr, 0);
+		OMODULE(EventEngine)->Exec(OID("evt_id", "id_loaded"), nullptr, 0);
 		_loadFirst = false;
 	}
 }

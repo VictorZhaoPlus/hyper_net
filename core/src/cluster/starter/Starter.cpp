@@ -2,10 +2,8 @@
 #include "IHarbor.h"
 #include "XmlReader.h"
 #include "ICapacitySubscriber.h"
-#include "IProtocolMgr.h"
 #include "StartNodeTimer.h"
 #include "OArgs.h"
-#include "IProtocolMgr.h"
 
 bool Starter::Initialize(IKernel * kernel) {
     _kernel = kernel;
@@ -41,7 +39,7 @@ bool Starter::Initialize(IKernel * kernel) {
 }
 
 bool Starter::Launched(IKernel * kernel) {
-	if (OMODULE(Harbor)->GetNodeType() == PROTOCOL_ID("node_type", "master")) {
+	if (OMODULE(Harbor)->GetNodeType() == OID("node_type", "master")) {
 		OMODULE(Harbor)->AddNodeListener(this, "Starter");
 
 		for (auto itr = _executes.begin(); itr != _executes.end(); ++itr) {
@@ -70,7 +68,7 @@ s32 Starter::ChooseNode(const s32 nodeType) {
 
 void Starter::OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, const char * ip, s32 port) {
 	OASSERT(_strategy, "miss start strategy");
-	if (nodeType == PROTOCOL_ID("node_type", "slave"))
+	if (nodeType == OID("node_type", "slave"))
 		_strategy->AddSlave(nodeId);
 	else {
 		if (_executes.find(nodeType) != _executes.end()) {
@@ -81,7 +79,7 @@ void Starter::OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool hide, cons
 }
 
 void Starter::OnClose(IKernel * kernel, s32 nodeType, s32 nodeId) {
-	if (nodeType != PROTOCOL_ID("node_type", "slave")) {
+	if (nodeType != OID("node_type", "slave")) {
 		_nodes[nodeType].nodes[nodeId].online = false;
 		_nodes[nodeType].nodes[nodeId].closeTick = tools::GetTimeMillisecond();
 	}
@@ -131,11 +129,11 @@ void Starter::OnNodeTimerEnd(IKernel * kernel, s32 type, s64 tick) {
 void Starter::StartNode(IKernel * kernel, s32 nodeType, s32 nodeId) {
 	OASSERT(_strategy, "miss start strategy");
 	s32 slave = _strategy->ChooseNode(nodeType);
-	OASSERT(slave != PROTOCOL_ID("node_type", "invalid"), "where is slave");
+	OASSERT(slave != OID("node_type", "invalid"), "where is slave");
 
 	IArgs<2, 64> args;
 	args << nodeType << nodeId;
 	args.Fix();
 
-	OMODULE(Harbor)->Send(PROTOCOL_ID("node_type", "slave"), slave, PROTOCOL_ID("cluster", "start_node"), args.Out());
+	OMODULE(Harbor)->Send(OID("node_type", "slave"), slave, OID("cluster", "start_node"), args.Out());
 }

@@ -26,7 +26,6 @@ public:
 
 private:
     IKernel * _kernel;
-	IHarbor * _harbor;
 	IDistributionStrategy * _strategy;
 
 	std::unordered_map<s64, s32> _distributes;

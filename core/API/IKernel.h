@@ -144,6 +144,8 @@ namespace core {
 		virtual void StartAsync(const s64 threadId, IAsyncHandler * handler, const char * file, const s32 line) = 0;
 		virtual void StopAsync(IAsyncHandler * handler) = 0;
 
+		virtual s32 GetId(const char * group, const char * name) = 0;
+
         virtual IModule * FindModule(const char * name) = 0;
 
         virtual const char * GetCmdArg(const char * key) = 0;
@@ -174,5 +176,15 @@ struct OModule {
 };
 
 #define OMODULE(name) (OModule<I##name>::Instance(#name))
+
+template <s64, s64>
+struct OId {
+	inline static const s32 Get(const char * group, const char * name) {
+		static const s32 ret = GetCore()->GetId(group, name);
+		return ret;
+	}
+};
+
+#define OID(group, name) (OId<CalcUniqueId(0, group), CalcUniqueId(0, name)>::Get(group, name))
 
 #endif // __IKERNEL_H__

@@ -1,6 +1,5 @@
 #include "CapacityPublisher.h"
 #include "OArgs.h"
-#include "IProtocolMgr.h"
 
 #define CAPACITY_SYNC_INTERVAL 500
 
@@ -37,7 +36,7 @@ void CapacityPublisher::OnOpen(IKernel * kernel, s32 nodeType, s32 nodeId, bool 
 	args << _load;
 	args.Fix();
 
-	OMODULE(Harbor)->Send(nodeType, nodeId, PROTOCOL_ID("capacity", "over_load"), args.Out());
+	OMODULE(Harbor)->Send(nodeType, nodeId, OID("capacity", "over_load"), args.Out());
 }
 
 void CapacityPublisher::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
@@ -46,7 +45,7 @@ void CapacityPublisher::OnTimer(IKernel * kernel, s32 beatCount, s64 tick) {
 		args << _load;
 		args.Fix();
 
-		OMODULE(Harbor)->Brocast(PROTOCOL_ID("capacity", "over_load"), args.Out());
+		OMODULE(Harbor)->Brocast(OID("capacity", "over_load"), args.Out());
 		_changed = false;
 	}
 }

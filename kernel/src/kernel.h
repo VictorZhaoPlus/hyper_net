@@ -25,6 +25,8 @@ public:
 	virtual void StartAsync(const s64 threadId, IAsyncHandler * handler, const char * file, const s32 line);
 	virtual void StopAsync(IAsyncHandler * handler);
 
+	virtual s32 GetId(const char * group, const char * name);
+
     virtual IModule * FindModule(const char * name);
     virtual const char * GetCmdArg(const char * key);
 

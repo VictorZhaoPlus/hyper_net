@@ -4,9 +4,9 @@
 	<module name="Monitor" />
 	
     <module name="Cluster" />
-	<module name="Redis" />
 	<module name="IdMgr" />
-	<module name="CacheDB" />
-	<module name="Agent" />
+	<module name="EventEngine" />
+	<module name="ObjectMgr" />
 	<module name="Login" />
+	<module name="Scene" />
 </config>

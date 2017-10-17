@@ -7,6 +7,9 @@
 	<module name="Redis" />
 	<module name="IdMgr" />
 	<module name="CacheDB" />
-	<module name="Agent" />
-	<module name="Login" />
+	<module name="EventEngine" />
+	<module name="ObjectMgr" />
+	<module name="Save" />
+	<module name="ObjectTimer" />
+	<module name="ObjectLocator" />
 </config>
